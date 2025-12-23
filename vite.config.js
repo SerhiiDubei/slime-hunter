@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/slime-hunter/',  // GitHub Pages base path
   root: '.',
   publicDir: 'public',
   server: {
@@ -12,4 +13,3 @@ export default defineConfig({
     assetsDir: 'assets'
   }
 });
-
