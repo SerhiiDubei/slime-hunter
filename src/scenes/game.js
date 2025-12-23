@@ -6,8 +6,10 @@ import { GS } from '../state.js';
 import { playSound } from '../audio.js';
 import { KEYS } from '../keyboard.js';
 import { choose } from '../utils.js';
+import { KEYBINDS } from '../state.js';
 import { createPlayer, setupPlayerMovement } from '../entities/player.js';
-import { spawnRandomEnemy } from '../entities/enemies.js';
+import { spawnRandomEnemy, spawnBoss } from '../entities/enemies.js';
+import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
 import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
 import { createHUD } from '../ui.js';
@@ -155,25 +157,30 @@ export function createGameScene() {
         // Setup ultimate
         setupUltimate();
 
-        // Input
-        onKeyPress("space", doMeleeAttack);
-        onKeyPress("j", doMeleeAttack);
+        // Input - use customizable keybinds
+        const meleeKey = KEYBINDS.meleeAttack || 'space';
+        const rangedKey = KEYBINDS.rangedAttack || 'e';
+        const ultKey = KEYBINDS.ultimate || 'q';
         
-        let lastEState = false;
-        let lastSpaceState = false;
-        let lastQState = false;
+        onKeyPress(meleeKey, doMeleeAttack);
+        onKeyPress("j", doMeleeAttack); // Alternative always available
+        
+        let keyStates = {};
         onUpdate(() => {
             // Ranged attack
-            if (KEYS.e && !lastEState) doRangedAttack();
-            lastEState = KEYS.e;
+            const rangedPressed = isKeyDown(rangedKey);
+            if (rangedPressed && !keyStates.ranged) doRangedAttack();
+            keyStates.ranged = rangedPressed;
             
-            // Melee attack
-            if (KEYS.space && !lastSpaceState) doMeleeAttack();
-            lastSpaceState = KEYS.space;
+            // Melee attack (also check via native for reliability)
+            const meleePressed = isKeyDown(meleeKey);
+            if (meleePressed && !keyStates.melee) doMeleeAttack();
+            keyStates.melee = meleePressed;
             
-            // Ultimate ability (Q)
-            if (KEYS.q && !lastQState) tryUseUltimate();
-            lastQState = KEYS.q;
+            // Ultimate ability
+            const ultPressed = isKeyDown(ultKey);
+            if (ultPressed && !keyStates.ult) tryUseUltimate();
+            keyStates.ult = ultPressed;
             
             // Update ultimate cooldown
             updateUltimate();
@@ -216,8 +223,12 @@ export function createGameScene() {
             }
         });
 
-        // Spawn enemies (mix of melee and ranged)
-        for (let i = 0; i < Math.min(3, CONFIG.ENEMIES_PER_LEVEL - 1); i++) {
+        // Spawn enemies based on level config
+        const levelConfig = getLevel(GS.currentLevel);
+        const enemyCount = levelConfig.enemyCount;
+        const initialSpawn = Math.min(3, enemyCount);
+        
+        for (let i = 0; i < initialSpawn; i++) {
             wait(i * 0.5, spawnRandomEnemy);
         }
 

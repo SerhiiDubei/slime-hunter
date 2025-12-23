@@ -5,6 +5,7 @@ import { CONFIG } from './config.js';
 import { GS } from './state.js';
 import { KEYS } from './keyboard.js';
 import { HEROES } from './data/heroes.js';
+import { getLevel } from './data/levels.js';
 
 export function createHUD() {
     // HP bar frame
@@ -28,6 +29,7 @@ export function createHUD() {
     // Ultimate bar (golden)
     add([rect(158, 18), pos(16, 84), color(60, 45, 30), fixed(), z(99)]);
     add([rect(154, 14), pos(18, 86), color(25, 20, 15), fixed(), z(100)]);
+    const ultGlow = add([rect(154, 14), pos(18, 86), color(255, 200, 50), opacity(0), fixed(), z(100.5)]);
     const ultBar = add([rect(0, 10), pos(20, 88), color(200, 150, 50), fixed(), z(101)]);
     const ultTxt = add([text("Q", { size: 9 }), pos(30, 93), anchor("center"), color(200, 180, 140), fixed(), z(102)]);
     const ultReady = add([text("", { size: 9 }), pos(120, 93), anchor("center"), color(255, 220, 100), fixed(), z(102)]);
@@ -109,17 +111,28 @@ export function createHUD() {
         xpBar.width = 150 * GS.getXPProgress();
         lvTxt.text = `LV.${GS.playerLevel}`;
         
-        // Ultimate
+        // Ultimate - pulsing animation when ready
         const ultPct = GS.ultimateCharge / GS.ultimateMax;
         ultBar.width = 150 * ultPct;
         if (GS.ultimateReady) {
-            ultBar.color = rgb(255, 200, 50);
-            ultReady.text = "READY!";
-            ultBar.opacity = 0.8 + Math.sin(time() * 8) * 0.2;
+            // Pulsing glow effect
+            const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
+            ultBar.color = rgb(255, 200 + pulse * 55, 50);
+            ultBar.opacity = 0.7 + pulse * 0.3;
+            ultGlow.opacity = pulse * 0.4;
+            ultReady.text = "⚡ READY! ⚡";
+            ultReady.color = rgb(255, 200 + pulse * 55, 100 + pulse * 100);
+            ultTxt.color = rgb(255, 220, 100);
+            // Scale pulse
+            ultBar.scale = vec2(1 + pulse * 0.05, 1 + pulse * 0.1);
         } else {
             ultBar.color = rgb(160, 120, 60);
             ultReady.text = `${GS.ultimateCharge}/${GS.ultimateMax}`;
+            ultReady.color = rgb(255, 220, 100);
+            ultTxt.color = rgb(200, 180, 140);
             ultBar.opacity = 1;
+            ultBar.scale = vec2(1, 1);
+            ultGlow.opacity = 0;
         }
         
         // Ranged cooldown
@@ -139,9 +152,11 @@ export function createHUD() {
         bulletTxt.color = stats.bulletCount >= 3 ? rgb(255, 150, 100) : stats.bulletCount >= 2 ? rgb(255, 220, 100) : rgb(150, 200, 220);
         
         // Score, gold, enemies
+        const levelConfig = getLevel(GS.currentLevel);
+        const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
         scoreTxt.text = `${GS.score}`;
         goldTxt.text = `💰 ${GS.gold}`;
-        enemyTxt.text = `Enemies: ${GS.enemiesKilled}/${CONFIG.ENEMIES_PER_LEVEL}`;
+        enemyTxt.text = `Enemies: ${GS.enemiesKilled}/${maxEnemies}`;
         keyTxt.text = GS.hasKey ? "🔑 KEY ACQUIRED!" : "";
         
         // Passive skills

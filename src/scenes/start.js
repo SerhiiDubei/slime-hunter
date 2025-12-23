@@ -142,8 +142,33 @@ export function createStartScene() {
         onKeyPress("space", () => { playSound('start'); go("heroSelect"); });
         onKeyPress("enter", () => { playSound('start'); go("heroSelect"); });
         
+        // Options button
+        const optBtn = add([
+            rect(120, 35, { radius: 4 }),
+            pos(CONFIG.MAP_WIDTH - 90, 30),
+            anchor("center"),
+            color(40, 35, 30),
+            area(),
+            z(10),
+            "optBtn",
+        ]);
+        
         add([
-            text("Press SPACE or ENTER to continue", { size: 10 }),
+            text("⚙️ OPTIONS", { size: 12 }),
+            pos(CONFIG.MAP_WIDTH - 90, 30),
+            anchor("center"),
+            color(150, 130, 100),
+            z(11),
+        ]);
+        
+        optBtn.onHoverUpdate(() => { optBtn.color = rgb(60, 50, 40); });
+        optBtn.onHoverEnd(() => { optBtn.color = rgb(40, 35, 30); });
+        
+        onClick("optBtn", () => { playSound('click'); go("options"); });
+        onKeyPress("o", () => { playSound('click'); go("options"); });
+        
+        add([
+            text("Press SPACE or ENTER to continue • O for Options", { size: 10 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 25),
             anchor("center"),
             color(80, 70, 60),

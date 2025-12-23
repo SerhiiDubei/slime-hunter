@@ -24,6 +24,40 @@ export const STAT_INFO = {
 // Upgrade costs (gold) for each stat level
 export const UPGRADE_COSTS = [50, 100, 200, 350, 500, 750, 1000, 1500];
 
+// Default keybinds
+const DEFAULT_KEYBINDS = {
+    meleeAttack: 'space',
+    rangedAttack: 'e',
+    ultimate: 'q',
+    sprint: 'shift',
+};
+
+// Current keybinds (can be modified in options)
+export const KEYBINDS = { ...DEFAULT_KEYBINDS };
+
+export function setKeybind(action, key) {
+    KEYBINDS[action] = key;
+    // Save to localStorage
+    try {
+        localStorage.setItem('slimeHunterKeybinds', JSON.stringify(KEYBINDS));
+    } catch (e) {}
+}
+
+export function resetKeybinds() {
+    Object.assign(KEYBINDS, DEFAULT_KEYBINDS);
+    try {
+        localStorage.removeItem('slimeHunterKeybinds');
+    } catch (e) {}
+}
+
+// Load saved keybinds
+try {
+    const saved = localStorage.getItem('slimeHunterKeybinds');
+    if (saved) {
+        Object.assign(KEYBINDS, JSON.parse(saved));
+    }
+} catch (e) {}
+
 export const GS = {
     player: null,
     score: 0,

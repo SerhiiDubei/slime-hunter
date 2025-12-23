@@ -1,87 +1,112 @@
 // ==================== LEVEL CONFIGURATIONS ====================
-// Easy to add new levels - just add more objects to the array!
+// Each level has unique settings, dialogues, and boss
 
 export const LEVELS = [
-    // Level 1 - Tutorial / Easy
     {
         id: 1,
-        name: "Dungeon Entrance",
+        name: "THE SLIME PIT",
+        subtitle: "Where it all begins...",
         background: [26, 26, 46],
-        enemyCount: 6,
+        enemyCount: 5,
+        bossWithMinions: false,        // Boss spawns alone
         difficultyMultiplier: 1.0,
         bossType: "slime_king",
-        obstacles: 3,
-        decorations: ["torch", "cobweb", "skull"],
-        music: null, // Future: add music
+        // Hero's thoughts before level
+        heroDialogue: "These caves are crawling with slimes. I must be careful...",
+        // Boss dialogue when appearing
+        bossDialogue: "You dare enter MY domain?! I am the SLIME KING!",
     },
-    
-    // Level 2 - Medium
     {
         id: 2,
-        name: "Dark Corridors",
-        background: [35, 25, 45],
-        enemyCount: 6,
+        name: "DARK CORRIDORS",
+        subtitle: "The shadows grow deeper",
+        background: [30, 25, 45],
+        enemyCount: 7,
+        bossWithMinions: true,         // Boss spawns with 2 minions
+        minionCount: 2,
         difficultyMultiplier: 1.25,
-        bossType: "slime_king",
-        obstacles: 4,
-        decorations: ["torch", "blood", "bones", "skull"],
-        music: null,
+        bossType: "speed_demon",
+        heroDialogue: "Something fast is lurking here. I can feel it watching me...",
+        bossDialogue: "You're too SLOW! I'll tear you apart before you can blink!",
     },
-    
-    // Level 3 - Hard
     {
         id: 3,
-        name: "Boss Lair",
-        background: [45, 25, 30],
-        enemyCount: 6,
+        name: "NECROMANCER'S TOMB",
+        subtitle: "The dead do not rest here",
+        background: [35, 25, 40],
+        enemyCount: 8,
+        bossWithMinions: true,
+        minionCount: 3,
         difficultyMultiplier: 1.5,
-        bossType: "slime_emperor",
-        obstacles: 5,
-        decorations: ["torch", "blood", "bones", "skull", "crack"],
-        music: null,
+        bossType: "necromancer",
+        heroDialogue: "Dark magic fills the air. The necromancer must be close...",
+        bossDialogue: "Rise, my minions! RISE! This hero will join our ranks!",
     },
-    
-    // ========== FUTURE LEVELS ==========
-    // Uncomment and add when ready!
-    
-    /*
-    // Level 4
     {
         id: 4,
-        name: "Frozen Depths",
+        name: "FROZEN DEPTHS",
+        subtitle: "Where hope freezes solid",
         background: [25, 35, 55],
-        enemyCount: 7,
+        enemyCount: 9,
+        bossWithMinions: true,
+        minionCount: 2,
         difficultyMultiplier: 1.75,
-        bossType: "ice_slime",
-        obstacles: 4,
-        decorations: ["torch", "moss"],
-        music: null,
+        bossType: "frost_giant",
+        heroDialogue: "The cold is unbearable. I must end this quickly...",
+        bossDialogue: "FEEL THE ETERNAL FROST! Your bones will shatter!",
     },
-    
-    // Level 5
     {
         id: 5,
-        name: "Lava Cavern",
+        name: "INFERNO LAIR",
+        subtitle: "Hell awaits the unworthy",
         background: [55, 25, 20],
-        enemyCount: 7,
+        enemyCount: 10,
+        bossWithMinions: true,
+        minionCount: 3,
         difficultyMultiplier: 2.0,
-        bossType: "fire_slime",
-        obstacles: 5,
-        decorations: ["torch", "blood", "crack"],
-        music: null,
+        bossType: "inferno",
+        heroDialogue: "The heat is intense. This demon must be powerful...",
+        bossDialogue: "BURN! BURN IN ETERNAL FLAMES! Nothing escapes the INFERNO!",
     },
-    */
+    {
+        id: 6,
+        name: "SHADOW REALM",
+        subtitle: "Where light goes to die",
+        background: [15, 15, 25],
+        enemyCount: 11,
+        bossWithMinions: true,
+        minionCount: 4,
+        difficultyMultiplier: 2.25,
+        bossType: "shadow_lord",
+        heroDialogue: "I can barely see... The shadows themselves seem alive...",
+        bossDialogue: "Welcome to MY realm, hero. You will NEVER leave!",
+    },
+    {
+        id: 7,
+        name: "THE FINAL CHALLENGE",
+        subtitle: "Only the worthy survive",
+        background: [45, 30, 50],
+        enemyCount: 12,
+        bossWithMinions: true,
+        minionCount: 4,
+        difficultyMultiplier: 2.5,
+        bossType: "mega_slime",
+        heroDialogue: "This is it. The ultimate test. I won't fail!",
+        bossDialogue: "I AM THE MEGA SLIME! ALL YOUR EFFORTS END HERE!",
+    },
 ];
 
-// Helper to get level by ID
 export function getLevel(id) {
     return LEVELS.find(l => l.id === id) || LEVELS[0];
 }
 
-// Get total level count
 export function getLevelCount() {
     return LEVELS.length;
 }
 
-export default { LEVELS, getLevel, getLevelCount };
+export function getEnemyCountForLevel(levelId) {
+    const level = getLevel(levelId);
+    return level.enemyCount;
+}
 
+export default { LEVELS, getLevel, getLevelCount, getEnemyCountForLevel };

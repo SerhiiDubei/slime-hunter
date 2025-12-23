@@ -341,7 +341,7 @@ export function createHeroSelectScene() {
             GS.setHero(selectedHero);
             const hero = HEROES[selectedHero];
             GS.ultimateMax = hero.ultimate.chargeNeeded;
-            go("game");
+            go("levelIntro");
         });
         
         onHover("startBtn", () => {
@@ -375,7 +375,7 @@ export function createHeroSelectScene() {
             GS.setHero(selectedHero);
             const hero = HEROES[selectedHero];
             GS.ultimateMax = hero.ultimate.chargeNeeded;
-            go("game");
+            go("levelIntro");
         });
         
         onKeyPress("1", () => updateSelection('warrior'));

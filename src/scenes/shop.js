@@ -320,7 +320,7 @@ export function createShopScene() {
         onClick("continueBtn", () => {
             playSound('start');
             GS.resetLevel();
-            go("game");
+            go("levelIntro");
         });
         
         // Hover effects
@@ -339,8 +339,8 @@ export function createShopScene() {
         onHoverEnd("continueBtn", () => { continueBtn.color = rgb(50, 40, 30); });
         
         // Keyboard
-        onKeyPress("space", () => { playSound('start'); GS.resetLevel(); go("game"); });
-        onKeyPress("enter", () => { playSound('start'); GS.resetLevel(); go("game"); });
+        onKeyPress("space", () => { playSound('start'); GS.resetLevel(); go("levelIntro"); });
+        onKeyPress("enter", () => { playSound('start'); GS.resetLevel(); go("levelIntro"); });
         
         // Stats summary
         const s = GS.getStats();

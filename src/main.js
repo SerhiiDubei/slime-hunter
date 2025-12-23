@@ -17,6 +17,8 @@ import { createGameScene } from './scenes/game.js';
 import { createGameOverScene } from './scenes/gameover.js';
 import { createVictoryScene } from './scenes/victory.js';
 import { createShopScene } from './scenes/shop.js';
+import { createLevelIntroScene } from './scenes/levelIntro.js';
+import { createOptionsScene } from './scenes/options.js';
 
 // Initialize Kaboom
 kaboom({
@@ -47,6 +49,8 @@ createGameScene();
 createGameOverScene();
 createVictoryScene();
 createShopScene();
+createLevelIntroScene();
+createOptionsScene();
 
 // Setup touch controls with attack functions
 const doMeleeAttack = () => meleeAttack(() => {});

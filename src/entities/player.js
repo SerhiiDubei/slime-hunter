@@ -4,6 +4,7 @@
 import { CONFIG } from '../config.js';
 import { GS } from '../state.js';
 import { KEYS } from '../keyboard.js';
+import { KEYBINDS } from '../state.js';
 import { clamp } from '../utils.js';
 
 export function createPlayer() {
@@ -58,8 +59,9 @@ export function setupPlayerMovement(p) {
             GS.lastMoveDir = { x: mx / len, y: my / len };
         }
         
-        // Sprint logic - use stat-based stamina
-        const wantSprint = KEYS.shift || isKeyDown("shift") || window.mobileSprintActive;
+        // Sprint logic - use stat-based stamina (customizable keybind)
+        const sprintKey = KEYBINDS.sprint || 'shift';
+        const wantSprint = KEYS.shift || isKeyDown(sprintKey) || window.mobileSprintActive;
         const moving = mx !== 0 || my !== 0;
         
         if (wantSprint && moving && p.stamina > 0) {

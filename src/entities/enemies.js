@@ -8,10 +8,13 @@ import { clamp, getSpawnPos } from '../utils.js';
 import { createDeathFX, createXPFX, createLevelUpFX } from '../effects.js';
 import { ENEMY_TYPES, getRandomEnemyType } from '../data/enemies.js';
 import { getBossForLevel } from '../data/bosses.js';
+import { getLevel } from '../data/levels.js';
 
 // Spawn regular enemy
 export function spawnEnemy(enemyType = null) {
-    if (GS.enemiesKilled >= CONFIG.ENEMIES_PER_LEVEL - 1) return;
+    const levelConfig = getLevel(GS.currentLevel);
+    const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
+    if (GS.enemiesKilled >= maxEnemies) return;
     
     // Random enemy type based on current level if not specified
     if (!enemyType) {
@@ -241,16 +244,57 @@ export function spawnRandomEnemy() {
 export function spawnBoss() {
     const d = GS.difficulty();
     const bossConfig = getBossForLevel(GS.currentLevel);
+    const levelConfig = getLevel(GS.currentLevel);
     
-    // Boss announcement
-    const alert = add([
-        text(`⚠️ ${bossConfig.name}! ⚠️`, { size: 28 }),
-        pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2),
-        anchor("center"), color(255, 100, 100), z(100)
+    // Boss entrance - dark overlay
+    const overlay = add([
+        rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT),
+        pos(0, 0), color(0, 0, 0), opacity(0.7), z(90), { t: 0 }
     ]);
-    wait(1.5, () => destroy(alert));
+    
+    // Boss portrait/icon
+    add([
+        text(bossConfig.sprite === 'bossKing' ? '👑' : 
+             bossConfig.sprite === 'bossSpeed' ? '⚡' :
+             bossConfig.sprite === 'bossNecro' ? '💀' :
+             bossConfig.sprite === 'bossFrost' ? '❄️' :
+             bossConfig.sprite === 'bossInferno' ? '🔥' :
+             bossConfig.sprite === 'bossShadow' ? '👤' : '👾', { size: 64 }),
+        pos(CONFIG.MAP_WIDTH / 2, 160),
+        anchor("center"), z(95), { t: 0, tag: "bossIntro" }
+    ]);
+    
+    // Boss name
+    add([
+        text(bossConfig.name, { size: 32 }),
+        pos(CONFIG.MAP_WIDTH / 2, 230),
+        anchor("center"), color(255, 100, 100), z(95), { t: 0, tag: "bossIntro" }
+    ]);
+    
+    // Dialogue box
+    add([
+        rect(600, 80, { radius: 8 }),
+        pos(CONFIG.MAP_WIDTH / 2, 320),
+        anchor("center"), color(30, 25, 35), outline(2, rgb(150, 80, 80)), z(95), { t: 0, tag: "bossIntro" }
+    ]);
+    
+    // Boss dialogue
+    const dialogue = levelConfig?.bossDialogue || "You will not survive!";
+    add([
+        text(`"${dialogue}"`, { size: 14, width: 560 }),
+        pos(CONFIG.MAP_WIDTH / 2, 320),
+        anchor("center"), color(255, 200, 200), z(96), { t: 0, tag: "bossIntro" }
+    ]);
+    
     shake(15);
     playSound('boss');
+    
+    // Clear intro after delay
+    wait(2.5, () => {
+        overlay.opacity = 0;
+        destroy(overlay);
+        get("bossIntro").forEach(e => destroy(e));
+    });
     
     const halfSize = bossConfig.size / 2;
     
@@ -339,6 +383,21 @@ export function spawnBoss() {
     ]);
 
     GS.enemies.push(b);
+    
+    // Spawn minions with boss if configured
+    if (levelConfig?.bossWithMinions && levelConfig.minionCount > 0) {
+        for (let i = 0; i < levelConfig.minionCount; i++) {
+            wait(2.8 + i * 0.3, () => {
+                const angle = (i / levelConfig.minionCount) * Math.PI * 2;
+                const dist = 100;
+                const spawnPos = vec2(
+                    CONFIG.MAP_WIDTH / 2 + Math.cos(angle) * dist,
+                    150 + Math.sin(angle) * 50
+                );
+                spawnMinionAt(spawnPos);
+            });
+        }
+    }
 
     b.onUpdate(() => {
         if (!GS.player || !b.exists()) return;
