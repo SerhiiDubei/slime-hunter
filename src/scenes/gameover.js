@@ -99,15 +99,25 @@ export function createGameOverScene() {
         btn.onHoverUpdate(() => btn.color = rgb(70, 40, 40));
         btn.onHoverEnd(() => btn.color = rgb(50, 30, 30));
         
-        onClick("btn", () => { playSound('start'); GS.reset(); go("heroSelect"); });
-        onKeyPress("space", () => { playSound('start'); GS.reset(); go("heroSelect"); });
+        function tryAgain() { playSound('start'); GS.reset(); go("heroSelect"); }
+        
+        onClick("btn", tryAgain);
+        onKeyPress("space", tryAgain);
         onKeyPress("escape", () => { playSound('start'); go("start"); });
         
+        // Mobile touch support
+        onTouchStart((touchPos) => {
+            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 95 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 95 &&
+                touchPos.y >= btnY - 22 && touchPos.y <= btnY + 22) {
+                tryAgain();
+            }
+        });
+        
         add([
-            text("SPACE - Try Again • ESC - Main Menu", { size: 10 }),
+            text("TAP button to try again", { size: 11 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 30),
             anchor("center"),
-            color(80, 60, 60),
+            color(100, 80, 80),
         ]);
     });
 }

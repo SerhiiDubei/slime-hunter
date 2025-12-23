@@ -109,11 +109,21 @@ export function createVictoryScene() {
         btn.onHoverUpdate(() => btn.color = rgb(70, 55, 35));
         btn.onHoverEnd(() => btn.color = rgb(50, 40, 25));
         
-        onClick("btn", () => { playSound('start'); GS.reset(); go("start"); });
-        onKeyPress("space", () => { playSound('start'); GS.reset(); go("start"); });
+        function playAgain() { playSound('start'); GS.reset(); go("start"); }
+        
+        onClick("btn", playAgain);
+        onKeyPress("space", playAgain);
+        
+        // Mobile touch support
+        onTouchStart((touchPos) => {
+            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 105 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 105 &&
+                touchPos.y >= btnY - 25 && touchPos.y <= btnY + 25) {
+                playAgain();
+            }
+        });
         
         add([
-            text("Press SPACE to continue", { size: 10 }),
+            text("TAP to play again", { size: 11 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 25),
             anchor("center"),
             color(100, 90, 70),

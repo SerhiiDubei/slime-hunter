@@ -63,8 +63,13 @@ export const GS = {
     score: 0,
     gold: 0,
     currentLevel: 1,
+    currentRoom: 0,        // Current room in level (0 = first room)
+    totalRooms: 2,         // Total rooms in current level
+    roomCleared: false,    // Is current room cleared?
     enemies: [],
     enemiesKilled: 0,
+    roomEnemiesKilled: 0,  // Enemies killed in current room
+    roomEnemyCount: 0,     // Total enemies in current room
     hasKey: false,
     doorOpen: false,
     bossSpawned: false,
@@ -107,8 +112,13 @@ export const GS = {
         this.score = 0;
         this.gold = 0;
         this.currentLevel = 1;
+        this.currentRoom = 0;
+        this.totalRooms = 2;
+        this.roomCleared = false;
         this.enemies = [];
         this.enemiesKilled = 0;
+        this.roomEnemiesKilled = 0;
+        this.roomEnemyCount = 0;
         this.hasKey = false;
         this.doorOpen = false;
         this.bossSpawned = false;
@@ -133,11 +143,40 @@ export const GS = {
     resetLevel() {
         this.enemies = [];
         this.enemiesKilled = 0;
+        this.currentRoom = 0;
+        this.roomCleared = false;
+        this.roomEnemiesKilled = 0;
+        this.roomEnemyCount = 0;
         this.hasKey = false;
         this.doorOpen = false;
         this.bossSpawned = false;
         this.gamePaused = false;
         this.gameFrozen = false;
+    },
+    
+    // Reset for next room in same level
+    resetRoom() {
+        this.enemies = [];
+        this.roomCleared = false;
+        this.roomEnemiesKilled = 0;
+        this.roomEnemyCount = 0;
+        this.doorOpen = false;
+        this.gamePaused = false;
+        this.gameFrozen = false;
+    },
+    
+    // Get total rooms for current level
+    getRoomsForLevel() {
+        // More rooms for higher levels
+        if (this.currentLevel <= 2) return 2;
+        if (this.currentLevel <= 4) return 3;
+        if (this.currentLevel <= 6) return 3;
+        return 4; // Level 7 has 4 rooms
+    },
+    
+    // Check if current room is boss room
+    isBossRoom() {
+        return this.currentRoom >= this.totalRooms - 1;
     },
     
     // Set hero (updates ultimate charge needed)

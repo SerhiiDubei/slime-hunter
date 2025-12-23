@@ -134,3 +134,4 @@ export class RoomManager {
 
 export default { ROOM_TYPES, ROOM_LAYOUTS, getLayoutForLevel, RoomManager };
 
+

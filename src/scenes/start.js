@@ -1,5 +1,5 @@
 // ==================== START SCENE ====================
-// Diablo-style main menu
+// Diablo-style main menu with mobile support
 
 import { CONFIG } from '../config.js';
 import { GS } from '../state.js';
@@ -42,15 +42,15 @@ export function createStartScene() {
 
         // Main title with glow effect
         add([
-            text("SLIME", { size: 72 }),
-            pos(CONFIG.MAP_WIDTH / 2, 100),
+            text("SLIME", { size: 64 }),
+            pos(CONFIG.MAP_WIDTH / 2, 90),
             anchor("center"),
             color(200, 80, 80),
         ]);
         
         add([
-            text("HUNTER", { size: 72 }),
-            pos(CONFIG.MAP_WIDTH / 2, 165),
+            text("HUNTER", { size: 64 }),
+            pos(CONFIG.MAP_WIDTH / 2, 150),
             anchor("center"),
             color(180, 140, 90),
         ]);
@@ -58,41 +58,24 @@ export function createStartScene() {
         // Subtitle
         add([
             text("An Action RPG Adventure", { size: 14 }),
-            pos(CONFIG.MAP_WIDTH / 2, 210),
+            pos(CONFIG.MAP_WIDTH / 2, 195),
             anchor("center"),
             color(120, 100, 80),
         ]);
         
         // Separator
-        add([rect(300, 2), pos(CONFIG.MAP_WIDTH / 2, 240), anchor("center"), color(80, 60, 45)]);
+        add([rect(300, 2), pos(CONFIG.MAP_WIDTH / 2, 220), anchor("center"), color(80, 60, 45)]);
         
-        // Controls section
+        // Mobile-friendly: Show tap instruction
         add([
-            text("CONTROLS", { size: 12 }),
-            pos(CONFIG.MAP_WIDTH / 2, 270),
+            text("TAP THE BUTTON TO START", { size: 14 }),
+            pos(CONFIG.MAP_WIDTH / 2, 250),
             anchor("center"),
-            color(139, 90, 43),
+            color(100, 180, 100),
         ]);
         
-        const controls = [
-            "WASD / Arrows - Move",
-            "SHIFT - Sprint",
-            "SPACE - Melee Attack",
-            "E - Ranged Attack",
-            "Q - Ultimate Ability",
-        ];
-        
-        controls.forEach((ctrl, i) => {
-            add([
-                text(ctrl, { size: 11 }),
-                pos(CONFIG.MAP_WIDTH / 2, 295 + i * 20),
-                anchor("center"),
-                color(140, 135, 130),
-            ]);
-        });
-        
         // Preview sprites
-        const spriteY = 440;
+        const spriteY = 340;
         const pp = add([sprite("player"), pos(CONFIG.MAP_WIDTH / 2 - 120, spriteY), anchor("center"), scale(1.3), z(5)]);
         const pe = add([sprite("slime"), pos(CONFIG.MAP_WIDTH / 2, spriteY), anchor("center"), scale(1.1), z(5)]);
         const pb = add([sprite("bossKing"), pos(CONFIG.MAP_WIDTH / 2 + 120, spriteY), anchor("center"), scale(0.8), z(5)]);
@@ -105,47 +88,71 @@ export function createStartScene() {
         pe.onUpdate(() => { pe.scale = vec2(1.1 + Math.sin(time() * 5) * 0.08, 1.1 - Math.sin(time() * 5) * 0.08); });
         pb.onUpdate(() => { pb.scale = vec2(0.8 + Math.sin(time() * 2) * 0.06); });
 
-        // Start button with glow
-        const btnY = CONFIG.MAP_HEIGHT - 70;
+        // BIG Start button for mobile - MUCH BIGGER
+        const btnY = CONFIG.MAP_HEIGHT - 100;
         
+        // Glow
         add([
-            rect(230, 55, { radius: 6 }),
+            rect(320, 85, { radius: 10 }),
             pos(CONFIG.MAP_WIDTH / 2, btnY),
             anchor("center"),
             color(139, 90, 43),
-            opacity(0.4),
+            opacity(0.5),
             z(9),
         ]);
         
+        // Button
         const btn = add([
-            rect(220, 50, { radius: 5 }),
+            rect(300, 75, { radius: 8 }),
             pos(CONFIG.MAP_WIDTH / 2, btnY),
             anchor("center"),
-            color(50, 40, 30),
+            color(60, 50, 40),
             area(),
             z(10),
-            "btn",
+            "startBtn",
         ]);
         
+        // Button text
         add([
-            text("BEGIN JOURNEY", { size: 18 }),
+            text("▶ START GAME", { size: 28 }),
             pos(CONFIG.MAP_WIDTH / 2, btnY),
             anchor("center"),
-            color(200, 170, 120),
+            color(220, 200, 150),
             z(11),
         ]);
         
-        btn.onHoverUpdate(() => { btn.color = rgb(70, 55, 40); });
-        btn.onHoverEnd(() => { btn.color = rgb(50, 40, 30); });
+        // Hover effect
+        btn.onHoverUpdate(() => { btn.color = rgb(80, 70, 55); });
+        btn.onHoverEnd(() => { btn.color = rgb(60, 50, 40); });
 
-        onClick("btn", () => { playSound('start'); go("heroSelect"); });
-        onKeyPress("space", () => { playSound('start'); go("heroSelect"); });
-        onKeyPress("enter", () => { playSound('start'); go("heroSelect"); });
+        // Start game function
+        function startGame() {
+            playSound('start');
+            go("heroSelect");
+        }
+
+        // Multiple ways to start - for mobile compatibility
+        onClick("startBtn", startGame);
+        onKeyPress("space", startGame);
+        onKeyPress("enter", startGame);
         
-        // Options button
+        // Touch anywhere on button area (backup for mobile)
+        onTouchStart((touchPos) => {
+            const btnLeft = CONFIG.MAP_WIDTH / 2 - 150;
+            const btnRight = CONFIG.MAP_WIDTH / 2 + 150;
+            const btnTop = btnY - 40;
+            const btnBottom = btnY + 40;
+            
+            if (touchPos.x >= btnLeft && touchPos.x <= btnRight &&
+                touchPos.y >= btnTop && touchPos.y <= btnBottom) {
+                startGame();
+            }
+        });
+        
+        // Options button (smaller, top right)
         const optBtn = add([
-            rect(120, 35, { radius: 4 }),
-            pos(CONFIG.MAP_WIDTH - 90, 30),
+            rect(100, 35, { radius: 4 }),
+            pos(CONFIG.MAP_WIDTH - 70, 30),
             anchor("center"),
             color(40, 35, 30),
             area(),
@@ -154,8 +161,8 @@ export function createStartScene() {
         ]);
         
         add([
-            text("⚙️ OPTIONS", { size: 12 }),
-            pos(CONFIG.MAP_WIDTH - 90, 30),
+            text("OPTIONS", { size: 12 }),
+            pos(CONFIG.MAP_WIDTH - 70, 30),
             anchor("center"),
             color(150, 130, 100),
             z(11),
@@ -167,8 +174,9 @@ export function createStartScene() {
         onClick("optBtn", () => { playSound('click'); go("options"); });
         onKeyPress("o", () => { playSound('click'); go("options"); });
         
+        // Mobile hint
         add([
-            text("Press SPACE or ENTER to continue • O for Options", { size: 10 }),
+            text("Keyboard: SPACE/ENTER • Mobile: TAP", { size: 10 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 25),
             anchor("center"),
             color(80, 70, 60),
@@ -176,8 +184,8 @@ export function createStartScene() {
         
         // Version
         add([
-            text("v1.0", { size: 9 }),
-            pos(CONFIG.MAP_WIDTH - 15, CONFIG.MAP_HEIGHT - 15),
+            text("v1.1", { size: 9 }),
+            pos(CONFIG.MAP_WIDTH - 15, CONFIG.MAP_HEIGHT - 10),
             anchor("botright"),
             color(60, 55, 50),
         ]);

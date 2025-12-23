@@ -43,12 +43,18 @@ export function createHUD() {
     add([text("[E]", { size: 20 }), pos(46, 175), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
     const bulletTxt = add([text("x1", { size: 14 }), pos(65, 195), anchor("center"), color(150, 200, 220), fixed(), z(103)]);
     
-    // Level indicator (top center) - LARGER
-    add([rect(180, 45), pos(CONFIG.MAP_WIDTH / 2, 12), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(176, 41), pos(CONFIG.MAP_WIDTH / 2, 14), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
-    add([text(`LEVEL ${GS.currentLevel}`, { size: 22 }), pos(CONFIG.MAP_WIDTH / 2, 22), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
-    const enemyTxt = add([text("0/6", { size: 16 }), pos(CONFIG.MAP_WIDTH / 2, 48), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
-    const keyTxt = add([text("", { size: 18 }), pos(CONFIG.MAP_WIDTH / 2, 70), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
+    // Level & Room indicator (top center) - LARGER
+    add([rect(220, 60), pos(CONFIG.MAP_WIDTH / 2, 12), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(216, 56), pos(CONFIG.MAP_WIDTH / 2, 14), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
+    add([text(`LEVEL ${GS.currentLevel}`, { size: 20 }), pos(CONFIG.MAP_WIDTH / 2, 20), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
+    
+    // Room indicator
+    const isBossRoom = GS.isBossRoom ? GS.isBossRoom() : false;
+    const roomLabel = isBossRoom ? "🔥 BOSS" : `Room ${GS.currentRoom + 1}/${GS.totalRooms}`;
+    const roomTxt = add([text(roomLabel, { size: 12 }), pos(CONFIG.MAP_WIDTH / 2, 40), anchor("top"), color(150, 150, 180), fixed(), z(101)]);
+    
+    const enemyTxt = add([text("0/6", { size: 14 }), pos(CONFIG.MAP_WIDTH / 2, 56), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
+    const keyTxt = add([text("", { size: 16 }), pos(CONFIG.MAP_WIDTH / 2, 78), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
     
     // Score & Gold (top right) - LARGER
     add([rect(140, 65), pos(CONFIG.MAP_WIDTH - 15, 12), anchor("topright"), color(40, 30, 25), fixed(), z(99)]);
@@ -153,13 +159,27 @@ export function createHUD() {
         bulletTxt.text = `x${stats.bulletCount}`;
         bulletTxt.color = stats.bulletCount >= 3 ? rgb(255, 150, 100) : stats.bulletCount >= 2 ? rgb(255, 220, 100) : rgb(150, 200, 220);
         
-        // Score, gold, enemies
-        const levelConfig = getLevel(GS.currentLevel);
-        const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
+        // Score, gold, enemies (room-based)
+        const roomEnemies = GS.roomEnemyCount || 0;
+        const roomKilled = GS.roomEnemiesKilled || 0;
+        const isBoss = GS.isBossRoom ? GS.isBossRoom() : false;
+        
         scoreTxt.text = `SCORE: ${GS.score}`;
         goldTxt.text = `💰 ${GS.gold}`;
-        enemyTxt.text = `${GS.enemiesKilled} / ${maxEnemies} Killed`;
-        keyTxt.text = GS.hasKey ? "🔑 KEY ACQUIRED!" : "";
+        
+        if (isBoss) {
+            enemyTxt.text = GS.bossSpawned ? "⚔️ DEFEAT THE BOSS!" : "...";
+        } else {
+            enemyTxt.text = `${roomKilled}/${roomEnemies} Killed`;
+        }
+        
+        if (GS.roomCleared) {
+            keyTxt.text = "🚪 DOOR OPEN!";
+        } else if (GS.hasKey) {
+            keyTxt.text = "🔑 KEY!";
+        } else {
+            keyTxt.text = "";
+        }
         
         // Passive skills
         const owned = [];

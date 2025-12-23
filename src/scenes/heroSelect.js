@@ -336,13 +336,16 @@ export function createHeroSelectScene() {
             z(22),
         ]);
         
-        onClick("startBtn", () => {
+        // Start game function
+        function beginAdventure() {
             playSound('start');
             GS.setHero(selectedHero);
             const hero = HEROES[selectedHero];
             GS.ultimateMax = hero.ultimate.chargeNeeded;
             go("levelIntro");
-        });
+        }
+        
+        onClick("startBtn", beginAdventure);
         
         onHover("startBtn", () => {
             startBtn.color = rgb(60, 50, 40);
@@ -350,6 +353,35 @@ export function createHeroSelectScene() {
         
         onHoverEnd("startBtn", () => {
             startBtn.color = rgb(45, 35, 25);
+        });
+        
+        // Touch support for mobile
+        onTouchStart((touchPos) => {
+            // Check start button
+            const btnLeft = CONFIG.MAP_WIDTH / 2 - btnWidth / 2;
+            const btnRight = CONFIG.MAP_WIDTH / 2 + btnWidth / 2;
+            const btnTop = btnY - btnHeight / 2;
+            const btnBottom = btnY + btnHeight / 2;
+            
+            if (touchPos.x >= btnLeft && touchPos.x <= btnRight &&
+                touchPos.y >= btnTop && touchPos.y <= btnBottom) {
+                beginAdventure();
+                return;
+            }
+            
+            // Check hero cards
+            heroConfigs.forEach((hero, idx) => {
+                const cardX = startX + idx * (cardWidth + cardGap) + cardWidth / 2;
+                const cardLeft = cardX - cardWidth / 2;
+                const cardRight = cardX + cardWidth / 2;
+                const cardTop = cardY - cardHeight / 2;
+                const cardBottom = cardY + cardHeight / 2;
+                
+                if (touchPos.x >= cardLeft && touchPos.x <= cardRight &&
+                    touchPos.y >= cardTop && touchPos.y <= cardBottom) {
+                    updateSelection(hero.id);
+                }
+            });
         });
         
         // Bottom decorative border
@@ -360,12 +392,12 @@ export function createHeroSelectScene() {
             z(50),
         ]);
         
-        // Keyboard navigation hint
+        // Navigation hint (works for mobile and desktop)
         add([
-            text("Click to select • Press ENTER to start", { size: 10 }),
+            text("TAP hero to select • TAP button to start", { size: 11 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 18),
             anchor("center"),
-            color(80, 70, 60),
+            color(100, 90, 80),
             z(10),
         ]);
         

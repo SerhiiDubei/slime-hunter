@@ -12,9 +12,10 @@ import { getLevel } from '../data/levels.js';
 
 // Spawn regular enemy
 export function spawnEnemy(enemyType = null) {
-    const levelConfig = getLevel(GS.currentLevel);
-    const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
-    if (GS.enemiesKilled >= maxEnemies) return;
+    // Check if room has enough enemies already
+    const aliveEnemies = GS.enemies.filter(e => e && e.exists() && !e.isBoss);
+    const totalSpawned = GS.roomEnemiesKilled + aliveEnemies.length;
+    if (totalSpawned >= GS.roomEnemyCount) return;
     
     // Random enemy type based on current level if not specified
     if (!enemyType) {
@@ -1432,28 +1433,21 @@ export function killEnemy(e, spawnKeyFn) {
     GS.enemies = GS.enemies.filter(x => x !== e);
     destroy(e);
     
-    // Don't count minions towards level progress
+    // Don't count minions towards room progress
     if (!e.isMinion) {
         GS.enemiesKilled++;
+        GS.roomEnemiesKilled++;
         
-        // Get enemy count from level config
-        const levelConfig = getLevel(GS.currentLevel);
-        const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
+        // Check if more enemies need to spawn in this room
+        const aliveEnemies = GS.enemies.filter(en => en && en.exists() && !en.isBoss && !en.isMinion);
+        const spawnedSoFar = GS.roomEnemiesKilled + aliveEnemies.length;
         
-        // Check if all regular enemies are dead (not counting boss)
-        const aliveEnemies = GS.enemies.filter(en => en.exists() && !en.isBoss && !en.isMinion);
-        
-        // Spawn next enemy or boss
-        if (GS.enemiesKilled < maxEnemies) {
-            // Still more enemies to spawn
+        // Spawn next enemy if room isn't full yet
+        if (spawnedSoFar < GS.roomEnemyCount) {
             wait(1.5, spawnRandomEnemy);
-        } else if (GS.enemiesKilled >= maxEnemies && aliveEnemies.length === 0 && !GS.bossSpawned) {
-            // All enemies killed AND no more alive - spawn boss with delay
-            GS.bossSpawned = true;
-            wait(1.5, () => {
-                spawnBoss();
-            });
         }
+        
+        // Room clearing is handled in game.js onUpdate
     }
     // Minions don't spawn new enemies when killed
 }

@@ -177,14 +177,23 @@ export function createLevelIntroScene() {
         onKeyPress("space", startLevel);
         onKeyPress("enter", startLevel);
         
+        // Mobile touch support
+        onTouchStart((touchPos) => {
+            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 95 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 95 &&
+                touchPos.y >= btnY - 22 && touchPos.y <= btnY + 22) {
+                startLevel();
+            }
+        });
+        
         add([
-            text("Press SPACE to continue", { size: 10 }),
+            text("TAP to enter", { size: 11 }),
             pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 20),
             anchor("center"),
-            color(80, 70, 60),
+            color(100, 90, 80),
         ]);
     });
 }
 
 export default createLevelIntroScene;
+
 

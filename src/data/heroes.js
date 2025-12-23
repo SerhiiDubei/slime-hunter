@@ -1,35 +1,40 @@
 // ==================== HERO CONFIGURATIONS ====================
-// 3 unique heroes with different abilities and playstyles!
+// 3 unique heroes with VERY different ranged attack playstyles!
 
 export const HEROES = {
     // ========== WARRIOR ==========
-    // Tank/melee focused - slow but powerful projectile
+    // Tank/melee focused - HEAVY slow throwing axe that spins and does massive damage
     warrior: {
         id: "warrior",
         name: "WARRIOR",
         icon: "⚔️",
-        description: "Mighty melee fighter with devastating power",
+        description: "Mighty melee fighter with devastating axe throw",
         color: [180, 60, 60],
         
         // Base stats modifiers
         stats: {
             meleeDamage: 1.3,      // +30% melee damage
-            rangedDamage: 0.7,     // -30% ranged (not his specialty)
-            moveSpeed: 0.95,       // Slightly slower
-            maxHp: 1.4,            // +40% HP - TANK
-            stamina: 0.9,
+            rangedDamage: 0.8,     // -20% ranged (not his specialty)
+            moveSpeed: 0.9,        // Slower
+            maxHp: 1.5,            // +50% HP - TANK
+            stamina: 0.85,
         },
         
-        // Unique ranged attack - HEAVY AXE THROW
+        // HEAVY AXE THROW - slow, big, DEVASTATING
         ranged: {
-            name: "Axe Throw",
-            projectileColor: [200, 100, 50],
-            projectileSize: 16,      // Big projectile
-            projectileSpeed: 280,    // Slow but heavy
-            cooldown: 2.5,           // Slow cooldown
-            damageMultiplier: 1.5,   // But hits HARD
+            name: "War Axe",
+            description: "Slow spinning axe that deals massive damage",
+            projectileColor: [220, 120, 60],      // Orange/bronze
+            projectileSize: 22,                    // HUGE!
+            projectileSpeed: 220,                  // SLOW but menacing
+            cooldown: 3.0,                         // Long cooldown
+            damageMultiplier: 2.2,                 // MASSIVE damage!
             piercing: false,
-            projectileShape: "axe",  // Special shape
+            projectileShape: "axe",
+            // Special: Axe spins and has knockback
+            spinSpeed: 900,                        // Fast spin
+            knockback: 60,                         // Pushes enemies back
+            trailColor: [180, 80, 40],
         },
         
         // Ultimate ability
@@ -45,32 +50,37 @@ export const HEROES = {
     },
     
     // ========== MAGE ==========
-    // Ranged specialist - fast projectiles, low cooldown
+    // Ranged specialist - RAPID FIRE magic bolts that pierce and chain
     mage: {
         id: "mage",
         name: "MAGE",
         icon: "🔮",
-        description: "Master of arcane arts with rapid fire magic",
-        color: [100, 80, 180],
+        description: "Arcane master with rapid-fire piercing bolts",
+        color: [120, 80, 200],
         
         stats: {
-            meleeDamage: 0.6,      // -40% melee (avoid close combat!)
-            rangedDamage: 1.5,     // +50% ranged damage!
-            moveSpeed: 0.9,        // Slower movement
-            maxHp: 0.7,            // -30% HP (very squishy)
-            stamina: 1.2,
+            meleeDamage: 0.5,      // -50% melee (stay away!)
+            rangedDamage: 1.4,     // +40% ranged damage!
+            moveSpeed: 0.85,       // Slower movement
+            maxHp: 0.6,            // -40% HP (VERY squishy)
+            stamina: 1.3,
         },
         
-        // Unique ranged attack - ARCANE BOLT
+        // ARCANE BOLT - fast, piercing, multiple shots
         ranged: {
             name: "Arcane Bolt",
-            projectileColor: [150, 100, 255],
-            projectileSize: 10,      // Medium projectile
-            projectileSpeed: 500,    // FAST!
-            cooldown: 1.0,           // Rapid fire
-            damageMultiplier: 0.8,   // Less per hit but more hits
-            piercing: true,          // Goes through enemies!
+            description: "Fast magic bolts that pierce through enemies",
+            projectileColor: [180, 100, 255],     // Purple magic
+            projectileSize: 10,                    // Medium
+            projectileSpeed: 550,                  // VERY FAST!
+            cooldown: 0.7,                         // RAPID FIRE!
+            damageMultiplier: 0.6,                 // Less per hit but many hits
+            piercing: true,                        // Goes through enemies!
             projectileShape: "orb",
+            // Special: Leaves magic trail, can hit multiple enemies
+            trailColor: [150, 50, 255],
+            maxPierceCount: 4,                     // Pierce up to 4 enemies
+            chainLightning: false,                 // Future feature
         },
         
         ultimate: {
@@ -85,35 +95,42 @@ export const HEROES = {
     },
     
     // ========== ASSASSIN ==========
-    // Speed/crit focused - fast everything
+    // Speed/crit focused - TRIPLE DAGGER burst with poison
     assassin: {
         id: "assassin",
         name: "ASSASSIN",
         icon: "🗡️",
-        description: "Swift and deadly with poison daggers",
-        color: [60, 60, 80],
+        description: "Swift killer with triple poison daggers",
+        color: [80, 180, 100],
         
         stats: {
-            meleeDamage: 1.1,      // +10% melee
-            rangedDamage: 1.0,     // Normal ranged
-            moveSpeed: 1.4,        // +40% speed! FAST
-            maxHp: 0.85,           // -15% HP
-            stamina: 1.8,          // +80% stamina - sprint king
+            meleeDamage: 1.15,     // +15% melee
+            rangedDamage: 1.1,     // +10% ranged
+            moveSpeed: 1.5,        // +50% speed! FASTEST
+            maxHp: 0.75,           // -25% HP
+            stamina: 2.0,          // +100% stamina - sprint forever
         },
         
-        // Unique ranged attack - POISON DAGGER
+        // TRIPLE DAGGER BURST - shoots 3 daggers at once
         ranged: {
-            name: "Poison Dagger",
-            projectileColor: [100, 200, 100],
-            projectileSize: 8,       // Small, fast
-            projectileSpeed: 450,    // Fast
-            cooldown: 1.4,           // Medium cooldown
-            damageMultiplier: 0.9,   // Slightly less damage
+            name: "Poison Daggers",
+            description: "Triple burst of fast daggers that poison enemies",
+            projectileColor: [100, 220, 120],     // Toxic green
+            projectileSize: 8,                     // Small, fast
+            projectileSpeed: 480,                  // Fast
+            cooldown: 1.6,                         // Medium cooldown
+            damageMultiplier: 0.7,                 // Less per dagger
             piercing: false,
             projectileShape: "dagger",
-            poison: true,            // Applies poison!
-            poisonDamage: 5,         // 5 damage per second
-            poisonDuration: 3,       // For 3 seconds
+            // Special: Shoots 3 daggers in a burst!
+            burstCount: 3,                         // 3 daggers per attack!
+            burstSpread: 0.2,                      // Spread angle
+            burstDelay: 0.08,                      // Delay between daggers
+            // Poison effect
+            poison: true,
+            poisonDamage: 8,                       // 8 damage per tick
+            poisonDuration: 4,                     // 4 seconds
+            trailColor: [80, 200, 100],
         },
         
         ultimate: {
@@ -127,6 +144,11 @@ export const HEROES = {
         },
     },
 };
+
+// Quick reference for attack patterns:
+// WARRIOR: 1 big slow powerful axe | Long cooldown | High damage | Knockback
+// MAGE:    1-3 fast bolts         | Short cooldown | Low damage  | Piercing
+// ASSASSIN: 3 daggers burst       | Medium cooldown| Medium dmg  | Poison DOT
 
 export function getHero(id) {
     return HEROES[id] || HEROES.warrior;

@@ -342,6 +342,17 @@ export function createShopScene() {
         onKeyPress("space", () => { playSound('start'); GS.resetLevel(); go("levelIntro"); });
         onKeyPress("enter", () => { playSound('start'); GS.resetLevel(); go("levelIntro"); });
         
+        // Mobile touch support for continue button
+        onTouchStart((touchPos) => {
+            // Continue button
+            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 85 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 85 &&
+                touchPos.y >= btnY - 20 && touchPos.y <= btnY + 20) {
+                playSound('start');
+                GS.resetLevel();
+                go("levelIntro");
+            }
+        });
+        
         // Stats summary
         const s = GS.getStats();
         add([
