@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>⚔️ Slime Hunter - Top-Down RPG</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        html, body {
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game" tabindex="0" autofocus></canvas>
+    </div>
+    
+    <!-- Touch Controls -->
+    <div id="touch-controls">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+        <div id="sprint-btn"><span>💨</span></div>
+        <div id="attack-btn"><span>⚔️</span></div>
+        <div id="ranged-btn"><span>🔮</span></div>
+    </div>
+
+    <script src="https://unpkg.com/kaboom@3000/dist/kaboom.js"></script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
