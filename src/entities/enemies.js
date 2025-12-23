@@ -75,6 +75,8 @@ export function spawnEnemy(enemyType = null) {
 
     e.onUpdate(() => {
         if (!GS.player || !e.exists()) return;
+        // Freeze during pause/boss dialogue
+        if (GS.gamePaused || GS.gameFrozen) return;
         
         const distToPlayer = e.pos.dist(GS.player.pos);
         const dirToPlayer = GS.player.pos.sub(e.pos).unit();
@@ -246,36 +248,48 @@ export function spawnBoss() {
     const bossConfig = getBossForLevel(GS.currentLevel);
     const levelConfig = getLevel(GS.currentLevel);
     
+    // FREEZE the game during boss intro
+    GS.gameFrozen = true;
+    
     // Boss entrance - dark overlay
     const overlay = add([
         rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT),
-        pos(0, 0), color(0, 0, 0), opacity(0.7), z(90), { t: 0 }
+        pos(0, 0), color(0, 0, 0), opacity(0), z(90), { t: 0 }
     ]);
     
+    // Fade in overlay
+    overlay.onUpdate(() => {
+        if (overlay.opacity < 0.7) {
+            overlay.opacity += dt() * 2;
+        }
+    });
+    
     // Boss portrait/icon
+    const bossIcon = bossConfig.sprite === 'bossKing' ? '👑' : 
+         bossConfig.sprite === 'bossSpeed' ? '⚡' :
+         bossConfig.sprite === 'bossNecro' ? '💀' :
+         bossConfig.sprite === 'bossFrost' ? '❄️' :
+         bossConfig.sprite === 'bossInferno' ? '🔥' :
+         bossConfig.sprite === 'bossShadow' ? '👤' : '👾';
+         
     add([
-        text(bossConfig.sprite === 'bossKing' ? '👑' : 
-             bossConfig.sprite === 'bossSpeed' ? '⚡' :
-             bossConfig.sprite === 'bossNecro' ? '💀' :
-             bossConfig.sprite === 'bossFrost' ? '❄️' :
-             bossConfig.sprite === 'bossInferno' ? '🔥' :
-             bossConfig.sprite === 'bossShadow' ? '👤' : '👾', { size: 64 }),
+        text(bossIcon, { size: 64 }),
         pos(CONFIG.MAP_WIDTH / 2, 160),
-        anchor("center"), z(95), { t: 0, tag: "bossIntro" }
+        anchor("center"), z(95), "bossIntro"
     ]);
     
     // Boss name
     add([
         text(bossConfig.name, { size: 32 }),
         pos(CONFIG.MAP_WIDTH / 2, 230),
-        anchor("center"), color(255, 100, 100), z(95), { t: 0, tag: "bossIntro" }
+        anchor("center"), color(255, 100, 100), z(95), "bossIntro"
     ]);
     
     // Dialogue box
     add([
         rect(600, 80, { radius: 8 }),
         pos(CONFIG.MAP_WIDTH / 2, 320),
-        anchor("center"), color(30, 25, 35), outline(2, rgb(150, 80, 80)), z(95), { t: 0, tag: "bossIntro" }
+        anchor("center"), color(30, 25, 35), outline(2, rgb(150, 80, 80)), z(95), "bossIntro"
     ]);
     
     // Boss dialogue
@@ -283,18 +297,32 @@ export function spawnBoss() {
     add([
         text(`"${dialogue}"`, { size: 14, width: 560 }),
         pos(CONFIG.MAP_WIDTH / 2, 320),
-        anchor("center"), color(255, 200, 200), z(96), { t: 0, tag: "bossIntro" }
+        anchor("center"), color(255, 200, 200), z(96), "bossIntro"
+    ]);
+    
+    // Skip prompt
+    add([
+        text("Press SPACE to continue...", { size: 10 }),
+        pos(CONFIG.MAP_WIDTH / 2, 400),
+        anchor("center"), color(100, 100, 100), z(96), "bossIntro"
     ]);
     
     shake(15);
     playSound('boss');
     
-    // Clear intro after delay
-    wait(2.5, () => {
+    // Clear intro on SPACE or after delay
+    let introDone = false;
+    const finishIntro = () => {
+        if (introDone) return;
+        introDone = true;
         overlay.opacity = 0;
         destroy(overlay);
         get("bossIntro").forEach(e => destroy(e));
-    });
+        GS.gameFrozen = false;
+    };
+    
+    onKeyPress("space", finishIntro);
+    wait(3.5, finishIntro);
     
     const halfSize = bossConfig.size / 2;
     
@@ -401,6 +429,8 @@ export function spawnBoss() {
 
     b.onUpdate(() => {
         if (!GS.player || !b.exists()) return;
+        // Freeze during pause/boss dialogue
+        if (GS.gamePaused || GS.gameFrozen) return;
         
         const dirToPlayer = GS.player.pos.sub(b.pos).unit();
         const distToPlayer = b.pos.dist(GS.player.pos);
@@ -755,6 +785,8 @@ function spawnMinionAt(spawnPos) {
 
     e.onUpdate(() => {
         if (!GS.player || !e.exists()) return;
+        // Freeze during pause/boss dialogue
+        if (GS.gamePaused || GS.gameFrozen) return;
         
         const dir = GS.player.pos.sub(e.pos).unit();
         e.pos = e.pos.add(dir.scale(e.speed * dt()));
@@ -1404,11 +1436,23 @@ export function killEnemy(e, spawnKeyFn) {
     if (!e.isMinion) {
         GS.enemiesKilled++;
         
-        // Spawn next enemy or boss (only for non-minions!)
-        if (GS.enemiesKilled < CONFIG.ENEMIES_PER_LEVEL - 1) {
+        // Get enemy count from level config
+        const levelConfig = getLevel(GS.currentLevel);
+        const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
+        
+        // Check if all regular enemies are dead (not counting boss)
+        const aliveEnemies = GS.enemies.filter(en => en.exists() && !en.isBoss && !en.isMinion);
+        
+        // Spawn next enemy or boss
+        if (GS.enemiesKilled < maxEnemies) {
+            // Still more enemies to spawn
             wait(1.5, spawnRandomEnemy);
-        } else if (GS.enemiesKilled === CONFIG.ENEMIES_PER_LEVEL - 1) {
-            wait(1, spawnBoss);
+        } else if (GS.enemiesKilled >= maxEnemies && aliveEnemies.length === 0 && !GS.bossSpawned) {
+            // All enemies killed AND no more alive - spawn boss with delay
+            GS.bossSpawned = true;
+            wait(1.5, () => {
+                spawnBoss();
+            });
         }
     }
     // Minions don't spawn new enemies when killed

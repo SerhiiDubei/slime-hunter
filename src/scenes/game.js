@@ -235,6 +235,91 @@ export function createGameScene() {
         // Create HUD
         createHUD();
 
+        // Pause menu overlay (hidden by default)
+        let pauseOverlay = null;
+        let pauseText = null;
+        let pauseResumeBtn = null;
+        let pauseQuitBtn = null;
+        
+        function showPause() {
+            if (GS.gameFrozen) return; // Don't pause during boss intro
+            
+            GS.gamePaused = true;
+            
+            pauseOverlay = add([
+                rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT),
+                pos(0, 0), color(0, 0, 0), opacity(0.7), z(200), fixed()
+            ]);
+            
+            pauseText = add([
+                text("⏸️ PAUSED", { size: 48 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 - 80),
+                anchor("center"), color(255, 220, 100), z(201), fixed()
+            ]);
+            
+            pauseResumeBtn = add([
+                rect(200, 50, { radius: 5 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2),
+                anchor("center"), color(50, 40, 35), area(), z(201), fixed(),
+                "pauseBtn"
+            ]);
+            add([
+                text("RESUME", { size: 20 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2),
+                anchor("center"), color(200, 180, 150), z(202), fixed(),
+                "pauseUI"
+            ]);
+            
+            pauseQuitBtn = add([
+                rect(200, 50, { radius: 5 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 + 70),
+                anchor("center"), color(80, 40, 40), area(), z(201), fixed(),
+                "quitBtn"
+            ]);
+            add([
+                text("QUIT TO MENU", { size: 16 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 + 70),
+                anchor("center"), color(200, 150, 150), z(202), fixed(),
+                "pauseUI"
+            ]);
+            
+            add([
+                text("Press ESC to resume", { size: 12 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 + 140),
+                anchor("center"), color(100, 100, 100), z(202), fixed(),
+                "pauseUI"
+            ]);
+        }
+        
+        function hidePause() {
+            GS.gamePaused = false;
+            if (pauseOverlay) { destroy(pauseOverlay); pauseOverlay = null; }
+            if (pauseText) { destroy(pauseText); pauseText = null; }
+            if (pauseResumeBtn) { destroy(pauseResumeBtn); pauseResumeBtn = null; }
+            if (pauseQuitBtn) { destroy(pauseQuitBtn); pauseQuitBtn = null; }
+            get("pauseUI").forEach(e => destroy(e));
+        }
+        
+        // ESC to toggle pause
+        onKeyPress("escape", () => {
+            if (GS.gameFrozen) return;
+            if (GS.gamePaused) {
+                hidePause();
+            } else {
+                showPause();
+            }
+        });
+        
+        // Pause button clicks
+        onClick("pauseBtn", () => {
+            hidePause();
+        });
+        
+        onClick("quitBtn", () => {
+            hidePause();
+            go("start");
+        });
+
         // Debug toggle
         onKeyPress("f1", () => { debug.inspect = !debug.inspect; });
     });

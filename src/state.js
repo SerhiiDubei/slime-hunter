@@ -67,6 +67,9 @@ export const GS = {
     enemiesKilled: 0,
     hasKey: false,
     doorOpen: false,
+    bossSpawned: false,
+    gamePaused: false,
+    gameFrozen: false,  // For boss dialogue freeze
     playerLevel: 1,
     playerXP: 0,
     joystickInput: { x: 0, y: 0 },
@@ -108,6 +111,9 @@ export const GS = {
         this.enemiesKilled = 0;
         this.hasKey = false;
         this.doorOpen = false;
+        this.bossSpawned = false;
+        this.gamePaused = false;
+        this.gameFrozen = false;
         this.playerLevel = 1;
         this.playerXP = 0;
         this.ultimateCharge = 0;
@@ -129,6 +135,9 @@ export const GS = {
         this.enemiesKilled = 0;
         this.hasKey = false;
         this.doorOpen = false;
+        this.bossSpawned = false;
+        this.gamePaused = false;
+        this.gameFrozen = false;
     },
     
     // Set hero (updates ultimate charge needed)

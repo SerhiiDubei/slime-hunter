@@ -38,6 +38,9 @@ export function setupPlayerMovement(p) {
     let sprintTimer = 0;
     
     p.onUpdate(() => {
+        // Don't move when paused or frozen (boss dialogue)
+        if (GS.gamePaused || GS.gameFrozen) return;
+        
         const stats = GS.getStats();
         let mx = 0, my = 0;
         
