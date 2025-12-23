@@ -1,10 +1,21 @@
-# Deploy to GitHub Pages automatically on push to main
+# ===========================================
+# PRODUCTION DEPLOY - GitHub Pages
+# ===========================================
+# Deploys ONLY from 'main' branch (production)
+# 
+# Workflow:
+#   dev branch  → development (work here)
+#   main branch → production (deploy here)
+#
+# To deploy: merge dev → main via Pull Request
+# ===========================================
+
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main']
-  workflow_dispatch:
+    branches: ['main']  # Only deploy from main (production)
+  workflow_dispatch:    # Manual deploy button
 
 permissions:
   contents: read
