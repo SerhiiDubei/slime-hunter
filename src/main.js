@@ -20,7 +20,7 @@ import { createShopScene } from './scenes/shop.js';
 import { createLevelIntroScene } from './scenes/levelIntro.js';
 import { createOptionsScene } from './scenes/options.js';
 
-// Initialize Kaboom
+// Initialize Kaboom with better text quality
 kaboom({
     width: CONFIG.MAP_WIDTH,
     height: CONFIG.MAP_HEIGHT,
@@ -28,7 +28,9 @@ kaboom({
     canvas: document.getElementById("game"),
     global: true,
     focus: true,
-    crisp: true,
+    crisp: false,           // Disable crisp for smoother text
+    pixelDensity: 2,        // Higher resolution for sharper text
+    letterbox: true,        // Maintain aspect ratio
     debug: false,
 });
 

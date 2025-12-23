@@ -4,8 +4,9 @@
 import { CONFIG } from './config.js';
 import { GS } from './state.js';
 import { playSound } from './audio.js';
-import { createHitFX, createProjectileFX } from './effects.js';
+import { createHitFX, createProjectileFX, createPoisonFX } from './effects.js';
 import { killEnemy } from './entities/enemies.js';
+import { getHero } from './data/heroes.js';
 
 export function meleeAttack(spawnKeyFn) {
     const p = GS.player;
@@ -111,8 +112,24 @@ export function rangedAttack(spawnKeyFn) {
     if (!p || p.rangedCD > 0) return;
     
     const stats = GS.getStats();
-    p.rangedCD = stats.rangedCooldown;
+    const hero = getHero(GS.selectedHero);
+    const heroRanged = hero.ranged || {};
+    
+    // Hero-specific cooldown
+    const cooldown = heroRanged.cooldown || stats.rangedCooldown;
+    p.rangedCD = cooldown;
     playSound('ranged');
+    
+    // Hero-specific projectile properties
+    const projColor = heroRanged.projectileColor || [100, 200, 255];
+    const projSize = heroRanged.projectileSize || CONFIG.RANGED_SIZE;
+    const projSpeed = heroRanged.projectileSpeed || CONFIG.RANGED_SPEED;
+    const dmgMult = heroRanged.damageMultiplier || 1.0;
+    const piercing = heroRanged.piercing || false;
+    const projShape = heroRanged.projectileShape || "orb";
+    const hasPoison = heroRanged.poison || false;
+    const poisonDmg = heroRanged.poisonDamage || 0;
+    const poisonDur = heroRanged.poisonDuration || 0;
     
     const dir = GS.lastMoveDir;
     const angles = stats.bulletCount === 1 ? [0] :
@@ -121,45 +138,102 @@ export function rangedAttack(spawnKeyFn) {
     angles.forEach(a => {
         const cos = Math.cos(a), sin = Math.sin(a);
         const d = { x: dir.x * cos - dir.y * sin, y: dir.x * sin + dir.y * cos };
+        const angle = Math.atan2(d.y, d.x) * (180 / Math.PI);
         
-        const proj = add([
-            sprite("projectile"),
-            pos(p.pos.x + d.x * 25, p.pos.y + d.y * 25),
-            anchor("center"), z(15), scale(1),
-            { dir: d, dist: 0, dmg: stats.rangedDamage }
-        ]);
+        // Create projectile based on shape
+        let proj;
+        if (projShape === "axe") {
+            proj = add([
+                rect(projSize, projSize * 0.6),
+                pos(p.pos.x + d.x * 25, p.pos.y + d.y * 25),
+                color(...projColor), opacity(0.9),
+                anchor("center"), z(15), rotate(angle),
+                { dir: d, dist: 0, dmg: stats.rangedDamage * dmgMult, piercing, spin: 0, hasPoison, poisonDmg, poisonDur }
+            ]);
+        } else if (projShape === "dagger") {
+            proj = add([
+                rect(projSize * 1.5, projSize * 0.4),
+                pos(p.pos.x + d.x * 25, p.pos.y + d.y * 25),
+                color(...projColor), opacity(0.9),
+                anchor("center"), z(15), rotate(angle),
+                { dir: d, dist: 0, dmg: stats.rangedDamage * dmgMult, piercing, hasPoison, poisonDmg, poisonDur }
+            ]);
+        } else {
+            // Default orb
+            proj = add([
+                circle(projSize / 2),
+                pos(p.pos.x + d.x * 25, p.pos.y + d.y * 25),
+                color(...projColor), opacity(0.9),
+                anchor("center"), z(15),
+                { dir: d, dist: 0, dmg: stats.rangedDamage * dmgMult, piercing, hasPoison, poisonDmg, poisonDur }
+            ]);
+        }
         
+        // Glow effect
         const glow = add([
-            circle(CONFIG.RANGED_SIZE * 1.5),
+            circle(projSize * 0.8),
             pos(proj.pos),
-            color(100, 200, 255),
-            opacity(0.4), anchor("center"), z(13)
+            color(...projColor),
+            opacity(0.3), anchor("center"), z(13)
         ]);
+        
+        // Trail particles
+        let trailTimer = 0;
         
         proj.onUpdate(() => {
             if (!proj.exists()) return;
             
-            const mv = CONFIG.RANGED_SPEED * dt();
+            const mv = projSpeed * dt();
             proj.pos.x += proj.dir.x * mv;
             proj.pos.y += proj.dir.y * mv;
             proj.dist += mv;
             if (glow.exists()) glow.pos = proj.pos;
             
+            // Spin animation for axe
+            if (projShape === "axe") {
+                proj.spin = (proj.spin || 0) + 720 * dt();
+                proj.angle = angle + proj.spin;
+            }
+            
+            // Trail particles
+            trailTimer -= dt();
+            if (trailTimer <= 0) {
+                trailTimer = 0.05;
+                const trail = add([
+                    circle(projSize * 0.3),
+                    pos(proj.pos), color(...projColor), opacity(0.5),
+                    anchor("center"), z(12), { t: 0 }
+                ]);
+                trail.onUpdate(() => {
+                    trail.t += dt();
+                    trail.opacity = 0.5 - trail.t * 2;
+                    if (trail.t > 0.2) destroy(trail);
+                });
+            }
+            
             // Check hit
             let hitSomething = false;
             for (const e of GS.enemies) {
-                if (!e.exists() || hitSomething) continue;
+                if (!e.exists()) continue;
+                if (hitSomething && !proj.piercing) continue;
+                
                 const r = e.isBoss ? CONFIG.BOSS_SIZE / 2 + 10 : CONFIG.ENEMY_SIZE / 2 + 10;
                 if (proj.pos.dist(e.pos) < r) {
                     e.hp -= proj.dmg;
                     createHitFX(e.pos);
+                    
+                    // Apply poison if assassin
+                    if (proj.hasPoison && proj.poisonDmg > 0) {
+                        applyPoison(e, proj.poisonDmg, proj.poisonDur);
+                    }
+                    
                     if (e.hp <= 0) killEnemy(e, spawnKeyFn);
                     hitSomething = true;
                 }
             }
             
-            // Destroy if hit or out of bounds
-            if (hitSomething ||
+            // Destroy if hit (unless piercing) or out of bounds
+            if ((hitSomething && !proj.piercing) ||
                 proj.pos.x < 20 || proj.pos.x > CONFIG.MAP_WIDTH - 20 ||
                 proj.pos.y < 20 || proj.pos.y > CONFIG.MAP_HEIGHT - 20 ||
                 proj.dist > CONFIG.RANGED_RANGE) {
@@ -168,6 +242,49 @@ export function rangedAttack(spawnKeyFn) {
                 if (glow.exists()) destroy(glow);
             }
         });
+    });
+}
+
+// Apply poison effect to enemy
+function applyPoison(enemy, damage, duration) {
+    if (!enemy.exists() || enemy.poisoned) return;
+    
+    enemy.poisoned = true;
+    enemy.poisonTimer = duration;
+    
+    // Poison tick damage
+    const poisonLoop = loop(1, () => {
+        if (!enemy.exists() || enemy.poisonTimer <= 0) {
+            enemy.poisoned = false;
+            poisonLoop.cancel();
+            return;
+        }
+        
+        enemy.hp -= damage;
+        enemy.poisonTimer -= 1;
+        
+        // Poison visual
+        const poisonFX = add([
+            text("☠️", { size: 12 }),
+            pos(enemy.pos.x + rand(-10, 10), enemy.pos.y - 20),
+            anchor("center"), z(25), opacity(1), { t: 0 }
+        ]);
+        poisonFX.onUpdate(() => {
+            poisonFX.t += dt();
+            poisonFX.pos.y -= 30 * dt();
+            poisonFX.opacity = 1 - poisonFX.t * 2;
+            if (poisonFX.t > 0.5) destroy(poisonFX);
+        });
+        
+        // Green tint
+        enemy.color = rgb(100, 200, 100);
+        wait(0.3, () => {
+            if (enemy.exists()) enemy.color = rgb(255, 255, 255);
+        });
+        
+        if (enemy.hp <= 0) {
+            poisonLoop.cancel();
+        }
     });
 }
 

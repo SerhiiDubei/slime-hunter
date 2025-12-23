@@ -8,61 +8,63 @@ import { HEROES } from './data/heroes.js';
 import { getLevel } from './data/levels.js';
 
 export function createHUD() {
-    // HP bar frame
-    add([rect(208, 28), pos(16, 16), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(204, 24), pos(18, 18), color(20, 15, 12), fixed(), z(100)]);
-    const hpBar = add([rect(200, 20), pos(20, 20), color(180, 50, 50), fixed(), z(101)]);
-    const hpTxt = add([text("100/100", { size: 12 }), pos(120, 30), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
+    // ==================== BIGGER, CLEARER UI ====================
     
-    // Stamina bar
-    add([rect(158, 14), pos(16, 48), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(154, 10), pos(18, 50), color(20, 15, 12), fixed(), z(100)]);
-    const stamBar = add([rect(150, 6), pos(20, 52), color(80, 160, 200), fixed(), z(101)]);
-    add([text("STAM", { size: 7 }), pos(90, 53), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
+    // HP bar frame - LARGER
+    add([rect(250, 36), pos(16, 16), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(246, 32), pos(18, 18), color(20, 15, 12), fixed(), z(100)]);
+    const hpBar = add([rect(242, 28), pos(20, 20), color(180, 50, 50), fixed(), z(101)]);
+    const hpTxt = add([text("100/100", { size: 18 }), pos(140, 34), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
     
-    // XP bar
-    add([rect(158, 14), pos(16, 66), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(154, 10), pos(18, 68), color(20, 15, 12), fixed(), z(100)]);
-    const xpBar = add([rect(0, 6), pos(20, 70), color(220, 180, 80), fixed(), z(101)]);
-    const lvTxt = add([text("LV.1", { size: 7 }), pos(90, 71), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
+    // Stamina bar - LARGER
+    add([rect(200, 20), pos(16, 58), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(196, 16), pos(18, 60), color(20, 15, 12), fixed(), z(100)]);
+    const stamBar = add([rect(192, 12), pos(20, 62), color(80, 160, 200), fixed(), z(101)]);
+    add([text("STAMINA", { size: 12 }), pos(115, 68), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
     
-    // Ultimate bar (golden)
-    add([rect(158, 18), pos(16, 84), color(60, 45, 30), fixed(), z(99)]);
-    add([rect(154, 14), pos(18, 86), color(25, 20, 15), fixed(), z(100)]);
-    const ultGlow = add([rect(154, 14), pos(18, 86), color(255, 200, 50), opacity(0), fixed(), z(100.5)]);
-    const ultBar = add([rect(0, 10), pos(20, 88), color(200, 150, 50), fixed(), z(101)]);
-    const ultTxt = add([text("Q", { size: 9 }), pos(30, 93), anchor("center"), color(200, 180, 140), fixed(), z(102)]);
-    const ultReady = add([text("", { size: 9 }), pos(120, 93), anchor("center"), color(255, 220, 100), fixed(), z(102)]);
+    // XP bar - LARGER
+    add([rect(200, 20), pos(16, 84), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(196, 16), pos(18, 86), color(20, 15, 12), fixed(), z(100)]);
+    const xpBar = add([rect(0, 12), pos(20, 88), color(220, 180, 80), fixed(), z(101)]);
+    const lvTxt = add([text("LV.1", { size: 14 }), pos(115, 94), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
     
-    // Ranged cooldown (bottom left square)
-    add([rect(48, 48), pos(16, 108), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(44, 44), pos(18, 110), color(20, 15, 12), fixed(), z(100)]);
-    const rangedBar = add([rect(40, 40), pos(20, 112), color(80, 140, 180), fixed(), z(101)]);
-    add([text("E", { size: 16 }), pos(40, 132), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
-    const bulletTxt = add([text("x1", { size: 9 }), pos(54, 148), anchor("center"), color(150, 200, 220), fixed(), z(103)]);
+    // Ultimate bar (golden) - LARGER
+    add([rect(200, 28), pos(16, 110), color(60, 45, 30), fixed(), z(99)]);
+    add([rect(196, 24), pos(18, 112), color(25, 20, 15), fixed(), z(100)]);
+    const ultGlow = add([rect(196, 24), pos(18, 112), color(255, 200, 50), opacity(0), fixed(), z(100.5)]);
+    const ultBar = add([rect(0, 20), pos(20, 114), color(200, 150, 50), fixed(), z(101)]);
+    const ultTxt = add([text("[Q]", { size: 14 }), pos(40, 124), anchor("center"), color(200, 180, 140), fixed(), z(102)]);
+    const ultReady = add([text("", { size: 14 }), pos(135, 124), anchor("center"), color(255, 220, 100), fixed(), z(102)]);
     
-    // Level indicator (top center)
-    add([rect(130, 30), pos(CONFIG.MAP_WIDTH / 2, 20), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(126, 26), pos(CONFIG.MAP_WIDTH / 2, 22), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
-    add([text(`LEVEL ${GS.currentLevel}`, { size: 16 }), pos(CONFIG.MAP_WIDTH / 2, 27), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
-    const enemyTxt = add([text("0/6", { size: 11 }), pos(CONFIG.MAP_WIDTH / 2, 48), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
-    const keyTxt = add([text("", { size: 12 }), pos(CONFIG.MAP_WIDTH / 2, 65), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
+    // Ranged cooldown (larger square)
+    add([rect(60, 60), pos(16, 145), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(56, 56), pos(18, 147), color(20, 15, 12), fixed(), z(100)]);
+    const rangedBar = add([rect(52, 52), pos(20, 149), color(80, 140, 180), fixed(), z(101)]);
+    add([text("[E]", { size: 20 }), pos(46, 175), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
+    const bulletTxt = add([text("x1", { size: 14 }), pos(65, 195), anchor("center"), color(150, 200, 220), fixed(), z(103)]);
     
-    // Score & Gold (top right)
-    add([rect(110, 50), pos(CONFIG.MAP_WIDTH - 20, 18), anchor("topright"), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(106, 46), pos(CONFIG.MAP_WIDTH - 22, 20), anchor("topright"), color(25, 20, 15), fixed(), z(100)]);
-    const scoreTxt = add([text("0", { size: 12 }), pos(CONFIG.MAP_WIDTH - 30, 28), anchor("topright"), color(200, 200, 200), fixed(), z(101)]);
-    const goldTxt = add([text("💰 0", { size: 14 }), pos(CONFIG.MAP_WIDTH - 30, 48), anchor("topright"), color(255, 220, 100), fixed(), z(101)]);
+    // Level indicator (top center) - LARGER
+    add([rect(180, 45), pos(CONFIG.MAP_WIDTH / 2, 12), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(176, 41), pos(CONFIG.MAP_WIDTH / 2, 14), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
+    add([text(`LEVEL ${GS.currentLevel}`, { size: 22 }), pos(CONFIG.MAP_WIDTH / 2, 22), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
+    const enemyTxt = add([text("0/6", { size: 16 }), pos(CONFIG.MAP_WIDTH / 2, 48), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
+    const keyTxt = add([text("", { size: 18 }), pos(CONFIG.MAP_WIDTH / 2, 70), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
     
-    // Passive skills (bottom right)
-    const skillsTxt = add([text("", { size: 11 }), pos(CONFIG.MAP_WIDTH - 15, CONFIG.MAP_HEIGHT - 15), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
+    // Score & Gold (top right) - LARGER
+    add([rect(140, 65), pos(CONFIG.MAP_WIDTH - 15, 12), anchor("topright"), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(136, 61), pos(CONFIG.MAP_WIDTH - 17, 14), anchor("topright"), color(25, 20, 15), fixed(), z(100)]);
+    const scoreTxt = add([text("SCORE: 0", { size: 16 }), pos(CONFIG.MAP_WIDTH - 25, 26), anchor("topright"), color(200, 200, 200), fixed(), z(101)]);
+    const goldTxt = add([text("💰 0", { size: 20 }), pos(CONFIG.MAP_WIDTH - 25, 52), anchor("topright"), color(255, 220, 100), fixed(), z(101)]);
+    
+    // Passive skills (bottom right) - LARGER
+    const skillsTxt = add([text("", { size: 16 }), pos(CONFIG.MAP_WIDTH - 15, CONFIG.MAP_HEIGHT - 15), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
 
-    // Hero indicator (bottom left)
+    // Hero indicator (bottom left) - LARGER
     const hero = HEROES[GS.selectedHero];
     if (hero) {
-        add([rect(90, 25), pos(16, CONFIG.MAP_HEIGHT - 50), color(40, 30, 25), fixed(), z(99)]);
-        add([rect(86, 21), pos(18, CONFIG.MAP_HEIGHT - 48), color(25, 20, 15), fixed(), z(100)]);
-        add([text(`${hero.icon} ${hero.name}`, { size: 10 }), pos(22, CONFIG.MAP_HEIGHT - 40), color(...hero.color), fixed(), z(101)]);
+        add([rect(130, 35), pos(16, CONFIG.MAP_HEIGHT - 55), color(40, 30, 25), fixed(), z(99)]);
+        add([rect(126, 31), pos(18, CONFIG.MAP_HEIGHT - 53), color(25, 20, 15), fixed(), z(100)]);
+        add([text(`${hero.icon} ${hero.name}`, { size: 16 }), pos(22, CONFIG.MAP_HEIGHT - 40), color(...hero.color), fixed(), z(101)]);
     }
 
     // Regen timer
@@ -74,10 +76,10 @@ export function createHUD() {
         const pl = GS.player;
         const stats = GS.getStats();
         
-        // HP bar
+        // HP bar (wider bar = 242)
         const hpPct = Math.max(0, pl.hp / pl.maxHp);
-        hpBar.width = 200 * hpPct;
-        hpTxt.text = `${Math.floor(Math.max(0, pl.hp))}/${Math.floor(pl.maxHp)}`;
+        hpBar.width = 242 * hpPct;
+        hpTxt.text = `HP: ${Math.floor(Math.max(0, pl.hp))}/${Math.floor(pl.maxHp)}`;
         
         // HP color gradient
         if (hpPct > 0.5) {
@@ -101,19 +103,19 @@ export function createHUD() {
             }
         }
         
-        // Stamina
+        // Stamina (wider = 192)
         const maxStam = pl.maxStamina || CONFIG.SPRINT_MAX_STAMINA;
         const stamPct = pl.stamina / maxStam;
-        stamBar.width = 150 * stamPct;
+        stamBar.width = 192 * stamPct;
         stamBar.color = pl.isSlowed ? rgb(100, 200, 240) : rgb(80, 160, 200);
         
-        // XP
-        xpBar.width = 150 * GS.getXPProgress();
+        // XP (wider = 192)
+        xpBar.width = 192 * GS.getXPProgress();
         lvTxt.text = `LV.${GS.playerLevel}`;
         
-        // Ultimate - pulsing animation when ready
+        // Ultimate - pulsing animation when ready (wider = 192)
         const ultPct = GS.ultimateCharge / GS.ultimateMax;
-        ultBar.width = 150 * ultPct;
+        ultBar.width = 192 * ultPct;
         if (GS.ultimateReady) {
             // Pulsing glow effect
             const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
@@ -135,16 +137,16 @@ export function createHUD() {
             ultGlow.opacity = 0;
         }
         
-        // Ranged cooldown
+        // Ranged cooldown (larger = 52)
         if (pl.rangedCD <= 0) {
             rangedBar.color = rgb(80, 140, 180);
-            rangedBar.height = 40;
-            rangedBar.pos.y = 112;
+            rangedBar.height = 52;
+            rangedBar.pos.y = 149;
         } else {
             const pct = 1 - pl.rangedCD / stats.rangedCooldown;
             rangedBar.color = rgb(50, 50, 60);
-            rangedBar.height = 40 * pct;
-            rangedBar.pos.y = 112 + 40 * (1 - pct);
+            rangedBar.height = 52 * pct;
+            rangedBar.pos.y = 149 + 52 * (1 - pct);
         }
         
         // Bullets
@@ -154,9 +156,9 @@ export function createHUD() {
         // Score, gold, enemies
         const levelConfig = getLevel(GS.currentLevel);
         const maxEnemies = levelConfig?.enemyCount || CONFIG.ENEMIES_PER_LEVEL;
-        scoreTxt.text = `${GS.score}`;
+        scoreTxt.text = `SCORE: ${GS.score}`;
         goldTxt.text = `💰 ${GS.gold}`;
-        enemyTxt.text = `Enemies: ${GS.enemiesKilled}/${maxEnemies}`;
+        enemyTxt.text = `${GS.enemiesKilled} / ${maxEnemies} Killed`;
         keyTxt.text = GS.hasKey ? "🔑 KEY ACQUIRED!" : "";
         
         // Passive skills
