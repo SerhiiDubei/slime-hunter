@@ -114,27 +114,27 @@ export const BOSS_TYPES = {
         meteorCount: 3,
     },
     
-    // Level 6 Boss: Shadow Lord - Teleport + dark wave
+    // Level 6 Boss: Shadow Lord - Teleport + dark wave (HARDER!)
     shadow_lord: {
         id: "shadow_lord",
         name: "SHADOW LORD",
         sprite: "bossShadow",
-        hpMultiplier: 8.0,
-        damageMultiplier: 2.5,
-        speedMultiplier: 1.0,
-        size: 50,
+        hpMultiplier: 12.0,          // More HP! (was 8)
+        damageMultiplier: 3.5,        // More damage! (was 2.5)
+        speedMultiplier: 1.2,         // Faster! (was 1.0)
+        size: 55,                     // Bigger
         color: [50, 50, 80],
-        goldBonus: [250, 400],      // Random 250-400 gold
+        goldBonus: [250, 400],
         xpBonus: 500,
         scoreBonus: 300,
         ability: "teleport",
         ability2: "dark_wave",
-        abilityCooldown: 3.0,
-        ability2Cooldown: 2.5,
-        cloneCount: 2,
-        cloneDuration: 4.0,
-        darkWaveDamage: 20,
-        darkWaveSpeed: 180,
+        abilityCooldown: 2.0,         // Faster teleport (was 3.0)
+        ability2Cooldown: 1.5,        // Faster dark wave (was 2.5)
+        cloneCount: 3,                // More clones! (was 2)
+        cloneDuration: 5.0,           // Longer clones (was 4.0)
+        darkWaveDamage: 30,           // More damage (was 20)
+        darkWaveSpeed: 220,           // Faster wave (was 180)
     },
     
     // Level 7 Boss: MEGA SLIME - All abilities + RAGE!

@@ -109,6 +109,9 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
 
     GS.enemies.push(e);
 
+    // Contact damage timer
+    e.contactDamageTimer = 0;
+    
     e.onUpdate(() => {
         if (!GS.player || !e.exists()) return;
         // Freeze during pause/boss dialogue
@@ -116,6 +119,32 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
         
         const distToPlayer = e.pos.dist(GS.player.pos);
         const dirToPlayer = GS.player.pos.sub(e.pos).unit();
+        
+        // CONTACT DAMAGE CHECK - fixes bug where overlapping entities don't trigger collision
+        const contactRadius = (e.isBoss ? CONFIG.BOSS_SIZE : CONFIG.ENEMY_SIZE) / 2 + 12;
+        if (distToPlayer < contactRadius && GS.player.invuln <= 0) {
+            e.contactDamageTimer -= dt();
+            if (e.contactDamageTimer <= 0) {
+                // Deal contact damage
+                GS.player.hp -= e.damage;
+                GS.player.invuln = 0.5; // Shorter invuln for contact damage
+                playSound('hit');
+                shake(e.isBoss ? 12 : 6);
+                
+                // Push player away
+                const pushDir = GS.player.pos.sub(e.pos).unit();
+                GS.player.pos = GS.player.pos.add(pushDir.scale(30));
+                
+                e.contactDamageTimer = 0.3; // Can damage again in 0.3 sec
+                
+                if (GS.player.hp <= 0) {
+                    playSound('gameover');
+                    wait(0.5, () => go("gameover"));
+                }
+            }
+        } else {
+            e.contactDamageTimer = 0; // Reset timer when not in contact
+        }
         
         if (e.behavior === "ranged") {
             rangedBehavior(e, distToPlayer, dirToPlayer);
@@ -489,6 +518,9 @@ export function spawnBoss() {
         }
     }
 
+    // Contact damage timer for boss
+    b.contactDamageTimer = 0;
+    
     b.onUpdate(() => {
         if (!GS.player || !b.exists()) return;
         // Freeze during pause/boss dialogue
@@ -496,6 +528,32 @@ export function spawnBoss() {
         
         const dirToPlayer = GS.player.pos.sub(b.pos).unit();
         const distToPlayer = b.pos.dist(GS.player.pos);
+        
+        // CONTACT DAMAGE CHECK - fixes bug where overlapping entities don't trigger collision
+        const contactRadius = CONFIG.BOSS_SIZE / 2 + 16;
+        if (distToPlayer < contactRadius && GS.player.invuln <= 0) {
+            b.contactDamageTimer -= dt();
+            if (b.contactDamageTimer <= 0) {
+                // Deal contact damage
+                GS.player.hp -= b.damage;
+                GS.player.invuln = 0.4; // Shorter invuln for contact damage
+                playSound('hit');
+                shake(15);
+                
+                // Push player away
+                const pushDir = GS.player.pos.sub(b.pos).unit();
+                GS.player.pos = GS.player.pos.add(pushDir.scale(50));
+                
+                b.contactDamageTimer = 0.25; // Can damage again in 0.25 sec
+                
+                if (GS.player.hp <= 0) {
+                    playSound('gameover');
+                    wait(0.5, () => go("gameover"));
+                }
+            }
+        } else {
+            b.contactDamageTimer = 0;
+        }
         
         // Ability cooldowns
         b.abilityTimer -= dt();
