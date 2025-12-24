@@ -156,9 +156,10 @@ export function spawnKey(position, roomId, keyColor = null) {
             Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b });
             
             // Create sprite WITHOUT color component first
+            // posFn expects (x, y) coordinates
             k = addFn([
                 spriteFn("key"), 
-                posFn(pos), 
+                posFn(pos.x, pos.y), 
                 anchorFn("center"), 
                 areaFn(), 
                 zFn(5), 
@@ -226,7 +227,7 @@ export function spawnKey(position, roomId, keyColor = null) {
             if (circleFn && opacityFn && addFn && posFn && anchorFn && zFn) {
                 const glow = addFn([
                     circleFn(25), 
-                    posFn(pos), 
+                    posFn(pos.x, pos.y), 
                     opacityFn(0.3), 
                     anchorFn("center"), 
                     zFn(4), 
