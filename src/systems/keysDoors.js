@@ -229,7 +229,11 @@ export function checkAllKeysCollected(dungeon) {
  */
 export function collectKey(keyObj, dungeon, doors, doorTexts) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:ENTRY',message:'Key collection started',data:{keyObj:!!keyObj,roomId:keyObj?.roomId,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    Logger.info('🔑 collectKey:ENTRY', { 
+        keyObj: !!keyObj,
+        roomId: keyObj?.roomId,
+        collectedKeys: GS.collectedKeys
+    });
     // #endregion
     
     try {
@@ -307,7 +311,11 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
  */
 export function updateBossDoorVisuals(doors, doorTexts, allKeysCollected) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:updateBossDoorVisuals:ENTRY',message:'Updating boss door visuals',data:{allKeysCollected,doorsCount:doors.length,doorTextsCount:doorTexts.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    Logger.debug('🔑 updateBossDoorVisuals:ENTRY', { 
+        allKeysCollected,
+        doorsCount: doors.length,
+        doorTextsCount: doorTexts.length
+    });
     // #endregion
     
     doors.forEach(d => {
