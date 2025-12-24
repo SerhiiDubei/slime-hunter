@@ -25,6 +25,8 @@ let roomIndicator;
 // Creates interesting rooms with narrow corridors, cover, and varied layouts
 
 function generateRoomShape(seed) {
+    const perfStart = performance.now();
+    
     const rng = () => {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
         return seed / 0x7fffffff;
@@ -227,6 +229,11 @@ function generateRoomShape(seed) {
     carveCorridor(centerX, 1, centerX, centerY, corridorW);
     // Bottom door corridor
     carveCorridor(centerX, centerY, centerX, gridH - 2, corridorW);
+    
+    const perfTime = performance.now() - perfStart;
+    if (perfTime > 10) {
+        Logger.warn('Room shape generation slow', { time: perfTime.toFixed(2) + 'ms', gridW, gridH });
+    }
     
     return {
         grid,
@@ -632,6 +639,10 @@ export function createGameScene() {
             perf.total = performance.now() - perfStart;
             
             // ========== PERFORMANCE REPORT ==========
+            const perfEntries = Object.entries(perf).filter(([k]) => k !== 'total');
+            const sortedPerf = perfEntries.sort((a, b) => b[1] - a[1]);
+            const bottleneck = sortedPerf[0];
+            
             Logger.warn('=== PERFORMANCE PROFILE ===', {
                 roomId: currentRoom.id,
                 '1. Room Shape Generation': perf.roomShape.toFixed(2) + 'ms',
@@ -640,13 +651,24 @@ export function createGameScene() {
                 '4. Floor Sprite Load': perf.floorLoad.toFixed(2) + 'ms',
                 '5. Collisions Creation': perf.collisions.toFixed(2) + 'ms',
                 '6. Decorations Creation': perf.decorations.toFixed(2) + 'ms',
+                '7. Doors Creation': (perf.doors || 0).toFixed(2) + 'ms',
+                '8. Player Creation': (perf.player || 0).toFixed(2) + 'ms',
                 'TOTAL ROOM LOAD': perf.total.toFixed(2) + 'ms',
-                'BOTTLENECK': Object.entries(perf)
-                    .filter(([k]) => k !== 'total')
-                    .sort((a, b) => b[1] - a[1])[0][0] + ' (' + 
-                    Object.entries(perf)
-                        .filter(([k]) => k !== 'total')
-                        .sort((a, b) => b[1] - a[1])[0][1].toFixed(2) + 'ms)'
+                '🔥 BOTTLENECK': bottleneck[0] + ' (' + bottleneck[1].toFixed(2) + 'ms)',
+                'Top 3 slowest': sortedPerf.slice(0, 3).map(([k, v]) => `${k}: ${v.toFixed(2)}ms`).join(', ')
+            });
+            
+            // Console table for better readability
+            console.table({
+                'Room Shape': perf.roomShape.toFixed(2) + 'ms',
+                'Floor Canvas': perf.floorCanvas.toFixed(2) + 'ms',
+                'Floor Draw': perf.floorDraw.toFixed(2) + 'ms',
+                'Floor Load': perf.floorLoad.toFixed(2) + 'ms',
+                'Collisions': perf.collisions.toFixed(2) + 'ms',
+                'Decorations': perf.decorations.toFixed(2) + 'ms',
+                'Doors': (perf.doors || 0).toFixed(2) + 'ms',
+                'Player': (perf.player || 0).toFixed(2) + 'ms',
+                'TOTAL': perf.total.toFixed(2) + 'ms'
             });
             
             Logger.info('Room objects created', { 
@@ -657,11 +679,14 @@ export function createGameScene() {
             });
 
             // Create doors based on dungeon connections
+            perfStep = performance.now();
             doors = [];
             doorTexts = [];
             const adjacentRooms = dungeon.getAdjacentRooms();
             
+            let doorCount = 0;
             adjacentRooms.forEach(({ room: targetRoom, direction, canEnter }) => {
+                doorCount++;
                 let doorX, doorY, textOffsetX = 0, textOffsetY = -40;
                 
                 // Check if boss room requires all other rooms cleared
@@ -754,14 +779,19 @@ export function createGameScene() {
                 doorTexts.push(doorTxt);
             });
             
+            const perfDoors = performance.now() - perfStep;
+            perf.doors = perfDoors;
+            
             // Room type indicator
             const isBossRoom = currentRoom.type === ROOM_TYPES.BOSS;
             roomIndicator = null;
 
             // Create player (spawn in room center)
+            perfStep = performance.now();
             const p = createPlayer();
             p.pos = vec2(roomShape.centerX, roomShape.centerY);
             setupPlayerMovement(p);
+            perf.player = performance.now() - perfStep;
             
             // Initialize camera to player position
             const halfViewW = CONFIG.VIEWPORT_WIDTH / 2;
