@@ -5,6 +5,7 @@ import { CONFIG } from './config.js';
 import { GS } from './state.js';
 import { HEROES } from './data/heroes.js';
 import { playSound } from './audio.js';
+import { killEnemy } from './entities/enemies.js';
 
 let ultCooldown = 0;
 
@@ -111,6 +112,11 @@ function ultimateEarthquake(config) {
                     dmgTxt.opacity = 1 - dmgTxt.t;
                     if (dmgTxt.t > 1) destroy(dmgTxt);
                 });
+                
+                // Check if enemy died
+                if (e.hp <= 0) {
+                    killEnemy(e);
+                }
             }
         }
     });
@@ -187,6 +193,11 @@ function ultimateMeteorShower(config) {
                             dmgTxt.opacity = 1 - dmgTxt.t;
                             if (dmgTxt.t > 0.8) destroy(dmgTxt);
                         });
+                        
+                        // Check if enemy died
+                        if (e.hp <= 0) {
+                            killEnemy(e);
+                        }
                     }
                 }
                 
@@ -309,6 +320,11 @@ function ultimateShadowStrike(config) {
             dmgTxt.opacity = 1 - dmgTxt.t;
             if (dmgTxt.t > 0.8) destroy(dmgTxt);
         });
+        
+        // Check if enemy died
+        if (target.hp <= 0) {
+            killEnemy(target);
+        }
         
         strikeIndex++;
         wait(0.15, doStrike);

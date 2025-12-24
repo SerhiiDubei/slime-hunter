@@ -25,7 +25,9 @@ export function createPlayer() {
             maxStamina: stats.maxStamina,
             sprinting: false,
             isSlowed: false,
-            slowTimer: 0
+            slowTimer: 0,
+            staminaExhausted: false,
+            exhaustedTimer: 0
         },
         "player"
     ]);
@@ -67,9 +69,15 @@ export function setupPlayerMovement(p) {
         const wantSprint = KEYS.shift || isKeyDown(sprintKey) || window.mobileSprintActive;
         const moving = mx !== 0 || my !== 0;
         
-        if (wantSprint && moving && p.stamina > 0) {
+        if (wantSprint && moving && p.stamina > 0 && !p.staminaExhausted) {
             p.sprinting = true;
             p.stamina -= CONFIG.SPRINT_DRAIN_RATE * dt();
+            
+            // Check if stamina just ran out - apply exhaustion penalty
+            if (p.stamina <= 0) {
+                p.staminaExhausted = true;
+                p.exhaustedTimer = 2.0; // 2 seconds of reduced speed
+            }
         } else {
             p.sprinting = false;
             if (p.stamina < stats.maxStamina) {
@@ -78,6 +86,14 @@ export function setupPlayerMovement(p) {
         }
         p.stamina = clamp(p.stamina, 0, stats.maxStamina);
         p.maxStamina = stats.maxStamina;
+        
+        // Handle stamina exhaustion penalty
+        if (p.staminaExhausted) {
+            p.exhaustedTimer -= dt();
+            if (p.exhaustedTimer <= 0) {
+                p.staminaExhausted = false;
+            }
+        }
         
         // Handle slow effect (from Frost Giant)
         if (p.isSlowed) {
@@ -89,6 +105,11 @@ export function setupPlayerMovement(p) {
         
         // Calculate speed - use stat-based speed
         let speed = stats.moveSpeed * (p.sprinting ? CONFIG.SPRINT_SPEED_MULTIPLIER : 1);
+        
+        // Apply stamina exhaustion penalty - minimum speed when exhausted
+        if (p.staminaExhausted) {
+            speed = stats.moveSpeed * 0.4; // 60% slower when stamina exhausted
+        }
         
         // Apply slow debuff
         if (p.isSlowed) {
