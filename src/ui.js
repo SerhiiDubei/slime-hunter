@@ -90,7 +90,7 @@ export function createHUD() {
     const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(10, 12, 18), fixed(), z(99)]);
     
     // Room number label
-    const roomLabel = add([
+    const minimapRoomLabel = add([
         text("ROOM 1", { size: 8 }), 
         pos(minimapX + minimapSize / 2, minimapY - 8), 
         anchor("center"), color(120, 100, 80), fixed(), z(100)
@@ -161,7 +161,7 @@ export function createHUD() {
             if (room.type === 'boss') labelText = "⚠ BOSS";
             else if (room.type === 'treasure') labelText = "💎 TREASURE";
             else if (room.type === 'elite') labelText = "⭐ ELITE";
-            roomLabel.text = labelText;
+            minimapRoomLabel.text = labelText;
         }
     }
     
