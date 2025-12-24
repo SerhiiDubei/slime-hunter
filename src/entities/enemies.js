@@ -165,11 +165,49 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
             e.contactDamageTimer = 0;
         }
         
-        // Movement every frame (smooth)
+        // Movement every frame (smooth) with wall collision check
+        let newPos = e.pos;
         if (e.behavior === "ranged") {
+            const oldPos = e.pos;
             rangedBehavior(e, distToPlayer, dirToPlayer);
+            newPos = e.pos;
+            e.pos = oldPos; // Reset to check collision
         } else {
-            e.pos = e.pos.add(dirToPlayer.scale(e.speed * dt_));
+            newPos = e.pos.add(dirToPlayer.scale(e.speed * dt_));
+        }
+        
+        // Check if new position is walkable (not a wall/pillar)
+        if (GS.roomShape && GS.roomShape.grid) {
+            const gx = Math.floor(newPos.x / 40);
+            const gy = Math.floor(newPos.y / 40);
+            if (gx >= 0 && gx < GS.roomShape.width && gy >= 0 && gy < GS.roomShape.height) {
+                const tileType = GS.roomShape.grid[gy][gx];
+                if (tileType === 1) { // Only move if walkable
+                    e.pos = newPos;
+                }
+                // If blocked, try moving only X or only Y
+                else {
+                    const tryX = vec2(newPos.x, e.pos.y);
+                    const tryY = vec2(e.pos.x, newPos.y);
+                    const gxX = Math.floor(tryX.x / 40);
+                    const gyX = Math.floor(tryX.y / 40);
+                    const gxY = Math.floor(tryY.x / 40);
+                    const gyY = Math.floor(tryY.y / 40);
+                    
+                    if (gxX >= 0 && gxX < GS.roomShape.width && gyX >= 0 && gyX < GS.roomShape.height &&
+                        GS.roomShape.grid[gyX][gxX] === 1) {
+                        e.pos = tryX;
+                    } else if (gxY >= 0 && gxY < GS.roomShape.width && gyY >= 0 && gyY < GS.roomShape.height &&
+                               GS.roomShape.grid[gyY][gxY] === 1) {
+                        e.pos = tryY;
+                    }
+                    // Otherwise stay in place
+                }
+            } else {
+                e.pos = newPos; // Out of bounds - let clamp handle it
+            }
+        } else {
+            e.pos = newPos; // No room shape - fallback
         }
         
         // Clamp position

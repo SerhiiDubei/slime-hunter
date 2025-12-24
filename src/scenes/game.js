@@ -21,6 +21,10 @@ let doors = [];  // Multiple doors now
 let doorTexts = [];
 let roomIndicator;
 
+// Export room shape to global state for walkable checks
+GS.roomShape = null;
+let currentRoomShape = null; // Store room shape for walkable checks
+
 // ==================== ENTER THE GUNGEON STYLE ROOM GENERATION ====================
 // Creates interesting rooms with narrow corridors, cover, and varied layouts
 
@@ -185,20 +189,29 @@ function generateRoomShape(seed) {
             carveCorridor(centerX, 1, centerX, gridH - 2, 3);
             break;
             
-        case 6: // Snake/winding path
-            // Start area
-            carveRect(2, centerY - 4, 10, centerY + 4);
-            // End area
-            carveRect(gridW - 10, centerY - 4, gridW - 2, centerY + 4);
-            // Winding corridor
-            carveCorridor(10, centerY - 3, centerX - 4, centerY - 3, 3);
-            carveCorridor(centerX - 4, centerY - 3, centerX - 4, centerY + 3, 3);
-            carveCorridor(centerX - 4, centerY + 3, centerX + 4, centerY + 3, 3);
-            carveCorridor(centerX + 4, centerY + 3, centerX + 4, centerY - 3, 3);
-            carveCorridor(centerX + 4, centerY - 3, gridW - 10, centerY - 3, 3);
-            // Top/bottom door corridors
-            carveCorridor(centerX, 1, centerX, centerY - 3, 3);
-            carveCorridor(centerX, centerY + 3, centerX, gridH - 2, 3);
+        case 6: // Complex labyrinth with multiple levels
+            // Create multi-level maze structure
+            // Level 1: Top area
+            carveRect(3, 3, gridW - 3, centerY - 8);
+            // Level 2: Middle maze
+            carveCorridor(3, centerY - 6, centerX - 4, centerY - 6, 2);
+            carveCorridor(centerX + 4, centerY - 6, gridW - 3, centerY - 6, 2);
+            carveCorridor(centerX - 4, centerY - 6, centerX - 4, centerY + 6, 2);
+            carveCorridor(centerX + 4, centerY - 6, centerX + 4, centerY + 6, 2);
+            carveCorridor(3, centerY + 6, centerX - 4, centerY + 6, 2);
+            carveCorridor(centerX + 4, centerY + 6, gridW - 3, centerY + 6, 2);
+            // Level 3: Bottom area
+            carveRect(3, centerY + 8, gridW - 3, gridH - 3);
+            
+            // Vertical connections
+            carveCorridor(centerX - 4, centerY - 4, centerX - 4, centerY + 4, 2);
+            carveCorridor(centerX + 4, centerY - 4, centerX + 4, centerY + 4, 2);
+            carveCorridor(8, centerY, 8, centerY + 2, 2);
+            carveCorridor(gridW - 8, centerY, gridW - 8, centerY + 2, 2);
+            
+            // Strategic obstacles
+            addPillar(centerX - 2, centerY - 2, 2);
+            addPillar(centerX + 2, centerY + 2, 2);
             break;
             
         default: // Classic room with scattered cover
@@ -462,14 +475,13 @@ export function createGameScene() {
             let floorTileCount = 0, pillarCount = 0, wallCount = 0;
             
             // Draw by type to minimize fillStyle changes
-            // 1. Draw all floor tiles first (most common)
-            fctx.fillStyle = `rgb(${floorShades[0][0]}, ${floorShades[0][1]}, ${floorShades[0][2]})`;
+            // 1. Draw all floor tiles first (smooth, no grid lines)
             for (let gy = 0; gy < roomShape.height; gy++) {
                 for (let gx = 0; gx < roomShape.width; gx++) {
                     if (roomShape.grid[gy][gx] === 1) {
                         const tileX = gx * 40;
                         const tileY = gy * 40;
-                        // Use one of 3 shades (deterministic based on position)
+                        // Use one of 3 shades (deterministic based on position) - smooth transitions
                         const shadeIdx = (gx + gy * 3) % 3;
                         fctx.fillStyle = `rgb(${floorShades[shadeIdx][0]}, ${floorShades[shadeIdx][1]}, ${floorShades[shadeIdx][2]})`;
                         fctx.fillRect(tileX, tileY, 40, 40);
@@ -495,18 +507,15 @@ export function createGameScene() {
                 }
             }
             
-            // 3. Draw walls (reuse gradient)
+            // 3. Draw walls (smooth, no lines)
             fctx.fillStyle = wallGrad;
-            fctx.strokeStyle = '#2a2a4a';
-            fctx.lineWidth = 2;
             for (let gy = 0; gy < roomShape.height; gy++) {
                 for (let gx = 0; gx < roomShape.width; gx++) {
                     if (roomShape.grid[gy][gx] === 0) {
                         const tileX = gx * 40;
                         const tileY = gy * 40;
+                        // Smooth fill without lines
                         fctx.fillRect(tileX, tileY, 40, 40);
-                        fctx.strokeRect(tileX, tileY, 40, 20);
-                        fctx.strokeRect(tileX, tileY + 20, 40, 20);
                         wallCount++;
                     }
                 }
