@@ -303,18 +303,7 @@ function getRoomConfig() {
     };
 }
 
-// Check if all keys collected (all non-boss, non-start rooms cleared)
-function checkAllKeysCollected(dungeon) {
-    if (!dungeon) return false;
-    
-    const allRooms = dungeon.map.rooms;
-    const requiredRooms = allRooms.filter(r => 
-        r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
-    );
-    
-    // Check if all required rooms have their keys collected
-    return requiredRooms.length > 0 && requiredRooms.every(room => GS.collectedKeys.includes(room.id));
-}
+// checkAllKeysCollected moved to src/systems/keysDoors.js
 
 // Distribute enemy weight across enemy types (d20 system)
 // Returns object: { "slime": 10, "ranged_slime": 2, "tank_slime": 1 }
@@ -408,90 +397,7 @@ function distributeEnemyWeight(totalWeight, level) {
     return distribution;
 }
 
-// Spawn colored key for a specific room
-function spawnKey(p, roomId, keyColor = null) {
-    try {
-        // Validate position
-        if (!p || (p.x === undefined && p.pos === undefined)) {
-            Logger.error('CRITICAL: Invalid position for spawnKey', { p, roomId, keyColor });
-            return;
-        }
-        
-        const pos = p.pos || p;
-        Logger.info('Spawning key at', { x: pos.x, y: pos.y, roomId, keyColor });
-        
-        // Key colors for different rooms (rainbow colors)
-        const keyColors = [
-            [255, 100, 100],  // Red
-            [255, 200, 100],  // Orange
-            [255, 255, 100],  // Yellow
-            [100, 255, 100],  // Green
-            [100, 200, 255],  // Blue
-            [200, 100, 255],  // Purple
-            [255, 100, 200],  // Pink
-        ];
-        
-        // Validate and get color array
-        let keyColorArray;
-        if (keyColor && Array.isArray(keyColor) && keyColor.length >= 3) {
-            keyColorArray = keyColor;
-        } else {
-            // Validate roomId
-            const safeRoomId = (roomId !== undefined && roomId !== null) ? Math.abs(roomId) : 0;
-            const colorIndex = safeRoomId % keyColors.length;
-            keyColorArray = keyColors[colorIndex];
-            
-            if (!keyColorArray || !Array.isArray(keyColorArray) || keyColorArray.length < 3) {
-                Logger.error('CRITICAL: Invalid keyColorArray from keyColors', { 
-                    roomId, 
-                    safeRoomId, 
-                    colorIndex, 
-                    keyColorArray,
-                    keyColorsLength: keyColors.length
-                });
-                keyColorArray = [255, 200, 100]; // Fallback to orange
-            }
-        }
-        
-        Logger.debug('Key color array', { keyColorArray, roomId });
-        
-        // Create key sprite with color
-        const k = add([
-            sprite("key"), pos(pos), anchor("center"), area(), z(5), scale(1), 
-            color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
-            { roomId, keyColor: keyColorArray } // Store room ID and color
-        ]);
-        
-        // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
-        const startY = pos.y;
-        let keyAnimTimer = 0;
-        k.onUpdate(() => {
-            try {
-                keyAnimTimer += dt();
-                if (keyAnimTimer >= 0.1) {
-                    keyAnimTimer = 0;
-                    k.pos.y = startY + Math.sin(time() * 4) * 5;
-                    k.angle = Math.sin(time() * 2) * 10;
-                }
-            } catch (error) {
-                Logger.error('Key animation error', { error: error.message, stack: error.stack });
-            }
-        });
-        
-        // OPTIMIZED: Colored glow matching key color
-        add([
-            circle(25), pos(pos), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
-        ]);
-    } catch (error) {
-        Logger.error('CRITICAL: spawnKey failed', {
-            error: error.message,
-            stack: error.stack,
-            p,
-            roomId,
-            keyColor
-        });
-    }
-}
+// spawnKey moved to src/systems/keysDoors.js
 
 // Called when all room enemies are killed
 function onRoomCleared() {
@@ -521,6 +427,9 @@ function onRoomCleared() {
                 } else {
                     wait(0.5, () => {
                         try {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:SPAWN_KEY',message:'Spawning key after room clear',data:{roomId,playerPos:{x:p.pos.x,y:p.pos.y}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                            // #endregion
                             spawnKey(vec2(p.pos.x, p.pos.y - 60), roomId);
                         } catch (error) {
                             Logger.error('Failed to spawn key in onRoomCleared', {
@@ -543,41 +452,35 @@ function onRoomCleared() {
     // Check if all keys collected for boss door
     const allKeysCollected = checkAllKeysCollected(dungeon);
     
-    // Update door visuals
-    doors.forEach(door => {
-    if (door && door.exists()) {
-            const isBossDoor = door.targetRoomType === ROOM_TYPES.BOSS;
-            const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
-            if (canOpen) {
-        door.use(sprite("doorOpen"));
-    }
-        }
-    });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:KEYS_CHECK',message:'Checking keys after room clear',data:{allKeysCollected,collectedKeys:GS.collectedKeys,currentRoomId:currentRoom?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+    // #endregion
     
-    // Update door texts
+    // Update door visuals using centralized function
+    updateBossDoorVisuals(doors, doorTexts, allKeysCollected);
+    
+    // Update other door texts
     doorTexts.forEach(dt => {
         if (dt && dt.exists()) {
             if (dungeon) {
                 const targetRoom = dungeon.getRoom(dt.targetRoomId);
                 if (targetRoom) {
                     const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
                     const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
                     
                     if (targetRoom.type === ROOM_TYPES.BOSS) {
-                        dt.text = canOpen ? "🚪" : "🔒";
-                        dt.color = canOpen ? rgb(100, 255, 150) : rgb(255, 50, 50);
+                        // Already handled by updateBossDoorVisuals
                     } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
                         dt.text = "💎";
                         dt.color = rgb(255, 220, 100);
                     } else if (targetRoom.cleared) {
                         dt.text = "✓";
                         dt.color = rgb(100, 200, 100);
-        } else {
+                    } else {
                         dt.text = canOpen ? "→" : "🔒";
                         dt.color = canOpen ? rgb(100, 255, 150) : rgb(150, 150, 150);
-        }
-    }
+                    }
+                }
             }
         }
     });
@@ -1124,9 +1027,11 @@ export function createGameScene() {
             let camY = Math.max(halfViewH, Math.min(p.pos.y, CONFIG.MAP_HEIGHT - halfViewH));
             camPos(camX, camY);
 
-            // Attack handlers
-            const doMeleeAttack = () => meleeAttack(spawnKey);
-            const doRangedAttack = () => rangedAttack(spawnKey);
+            // Attack handlers - spawnKeyFn is no longer needed (keys spawn in onRoomCleared)
+            // But keep for backward compatibility with killEnemy signature
+            const spawnKeyFn = null; // Keys are spawned in onRoomCleared, not from enemy deaths
+            const doMeleeAttack = () => meleeAttack(spawnKeyFn);
+            const doRangedAttack = () => rangedAttack(spawnKeyFn);
 
             // Setup ultimate
             setupUltimate();
@@ -1211,49 +1116,7 @@ export function createGameScene() {
             });
 
             onCollide("player", "key", (p, k) => {
-                try {
-                    const roomId = k.roomId;
-                    if (roomId === undefined || roomId === null) {
-                        Logger.warn('Key without roomId!', { key: k });
-                        return;
-                    }
-                    
-                    // Check if already collected
-                    if (GS.collectedKeys.includes(roomId)) {
-                        Logger.debug('Key already collected', { roomId });
-                        return;
-                    }
-                    
-                    Logger.info('Key collected!', { roomId, totalKeys: GS.collectedKeys.length + 1 });
-                    GS.collectedKeys.push(roomId);
-                    GS.hasKey = true; // Legacy compatibility
-                    playSound('key');
-                    
-                    // Destroy this specific key
-                    destroy(k);
-                    destroyAll("keyPart");
-                    
-                    // Check if all keys collected
-                    const dungeon = GS.dungeon;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
-                    
-                    if (allKeysCollected) {
-                        Logger.info('All keys collected! Boss door unlocked!');
-                        // Update door visuals
-                        doors.forEach(d => {
-                            if (d && d.exists() && d.targetRoomType === ROOM_TYPES.BOSS) {
-                                d.use(sprite("doorOpen"));
-                            }
-                        });
-                        doorTexts.forEach(t => {
-                            if (t && t.exists() && t.targetRoomType === ROOM_TYPES.BOSS) {
-                                t.text = "🚪";
-                            }
-                        });
-                    }
-                } catch (error) {
-                    Logger.error('Key collision error', { error: error.message });
-                }
+                collectKey(k, dungeon, doors, doorTexts);
             });
 
             onCollide("player", "door", (pl, doorObj) => {
@@ -1264,17 +1127,13 @@ export function createGameScene() {
                     const targetRoom = dungeon.getRoom(targetRoomId);
                     if (!targetRoom) return;
                     
-                    // Check if door is locked
+                    // Check if door is locked using centralized function
+                    const doorCheck = canEnterDoor(targetRoom, currentRoom, dungeon);
                     const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
-                    const canEnter = isBossDoor ? allKeysCollected : currentRoom.cleared;
                     
-                    if (!canEnter) {
+                    if (!doorCheck.canEnter) {
                         if (isBossDoor) {
-                            const requiredRooms = dungeon.map.rooms.filter(r => 
-                                r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
-                            );
-                            const keysNeeded = requiredRooms.length - GS.collectedKeys.length;
+                            const keysNeeded = getKeysNeeded(dungeon);
                             const msg = add([
                                 text(`Collect ${keysNeeded} more key${keysNeeded > 1 ? 's' : ''} first!`, { size: 20 }),
                                 pos(width() / 2, height() / 2 - 50),
@@ -1315,6 +1174,9 @@ export function createGameScene() {
                     GS.currentRoom = targetRoomId;
                     
                     // Check if entering boss room and boss is defeated
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:doorCollision:BOSS_CHECK',message:'Checking boss room entry',data:{targetRoomType:targetRoom.type,targetRoomCleared:targetRoom.cleared,currentLevel:GS.currentLevel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+                    // #endregion
                     if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
                         // Level complete!
                         if (GS.currentLevel >= CONFIG.MAX_LEVELS) {
