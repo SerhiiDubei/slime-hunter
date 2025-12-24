@@ -21,7 +21,7 @@ let doors = [];  // Multiple doors now
 let doorTexts = [];
 let roomIndicator;
 
-// Generate irregular room shape
+// Generate irregular room shape - SIMPLIFIED for guaranteed door access
 function generateRoomShape(seed) {
     // Use seed for consistent room shapes
     const rng = () => {
@@ -34,206 +34,160 @@ function generateRoomShape(seed) {
     const gridH = Math.floor(CONFIG.MAP_HEIGHT / 40);
     const grid = [];
     
-    // Initialize with walls
+    const centerX = Math.floor(gridW / 2);
+    const centerY = Math.floor(gridH / 2);
+    const margin = 2; // Outer wall margin
+    
+    // Start with ALL walkable floor (safer approach)
     for (let y = 0; y < gridH; y++) {
         grid[y] = [];
         for (let x = 0; x < gridW; x++) {
-            grid[y][x] = 0;
+            // Create walkable area with outer walls
+            if (x < margin || x >= gridW - margin || y < margin || y >= gridH - margin) {
+                grid[y][x] = 0; // Outer walls
+            } else {
+                grid[y][x] = 1; // Walkable floor
+            }
         }
     }
     
-    // Choose room shape type
-    const shapeType = Math.floor(rng() * 6);
+    // Choose room shape type - add wall features INSIDE the room
+    const shapeType = Math.floor(rng() * 5);
     
-    const centerX = Math.floor(gridW / 2);
-    const centerY = Math.floor(gridH / 2);
-    const margin = 3; // Wall margin
-    
+    // Carve interesting wall shapes into corners (not blocking paths to doors)
     switch (shapeType) {
-        case 0: // L-shape
-            // Horizontal part
-            for (let x = margin; x < gridW - margin; x++) {
-                for (let y = centerY - 3; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
+        case 0: // Corner pillars
+            // Top-left corner block
+            for (let x = margin; x < margin + 4; x++) {
+                for (let y = margin; y < margin + 4; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Vertical part (left side)
-            for (let x = margin; x < centerX + 2; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
+            // Top-right corner block
+            for (let x = gridW - margin - 4; x < gridW - margin; x++) {
+                for (let y = margin; y < margin + 4; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            break;
-            
-        case 1: // T-shape
-            // Horizontal bar
-            for (let x = margin; x < gridW - margin; x++) {
-                for (let y = margin; y < centerY + 3; y++) {
-                    grid[y][x] = 1;
+            // Bottom-left corner block
+            for (let x = margin; x < margin + 4; x++) {
+                for (let y = gridH - margin - 4; y < gridH - margin; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Vertical stem
-            for (let x = centerX - 4; x < centerX + 5; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
+            // Bottom-right corner block
+            for (let x = gridW - margin - 4; x < gridW - margin; x++) {
+                for (let y = gridH - margin - 4; y < gridH - margin; y++) {
+                    grid[y][x] = 0;
                 }
             }
             break;
             
-        case 2: // Cross shape
-            // Horizontal bar
-            for (let x = margin; x < gridW - margin; x++) {
-                for (let y = centerY - 4; y < centerY + 5; y++) {
-                    grid[y][x] = 1;
+        case 1: // Side alcoves (top and bottom)
+            // Top alcoves (left and right of center)
+            for (let x = margin + 2; x < centerX - 4; x++) {
+                for (let y = margin; y < margin + 3; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Vertical bar
-            for (let x = centerX - 4; x < centerX + 5; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
+            for (let x = centerX + 4; x < gridW - margin - 2; x++) {
+                for (let y = margin; y < margin + 3; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            break;
-            
-        case 3: // H-shape
-            // Left vertical
-            for (let x = margin; x < margin + 6; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
+            // Bottom alcoves
+            for (let x = margin + 2; x < centerX - 4; x++) {
+                for (let y = gridH - margin - 3; y < gridH - margin; y++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Right vertical
-            for (let x = gridW - margin - 6; x < gridW - margin; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
-                }
-            }
-            // Middle connector
-            for (let x = margin; x < gridW - margin; x++) {
-                for (let y = centerY - 3; y < centerY + 4; y++) {
-                    grid[y][x] = 1;
+            for (let x = centerX + 4; x < gridW - margin - 2; x++) {
+                for (let y = gridH - margin - 3; y < gridH - margin; y++) {
+                    grid[y][x] = 0;
                 }
             }
             break;
             
-        case 4: // Organic/cave shape
-            // Start with central area
-            for (let x = margin + 2; x < gridW - margin - 2; x++) {
-                for (let y = margin + 2; y < gridH - margin - 2; y++) {
-                    grid[y][x] = 1;
+        case 2: // Side alcoves (left and right)
+            // Left alcoves
+            for (let y = margin + 2; y < centerY - 3; y++) {
+                for (let x = margin; x < margin + 3; x++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Add random protrusions
-            for (let i = 0; i < 8; i++) {
-                const px = margin + Math.floor(rng() * (gridW - margin * 2));
-                const py = margin + Math.floor(rng() * (gridH - margin * 2));
-                const size = 2 + Math.floor(rng() * 3);
-                for (let dx = -size; dx <= size; dx++) {
-                    for (let dy = -size; dy <= size; dy++) {
-                        const nx = px + dx;
-                        const ny = py + dy;
-                        if (nx >= margin && nx < gridW - margin && ny >= margin && ny < gridH - margin) {
-                            if (rng() > 0.3) grid[ny][nx] = 1;
-                        }
-                    }
+            for (let y = centerY + 3; y < gridH - margin - 2; y++) {
+                for (let x = margin; x < margin + 3; x++) {
+                    grid[y][x] = 0;
                 }
             }
-            // Carve out random holes (make irregular edges)
-            for (let i = 0; i < 12; i++) {
-                const hx = margin + Math.floor(rng() * (gridW - margin * 2));
-                const hy = margin + Math.floor(rng() * (gridH - margin * 2));
-                // Only carve near edges
-                if (hx < margin + 5 || hx > gridW - margin - 5 || hy < margin + 5 || hy > gridH - margin - 5) {
-                    const size = 1 + Math.floor(rng() * 2);
-                    for (let dx = -size; dx <= size; dx++) {
-                        for (let dy = -size; dy <= size; dy++) {
-                            const nx = hx + dx;
-                            const ny = hy + dy;
-                            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH) {
-                                grid[ny][nx] = 0;
-                            }
+            // Right alcoves
+            for (let y = margin + 2; y < centerY - 3; y++) {
+                for (let x = gridW - margin - 3; x < gridW - margin; x++) {
+                    grid[y][x] = 0;
+                }
+            }
+            for (let y = centerY + 3; y < gridH - margin - 2; y++) {
+                for (let x = gridW - margin - 3; x < gridW - margin; x++) {
+                    grid[y][x] = 0;
+                }
+            }
+            break;
+            
+        case 3: // Central obstacle ring
+            // Create obstacles around center but not blocking center itself
+            const ringDist = 6;
+            for (let angle = 0; angle < 4; angle++) {
+                const ox = centerX + Math.round(Math.cos(angle * Math.PI / 2) * ringDist);
+                const oy = centerY + Math.round(Math.sin(angle * Math.PI / 2) * ringDist);
+                // Small 2x2 obstacle
+                for (let dx = 0; dx < 2; dx++) {
+                    for (let dy = 0; dy < 2; dy++) {
+                        const nx = ox + dx;
+                        const ny = oy + dy;
+                        if (nx > margin + 2 && nx < gridW - margin - 2 && ny > margin + 2 && ny < gridH - margin - 2) {
+                            grid[ny][nx] = 2; // Pillar
                         }
                     }
                 }
             }
             break;
             
-        default: // U-shape or irregular rectangle
-            // Main rectangle
-            for (let x = margin; x < gridW - margin; x++) {
-                for (let y = margin; y < gridH - margin; y++) {
-                    grid[y][x] = 1;
-                }
-            }
-            // Cut out center-top or random section
-            const cutX = centerX - 4 + Math.floor(rng() * 8);
-            const cutY = margin;
-            const cutW = 4 + Math.floor(rng() * 6);
-            const cutH = 4 + Math.floor(rng() * 6);
-            for (let x = cutX; x < cutX + cutW && x < gridW - margin; x++) {
-                for (let y = cutY; y < cutY + cutH; y++) {
-                    if (x >= 0 && x < gridW && y >= 0 && y < gridH) {
-                        grid[y][x] = 0;
-                    }
-                }
-            }
+        default: // Simple room with scattered pillars
             break;
     }
     
-    // Ensure center is always walkable (player spawn) - larger safe area
-    for (let dx = -5; dx <= 5; dx++) {
-        for (let dy = -5; dy <= 5; dy++) {
-            const nx = centerX + dx;
-            const ny = centerY + dy;
-            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH) {
-                grid[ny][nx] = 1;
-            }
-        }
-    }
-    
-    // Ensure door areas are walkable (edges of map)
-    // Right edge
-    for (let y = centerY - 4; y <= centerY + 4; y++) {
-        for (let x = gridW - 5; x < gridW; x++) {
-            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
-        }
-    }
-    // Left edge
-    for (let y = centerY - 4; y <= centerY + 4; y++) {
-        for (let x = 0; x < 5; x++) {
-            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
-        }
-    }
-    // Top edge
-    for (let x = centerX - 4; x <= centerX + 4; x++) {
-        for (let y = 0; y < 5; y++) {
-            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
-        }
-    }
-    // Bottom edge
-    for (let x = centerX - 4; x <= centerX + 4; x++) {
-        for (let y = gridH - 5; y < gridH; y++) {
-            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
-        }
-    }
-    
-    // Add interior obstacles/pillars for more interesting combat (larger elements)
-    const numPillars = 2 + Math.floor(rng() * 3);
+    // Add a few random pillars (avoiding paths to doors)
+    const corridorWidth = 5; // Keep clear corridor to doors
+    const numPillars = 1 + Math.floor(rng() * 3);
     const pillars = [];
+    
     for (let i = 0; i < numPillars; i++) {
-        const px = margin + 5 + Math.floor(rng() * (gridW - margin * 2 - 10));
-        const py = margin + 5 + Math.floor(rng() * (gridH - margin * 2 - 10));
-        // Avoid center spawn area
-        if (Math.abs(px - centerX) < 6 && Math.abs(py - centerY) < 6) continue;
+        // Random position away from center and door paths
+        let px, py;
+        let attempts = 0;
+        do {
+            px = margin + 4 + Math.floor(rng() * (gridW - margin * 2 - 8));
+            py = margin + 4 + Math.floor(rng() * (gridH - margin * 2 - 8));
+            attempts++;
+        } while (attempts < 10 && (
+            // Avoid center spawn area
+            (Math.abs(px - centerX) < 5 && Math.abs(py - centerY) < 5) ||
+            // Avoid horizontal corridor (to left/right doors)
+            (Math.abs(py - centerY) < corridorWidth) ||
+            // Avoid vertical corridor (to top/bottom doors)
+            (Math.abs(px - centerX) < corridorWidth)
+        ));
         
-        // Larger pillar size (2x2 to 4x4)
-        const pillarSize = 2 + Math.floor(rng() * 3);
+        if (attempts >= 10) continue;
+        
+        // Pillar size 2x2 or 3x3
+        const pillarSize = 2 + Math.floor(rng() * 2);
         for (let dx = 0; dx < pillarSize; dx++) {
             for (let dy = 0; dy < pillarSize; dy++) {
                 const nx = px + dx;
                 const ny = py + dy;
-                if (nx >= margin && nx < gridW - margin && ny >= margin && ny < gridH - margin) {
-                    grid[ny][nx] = 2; // 2 = pillar/obstacle
+                if (nx > margin && nx < gridW - margin && ny > margin && ny < gridH - margin) {
+                    grid[ny][nx] = 2; // 2 = pillar
                 }
             }
         }
@@ -548,28 +502,29 @@ export function createGameScene() {
                     .every(r => r.cleared);
                 const bossAccessible = !isBossDoor || allRoomsCleared;
                 
-                // Position door based on direction (with larger offset for visibility)
+                // Position door inside walkable area (margin = 2 tiles = 80px, so door at 100px)
+                const doorOffset = 100; // Inside the walkable floor
                 switch (direction) {
                     case 'right':
-                        doorX = CONFIG.MAP_WIDTH - 80;
+                        doorX = CONFIG.MAP_WIDTH - doorOffset;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                         break;
                     case 'left':
-                        doorX = 80;
+                        doorX = doorOffset;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                         break;
                     case 'up':
                         doorX = CONFIG.MAP_WIDTH / 2;
-                        doorY = 80;
+                        doorY = doorOffset;
                         textOffsetY = 45;
                         break;
                     case 'down':
                         doorX = CONFIG.MAP_WIDTH / 2;
-                        doorY = CONFIG.MAP_HEIGHT - 80;
+                        doorY = CONFIG.MAP_HEIGHT - doorOffset;
                         textOffsetY = -40;
                         break;
                     default:
-                        doorX = CONFIG.MAP_WIDTH - 80;
+                        doorX = CONFIG.MAP_WIDTH - doorOffset;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                 }
                 
