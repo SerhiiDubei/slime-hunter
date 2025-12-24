@@ -17,6 +17,7 @@ import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
+import { spawnKey, checkAllKeysCollected, collectKey, updateBossDoorVisuals, canEnterDoor, getKeysNeeded } from '../systems/keysDoors.js';
 
 let doors = [];  // Multiple doors now
 let doorTexts = [];
