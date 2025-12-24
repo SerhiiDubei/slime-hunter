@@ -1230,26 +1230,52 @@ export function createGameScene() {
                 
                 // Check if room is cleared (all enemies killed)
                 // Check if room is cleared (all enemies killed)
-                if (!GS.roomCleared && !isBossRoom) {
+                if (!GS.roomCleared) {
                     const aliveEnemies = GS.enemies.filter(e => e && e.exists());
-                    const shouldClear = GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0;
                     
-                    // #region agent log
-                    if (shouldClear) {
-                        Logger.info('🔑 onUpdate:ROOM_CLEAR_CHECK - Conditions met!', { 
-                            roomEnemiesKilled: GS.roomEnemiesKilled,
-                            roomEnemyCount: GS.roomEnemyCount,
-                            aliveEnemies: aliveEnemies.length,
-                            isBossRoom,
-                            roomCleared: GS.roomCleared,
-                            currentRoomId: currentRoom?.id,
-                            currentRoomType: currentRoom?.type
-                        });
-                    }
-                    // #endregion
-                    
-                    if (shouldClear) {
+                    // For boss room: check if boss is dead
+                    if (isBossRoom) {
+                        const aliveBosses = aliveEnemies.filter(e => e.isBoss);
+                        const shouldClear = aliveBosses.length === 0 && GS.bossSpawned; // Boss was spawned and now dead
+                        
+                        // #region agent log
+                        if (shouldClear) {
+                            Logger.info('🔑 onUpdate:BOSS_ROOM_CLEAR_CHECK - Boss defeated!', { 
+                                aliveBosses: aliveBosses.length,
+                                aliveEnemies: aliveEnemies.length,
+                                bossSpawned: GS.bossSpawned,
+                                isBossRoom,
+                                roomCleared: GS.roomCleared,
+                                currentRoomId: currentRoom?.id,
+                                currentRoomType: currentRoom?.type
+                            });
+                        }
+                        // #endregion
+                        
+                        if (shouldClear) {
                         onRoomCleared();
+                        }
+                    } else {
+                        // For regular rooms: check enemy count
+                        const shouldClear = GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0;
+                        
+                        // #region agent log
+                        if (shouldClear) {
+                            Logger.info('🔑 onUpdate:ROOM_CLEAR_CHECK - Conditions met!', { 
+                                roomEnemiesKilled: GS.roomEnemiesKilled,
+                                roomEnemyCount: GS.roomEnemyCount,
+                                aliveEnemies: aliveEnemies.length,
+                                isBossRoom,
+                                roomCleared: GS.roomCleared,
+                                currentRoomId: currentRoom?.id,
+                                currentRoomType: currentRoom?.type
+                            });
+                        }
+                        // #endregion
+                        
+                        if (shouldClear) {
+                            onRoomCleared();
+                        }
                     }
                 }
             });
