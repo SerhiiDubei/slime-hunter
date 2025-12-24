@@ -107,12 +107,37 @@ export function spawnKey(position, roomId, keyColor = null) {
         
         Logger.debug('Key color array', { keyColorArray, roomId });
         
+        // Validate color values before using
+        const r = Math.max(0, Math.min(255, keyColorArray[0]));
+        const g = Math.max(0, Math.min(255, keyColorArray[1]));
+        const b = Math.max(0, Math.min(255, keyColorArray[2]));
+        
+        Logger.debug('🔑 spawnKey:COLOR_VALUES', { r, g, b, roomId });
+        
         // Create key sprite with color
-        const k = add([
-            sprite("key"), pos(pos), anchor("center"), area(), z(5), scale(1), 
-            color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
-            { roomId, keyColor: keyColorArray } // Store room ID and color
-        ]);
+        let k;
+        try {
+            Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b });
+            k = add([
+                sprite("key"), 
+                pos(pos), 
+                anchor("center"), 
+                area(), 
+                z(5), 
+                scale(1), 
+                color(r, g, b), 
+                "key",
+                { roomId, keyColor: keyColorArray } // Store room ID and color
+            ]);
+            Logger.debug('🔑 spawnKey:KEY_SPRITE_CREATED', { keyExists: !!k });
+        } catch (spriteError) {
+            Logger.error('🔑 spawnKey:SPRITE_CREATION_ERROR', { 
+                error: spriteError.message,
+                stack: spriteError.stack,
+                r, g, b, pos
+            });
+            throw spriteError;
+        }
         
         // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
         const startY = pos.y;
@@ -131,9 +156,26 @@ export function spawnKey(position, roomId, keyColor = null) {
         });
         
         // OPTIMIZED: Colored glow matching key color
-        add([
-            circle(25), pos(pos), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
-        ]);
+        try {
+            Logger.debug('🔑 spawnKey:CREATING_GLOW', { r, g, b, pos: { x: pos.x, y: pos.y } });
+            add([
+                circle(25), 
+                pos(pos), 
+                color(r, g, b), 
+                opacity(0.3), 
+                anchor("center"), 
+                z(4), 
+                "keyPart"
+            ]);
+            Logger.debug('🔑 spawnKey:GLOW_CREATED');
+        } catch (glowError) {
+            Logger.error('🔑 spawnKey:GLOW_CREATION_ERROR', { 
+                error: glowError.message,
+                stack: glowError.stack,
+                r, g, b, pos
+            });
+            // Don't throw - glow is optional
+        }
         
         // #region agent log
         Logger.info('🔑 spawnKey:SUCCESS', { 
