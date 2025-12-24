@@ -169,7 +169,10 @@ export function spawnKey(position, roomId, keyColor = null) {
  */
 export function checkAllKeysCollected(dungeon) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:checkAllKeysCollected:ENTRY',message:'Checking all keys collected',data:{dungeon:!!dungeon,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    Logger.debug('🔑 checkAllKeysCollected:ENTRY', { 
+        dungeon: !!dungeon,
+        collectedKeys: GS.collectedKeys
+    });
     // #endregion
     
     if (!dungeon) {
