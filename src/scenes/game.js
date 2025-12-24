@@ -492,23 +492,53 @@ export function createGameScene() {
                 add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
             }
             
-            // Add collision for walls and pillars (synchronous but fast)
+            // OPTIMIZED: Group collision objects - merge adjacent walls/pillars
+            // This reduces number of physics objects significantly
+            const collisionMap = new Map(); // key: "x,y" -> {x, y, w, h, type}
+            
             for (let gy = 0; gy < roomShape.height; gy++) {
                 for (let gx = 0; gx < roomShape.width; gx++) {
-                    const tileX = roomShape.offsetX + gx * 40;
-                    const tileY = roomShape.offsetY + gy * 40;
                     const tileType = roomShape.grid[gy][gx];
-                    
                     if (tileType === 0 || tileType === 2) {
-                        // Wall or pillar - add collision only
-                        add([
-                            rect(40, 40), pos(tileX, tileY),
-                            area(), body({ isStatic: true }), opacity(0), 
-                            tileType === 2 ? "pillar" : "wall"
-                        ]);
+                        const tileX = gx * 40;
+                        const tileY = gy * 40;
+                        const key = `${gx},${gy}`;
+                        collisionMap.set(key, { x: tileX, y: tileY, w: 40, h: 40, type: tileType });
                     }
                 }
             }
+            
+            // Create merged collision boxes (horizontal merging first)
+            const merged = new Map();
+            for (const [key, box] of collisionMap) {
+                const [gx, gy] = key.split(',').map(Number);
+                // Try to merge with right neighbor
+                const rightKey = `${gx + 1},${gy}`;
+                const rightBox = collisionMap.get(rightKey);
+                if (rightBox && rightBox.type === box.type && box.w === 40) {
+                    // Merge horizontally
+                    box.w = 80;
+                    collisionMap.delete(rightKey);
+                }
+                merged.set(key, box);
+            }
+            
+            // Create physics objects from merged boxes
+            let collisionCount = 0;
+            for (const box of merged.values()) {
+                add([
+                    rect(box.w, box.h), pos(box.x, box.y),
+                    area(), body({ isStatic: true }), opacity(0), 
+                    box.type === 2 ? "pillar" : "wall"
+                ]);
+                collisionCount++;
+            }
+            
+            Logger.info('Collisions loaded', { 
+                roomId: currentRoom.id, 
+                total: collisionCount,
+                original: collisionMap.size 
+            });
             
             // Outer boundary walls (invisible collision)
             add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
@@ -555,7 +585,7 @@ export function createGameScene() {
                     body({ isStatic: true }), anchor("center"), z(3), "obstacle"
                 ]);
             }
-            
+
             Logger.info('Room objects created', { 
                 torches: torchCount, 
                 decorations: decorCount, 
