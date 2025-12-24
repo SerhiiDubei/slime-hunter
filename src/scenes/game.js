@@ -288,11 +288,41 @@ function getRoomConfig() {
     };
 }
 
-function spawnKey(p) {
-    Logger.info('Spawning key at', { x: p.x, y: p.y });
+// Check if all keys collected (all non-boss, non-start rooms cleared)
+function checkAllKeysCollected(dungeon) {
+    if (!dungeon) return false;
     
+    const allRooms = dungeon.map.rooms;
+    const requiredRooms = allRooms.filter(r => 
+        r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
+    );
+    
+    // Check if all required rooms have their keys collected
+    return requiredRooms.length > 0 && requiredRooms.every(room => GS.collectedKeys.includes(room.id));
+}
+
+// Spawn colored key for a specific room
+function spawnKey(p, roomId, keyColor = null) {
+    Logger.info('Spawning key at', { x: p.x, y: p.y, roomId, keyColor });
+    
+    // Key colors for different rooms (rainbow colors)
+    const keyColors = [
+        [255, 100, 100],  // Red
+        [255, 200, 100],  // Orange
+        [255, 255, 100],  // Yellow
+        [100, 255, 100],  // Green
+        [100, 200, 255],  // Blue
+        [200, 100, 255],  // Purple
+        [255, 100, 200],  // Pink
+    ];
+    
+    const color = keyColor || keyColors[roomId % keyColors.length];
+    
+    // Create key sprite with color
     const k = add([
-        sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), "key"
+        sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), 
+        color(...color), "key",
+        { roomId, keyColor: color } // Store room ID and color
     ]);
     
     // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
@@ -302,14 +332,14 @@ function spawnKey(p) {
         keyAnimTimer += dt();
         if (keyAnimTimer >= 0.1) {
             keyAnimTimer = 0;
-        k.pos.y = startY + Math.sin(time() * 4) * 5;
-        k.angle = Math.sin(time() * 2) * 10;
+            k.pos.y = startY + Math.sin(time() * 4) * 5;
+            k.angle = Math.sin(time() * 2) * 10;
         }
     });
     
-    // OPTIMIZED: Static glow instead of animated
+    // OPTIMIZED: Colored glow matching key color
     add([
-        circle(25), pos(p), color(255, 220, 100), opacity(0.25), anchor("center"), z(4), "keyPart"
+        circle(25), pos(p), color(...color), opacity(0.3), anchor("center"), z(4), "keyPart"
     ]);
 }
 
@@ -318,44 +348,70 @@ function onRoomCleared() {
     Logger.info('Room cleared!', { room: GS.currentRoom, level: GS.currentLevel });
     
     GS.roomCleared = true;
-    GS.doorOpen = true;
     
     // Mark room as cleared in dungeon
-    if (GS.dungeon) {
-        GS.dungeon.clearCurrentRoom();
+    const dungeon = GS.dungeon;
+    if (dungeon) {
+        dungeon.clearCurrentRoom();
     }
     
-    // Update all doors visuals
-    doors.forEach(door => {
-    if (door && door.exists()) {
-        door.use(sprite("doorOpen"));
+    const currentRoom = dungeon ? dungeon.getCurrentRoom() : null;
+    
+    // Spawn key in non-boss, non-start rooms (if not already collected)
+    if (currentRoom && currentRoom.type !== ROOM_TYPES.BOSS && currentRoom.type !== ROOM_TYPES.START) {
+        if (!GS.collectedKeys.includes(currentRoom.id)) {
+            const p = GS.player;
+            if (p && p.exists()) {
+                wait(0.5, () => {
+                    spawnKey(vec2(p.pos.x, p.pos.y - 60), currentRoom.id);
+                });
+            }
+        }
     }
+    
+    // Check if all keys collected for boss door
+    const allKeysCollected = checkAllKeysCollected(dungeon);
+    
+    // Update door visuals
+    doors.forEach(door => {
+        if (door && door.exists()) {
+            const isBossDoor = door.targetRoomType === ROOM_TYPES.BOSS;
+            const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
+            if (canOpen) {
+                door.use(sprite("doorOpen"));
+            }
+        }
     });
     
     // Update door texts
     doorTexts.forEach(dt => {
         if (dt && dt.exists()) {
-            const dungeon = GS.dungeon;
             if (dungeon) {
                 const targetRoom = dungeon.getRoom(dt.targetRoomId);
                 if (targetRoom) {
+                    const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
+                    const allKeysCollected = checkAllKeysCollected(dungeon);
+                    const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
+                    
                     if (targetRoom.type === ROOM_TYPES.BOSS) {
-                        dt.text = "💀";
-                        dt.color = rgb(255, 50, 50);
+                        dt.text = canOpen ? "🚪" : "🔒";
+                        dt.color = canOpen ? rgb(100, 255, 150) : rgb(255, 50, 50);
                     } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
                         dt.text = "💎";
                         dt.color = rgb(255, 220, 100);
                     } else if (targetRoom.cleared) {
                         dt.text = "✓";
                         dt.color = rgb(100, 200, 100);
-        } else {
-                        dt.text = "→";
-                        dt.color = rgb(100, 255, 150);
+                    } else {
+                        dt.text = canOpen ? "→" : "🔒";
+                        dt.color = canOpen ? rgb(100, 255, 150) : rgb(150, 150, 150);
                     }
                 }
             }
         }
     });
+    
+    GS.doorOpen = allKeysCollected || (currentRoom && currentRoom.type !== ROOM_TYPES.BOSS);
     
     playSound('door');
     
@@ -747,12 +803,10 @@ export function createGameScene() {
                 doorCount++;
                 let doorX, doorY, textOffsetX = 0, textOffsetY = -40;
                 
-                // Check if boss room requires all other rooms cleared
+                // Check if boss room requires all keys collected
                 const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
-                const allRoomsCleared = dungeon.map.rooms
-                    .filter(r => r.type !== ROOM_TYPES.BOSS)
-                    .every(r => r.cleared);
-                const bossAccessible = !isBossDoor || allRoomsCleared;
+                const allKeysCollected = checkAllKeysCollected(dungeon);
+                const bossAccessible = !isBossDoor || allKeysCollected;
                 
                 // Position door inside walkable area (margin = 2 tiles = 80px, so door at 100px)
                 const doorOffset = 100; // Inside the walkable floor
@@ -780,8 +834,8 @@ export function createGameScene() {
                         doorY = CONFIG.MAP_HEIGHT / 2;
                 }
                 
-                // Door sprite - only open if room is cleared and (not boss or all rooms cleared)
-                const canOpenDoor = currentRoom.cleared && bossAccessible;
+                // Door sprite - only open if room is cleared and (not boss or all keys collected)
+                const canOpenDoor = isBossDoor ? allKeysCollected : currentRoom.cleared;
                 const doorSprite = canOpenDoor ? "doorOpen" : "doorClosed";
                 const door = add([
                     sprite(doorSprite), 
@@ -790,7 +844,7 @@ export function createGameScene() {
                     area({ shape: new Rect(vec2(-24, -36), 48, 72) }), // Larger hitbox
                     z(2), 
                     scale(1.2), // Slightly larger door
-                    { targetRoomId: targetRoom.id, direction, isBossDoor, bossAccessible },
+                    { targetRoomId: targetRoom.id, direction, isBossDoor, bossAccessible, targetRoomType: targetRoom.type },
                     "door"
                 ]);
                 doors.push(door);
@@ -801,14 +855,16 @@ export function createGameScene() {
                 
                 if (currentRoom.cleared) {
                     if (isBossDoor) {
-                        if (allRoomsCleared) {
+                        if (allKeysCollected) {
                             label = "💀 BOSS";
                             labelColor = rgb(255, 50, 50);
                         } else {
-                            // Show how many rooms left
-                            const roomsLeft = dungeon.map.rooms
-                                .filter(r => r.type !== ROOM_TYPES.BOSS && !r.cleared).length;
-                            label = `🔒 ${roomsLeft}`;
+                            // Show how many keys needed
+                            const requiredRooms = dungeon.map.rooms.filter(r => 
+                                r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
+                            );
+                            const keysNeeded = requiredRooms.length - GS.collectedKeys.length;
+                            label = `🔒 ${keysNeeded}`;
                             labelColor = rgb(255, 100, 100);
                         }
                     } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
@@ -832,7 +888,7 @@ export function createGameScene() {
                     anchor("center"), 
                     color(labelColor), 
                     z(10),
-                    { targetRoomId: targetRoom.id }
+                    { targetRoomId: targetRoom.id, targetRoomType: targetRoom.type }
                 ]);
                 doorTexts.push(doorTxt);
             });
