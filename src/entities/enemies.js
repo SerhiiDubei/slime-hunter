@@ -9,6 +9,7 @@ import { createDeathFX, createXPFX, createLevelUpFX } from '../effects.js';
 import { ENEMY_TYPES, getRandomEnemyType, getRandomTier, applyTier, TIER_CONFIG } from '../data/enemies.js';
 import { getBossForLevel } from '../data/bosses.js';
 import { getLevel } from '../data/levels.js';
+import { Logger } from '../logger.js';
 
 // Spawn regular enemy with tier system
 export function spawnEnemy(enemyType = null, forceTier = null) {
