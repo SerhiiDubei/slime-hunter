@@ -70,7 +70,7 @@ export const GS = {
     enemiesKilled: 0,
     roomEnemiesKilled: 0,  // Enemies killed in current room
     roomEnemyCount: 0,     // Total enemies in current room
-    hasKey: false,
+    hasKey: false,           // Legacy - keep for compatibility
     doorOpen: false,
     bossSpawned: false,
     gamePaused: false,
@@ -80,6 +80,7 @@ export const GS = {
     joystickInput: { x: 0, y: 0 },
     lastMoveDir: { x: 1, y: 0 },
     dungeon: null,          // DungeonManager instance - persists between scenes
+    collectedKeys: [],     // Array of collected key IDs for current level: [0, 1, 2] = collected keys from rooms 0, 1, 2
     
     // Selected hero
     selectedHero: 'warrior',
@@ -153,6 +154,7 @@ export const GS = {
         this.bossSpawned = false;
         this.gamePaused = false;
         this.gameFrozen = false;
+        this.collectedKeys = []; // Reset keys for new level
     },
     
     // Reset for next room in same level

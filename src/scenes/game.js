@@ -939,16 +939,47 @@ export function createGameScene() {
                 }
             });
 
-            onCollide("player", "key", () => {
+            onCollide("player", "key", (p, k) => {
                 try {
-                    Logger.info('Key collected!');
-                    GS.hasKey = true;
+                    const roomId = k.roomId;
+                    if (roomId === undefined || roomId === null) {
+                        Logger.warn('Key without roomId!', { key: k });
+                        return;
+                    }
+                    
+                    // Check if already collected
+                    if (GS.collectedKeys.includes(roomId)) {
+                        Logger.debug('Key already collected', { roomId });
+                        return;
+                    }
+                    
+                    Logger.info('Key collected!', { roomId, totalKeys: GS.collectedKeys.length + 1 });
+                    GS.collectedKeys.push(roomId);
+                    GS.hasKey = true; // Legacy compatibility
                     playSound('key');
-                    destroyAll("key");
+                    
+                    // Destroy this specific key
+                    destroy(k);
                     destroyAll("keyPart");
                     
-                    // Boss room cleared!
-                    onRoomCleared();
+                    // Check if all keys collected
+                    const dungeon = GS.dungeon;
+                    const allKeysCollected = checkAllKeysCollected(dungeon);
+                    
+                    if (allKeysCollected) {
+                        Logger.info('All keys collected! Boss door unlocked!');
+                        // Update door visuals
+                        doors.forEach(d => {
+                            if (d && d.exists() && d.targetRoomType === ROOM_TYPES.BOSS) {
+                                d.use(sprite("doorOpen"));
+                            }
+                        });
+                        doorTexts.forEach(t => {
+                            if (t && t.exists() && t.targetRoomType === ROOM_TYPES.BOSS) {
+                                t.text = "🚪";
+                            }
+                        });
+                    }
                 } catch (error) {
                     Logger.error('Key collision error', { error: error.message });
                 }
@@ -956,34 +987,48 @@ export function createGameScene() {
 
             onCollide("player", "door", (pl, doorObj) => {
                 try {
-                    if (!GS.doorOpen || !currentRoom.cleared) {
-                        return; // Door is locked
-                    }
-                    
                     const targetRoomId = doorObj.targetRoomId;
                     if (targetRoomId === undefined) return;
                     
                     const targetRoom = dungeon.getRoom(targetRoomId);
                     if (!targetRoom) return;
                     
-                    // Check boss door access - need to clear all other rooms first
-                    if (doorObj.isBossDoor && !doorObj.bossAccessible) {
-                        const roomsLeft = dungeon.map.rooms
-                            .filter(r => r.type !== ROOM_TYPES.BOSS && !r.cleared).length;
-                        // Show message
-                        const msg = add([
-                            text(`Clear ${roomsLeft} more room${roomsLeft > 1 ? 's' : ''} first!`, { size: 20 }),
-                            pos(width() / 2, height() / 2 - 50),
-                            anchor("center"),
-                            color(255, 100, 100),
-                            fixed(),
-                            z(1000),
-                            lifespan(2),
-                            opacity(1),
-                        ]);
-                        msg.onUpdate(() => {
-                            msg.opacity = Math.max(0, msg.opacity - dt() * 0.5);
-                        });
+                    // Check if door is locked
+                    const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
+                    const allKeysCollected = checkAllKeysCollected(dungeon);
+                    const canEnter = isBossDoor ? allKeysCollected : currentRoom.cleared;
+                    
+                    if (!canEnter) {
+                        if (isBossDoor) {
+                            const requiredRooms = dungeon.map.rooms.filter(r => 
+                                r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
+                            );
+                            const keysNeeded = requiredRooms.length - GS.collectedKeys.length;
+                            const msg = add([
+                                text(`Collect ${keysNeeded} more key${keysNeeded > 1 ? 's' : ''} first!`, { size: 20 }),
+                                pos(width() / 2, height() / 2 - 50),
+                                anchor("center"),
+                                color(255, 100, 100),
+                                fixed(),
+                                z(1000),
+                                lifespan(2),
+                                opacity(1),
+                            ]);
+                            msg.onUpdate(() => {
+                                msg.opacity = Math.max(0, msg.opacity - dt() * 0.5);
+                            });
+                        } else {
+                            // Regular door - need to clear room first
+                            const msg = add([
+                                text("Clear room first!", { size: 20 }),
+                                pos(width() / 2, height() / 2 - 50),
+                                anchor("center"),
+                                color(255, 100, 100),
+                                fixed(),
+                                z(1000),
+                                lifespan(2),
+                            ]);
+                        }
                         return;
                     }
                     
