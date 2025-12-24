@@ -568,12 +568,35 @@ export function createGameScene() {
         });
         
         try {
+            Logger.debug('Initializing game state', {
+                currentLevel: GS.currentLevel,
+                currentRoom: GS.currentRoom,
+                dungeon: !!GS.dungeon,
+                currentRoomData: currentRoom ? { id: currentRoom.id, type: currentRoom.type, cleared: currentRoom.cleared } : null
+            });
+            
             GS.enemies = [];
             GS.roomCleared = currentRoom.cleared;
             GS.roomEnemiesKilled = 0;
             GS.doorOpen = currentRoom.cleared;
             
-            const roomConfig = getRoomConfig();
+            let roomConfig;
+            try {
+                roomConfig = getRoomConfig();
+                Logger.debug('Room config loaded', { 
+                    enemyCount: roomConfig.enemyCount,
+                    totalWeight: roomConfig.totalWeight 
+                });
+            } catch (error) {
+                Logger.error('Failed to get room config', { 
+                    error: error.message, 
+                    stack: error.stack,
+                    level: GS.currentLevel,
+                    room: GS.currentRoom
+                });
+                roomConfig = { enemyCount: 5, totalWeight: 10 }; // Fallback
+            }
+            
             // Override with dungeon room data
             GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount;
             
@@ -582,7 +605,21 @@ export function createGameScene() {
             
             // Room-specific background colors (darker as you go deeper)
             const baseColors = [[26, 26, 46], [35, 25, 45], [45, 25, 30], [30, 30, 50], [40, 20, 35], [25, 35, 45], [50, 30, 40]];
-            const baseBg = baseColors[(lv - 1) % baseColors.length];
+            let baseBg;
+            try {
+                const bgIndex = (lv - 1) % baseColors.length;
+                baseBg = baseColors[bgIndex];
+                if (!baseBg || !Array.isArray(baseBg) || baseBg.length < 3) {
+                    throw new Error(`Invalid baseBg at index ${bgIndex}`);
+                }
+            } catch (error) {
+                Logger.error('Failed to get background color', { 
+                    error: error.message,
+                    level: lv,
+                    baseColorsLength: baseColors.length
+                });
+                baseBg = [26, 26, 46]; // Fallback
+            }
             
             // Darken based on room number
             const roomDarken = roomNum * 5;
@@ -591,6 +628,8 @@ export function createGameScene() {
                 Math.max(10, baseBg[1] - roomDarken),
                 Math.max(10, baseBg[2] - roomDarken)
             ];
+            
+            Logger.debug('Background color calculated', { bg, baseBg, roomDarken, roomNum });
 
             // ========== PERFORMANCE PROFILING ==========
             const perf = {
@@ -1098,7 +1137,12 @@ export function createGameScene() {
                         wait(0.5, () => go("gameover")); 
                     }
                 } catch (error) {
-                    Logger.error('Enemy collision error', { error: error.message });
+                    Logger.error('Enemy collision error', { 
+                        error: error.message,
+                        stack: error.stack,
+                        player: pl ? { exists: pl.exists(), hp: pl.hp, invuln: pl.invuln } : null,
+                        enemy: en ? { exists: en.exists(), pos: en.pos } : null
+                    });
                 }
             });
 
@@ -1231,7 +1275,16 @@ export function createGameScene() {
                     go("loading"); // Show loading screen during room generation
                     
                 } catch (error) {
-                    Logger.error('Door collision error', { error: error.message, stack: error.stack });
+                    Logger.error('CRITICAL: Door collision error', { 
+                        error: error.message, 
+                        stack: error.stack,
+                        currentRoomId: currentRoom?.id,
+                        targetRoomId: targetRoomId,
+                        targetRoom: targetRoom ? { id: targetRoom.id, type: targetRoom.type, cleared: targetRoom.cleared } : null,
+                        allKeysCollected: allKeysCollected,
+                        collectedKeys: GS.collectedKeys,
+                        currentRoomCleared: currentRoom?.cleared
+                    });
                 }
             });
 
@@ -1316,15 +1369,34 @@ export function createGameScene() {
                     // Spawn enemies based on distribution
                     let spawnIndex = 0;
                     for (const [enemyType, count] of Object.entries(enemyDistribution)) {
-                        for (let i = 0; i < count; i++) {
+                        if (!enemyType || !ENEMY_TYPES[enemyType]) {
+                            Logger.warn('Invalid enemy type in distribution, skipping', { 
+                                enemyType, 
+                                distribution: enemyDistribution,
+                                availableTypes: Object.keys(ENEMY_TYPES)
+                            });
+                            continue;
+                        }
+                        const spawnCount = Math.max(0, Math.floor(count || 0));
+                        for (let i = 0; i < spawnCount; i++) {
                             wait(spawnIndex * 0.3, () => {
-                                Logger.debug('Spawning enemy', { 
-                                    type: enemyType, 
-                                    index: i + 1, 
-                                    total: count,
-                                    spawnIndex: spawnIndex + 1
-                                });
-                                spawnEnemy(enemyType);
+                                try {
+                                    Logger.debug('Spawning enemy', { 
+                                        type: enemyType, 
+                                        index: i + 1, 
+                                        total: spawnCount,
+                                        spawnIndex: spawnIndex + 1
+                                    });
+                                    spawnEnemy(enemyType);
+                                } catch (error) {
+                                    Logger.error('Failed to spawn enemy', {
+                                        error: error.message,
+                                        stack: error.stack,
+                                        enemyType,
+                                        index: i + 1,
+                                        total: spawnCount
+                                    });
+                                }
                             });
                             spawnIndex++;
                         }
@@ -1447,11 +1519,27 @@ export function createGameScene() {
             });
             
         } catch (error) {
-            Logger.error('CRITICAL: Game scene failed', { 
+            Logger.error('CRITICAL: Game scene initialization failed', { 
                 error: error.message, 
                 stack: error.stack,
                 level: GS.currentLevel,
-                room: GS.currentRoom
+                room: GS.currentRoom,
+                dungeon: GS.dungeon ? {
+                    exists: true,
+                    currentRoomId: GS.dungeon.currentRoomId,
+                    roomsCount: GS.dungeon.map?.rooms?.length
+                } : null,
+                gameState: {
+                    playerLevel: GS.playerLevel,
+                    gold: GS.gold,
+                    score: GS.score
+                }
+            });
+            
+            // Try to recover - go back to start
+            wait(2, () => {
+                Logger.warn('Attempting recovery - returning to start screen');
+                go("start");
             });
         }
     });
