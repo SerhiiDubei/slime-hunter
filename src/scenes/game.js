@@ -1133,11 +1133,35 @@ export function createGameScene() {
                 }
                 
                 // Check if room is cleared (all enemies killed)
+                // #region agent log
+                roomClearCheckTimer += dt();
+                if (roomClearCheckTimer >= 1.0) {
+                    roomClearCheckTimer = 0;
+                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_STATUS',message:'Room clear status check',data:{roomCleared:GS.roomCleared,isBossRoom,roomEnemiesKilled:GS.roomEnemiesKilled,roomEnemyCount:GS.roomEnemyCount,aliveEnemies:GS.enemies.filter(e=>e&&e.exists()).length,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+                }
+                // #endregion
+                
                 if (!GS.roomCleared && !isBossRoom) {
                     const aliveEnemies = GS.enemies.filter(e => e && e.exists());
-                    if (GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0) {
+                    const shouldClear = GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0;
+                    
+                    // #region agent log
+                    if (shouldClear) {
+                        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_CHECK',message:'Room clear conditions met',data:{roomEnemiesKilled:GS.roomEnemiesKilled,roomEnemyCount:GS.roomEnemyCount,aliveEnemies:aliveEnemies.length,isBossRoom,roomCleared:GS.roomCleared,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+                    }
+                    // #endregion
+                    
+                    if (shouldClear) {
                         onRoomCleared();
                     }
+                } else {
+                    // #region agent log
+                    alreadyClearedTimer += dt();
+                    if (alreadyClearedTimer >= 5.0) {
+                        alreadyClearedTimer = 0;
+                        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_SKIP',message:'Room clear check skipped',data:{roomCleared:GS.roomCleared,isBossRoom,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+                    }
+                    // #endregion
                 }
             });
 
