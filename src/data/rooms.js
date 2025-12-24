@@ -163,10 +163,44 @@ function getRoomCountForLevel(level) {
 
 // Dungeon state manager
 export class DungeonManager {
-    constructor(level) {
+    constructor(level, savedState = null) {
         this.level = level;
         this.map = generateDungeonMap(level);
-        this.currentRoomId = this.map.startRoomId;
+        
+        // Restore saved state if provided
+        if (savedState && savedState.currentRoomId !== undefined) {
+            const savedRoom = this.map.rooms.find(r => r.id === savedState.currentRoomId);
+            if (savedRoom) {
+                this.currentRoomId = savedState.currentRoomId;
+                // Restore room states
+                if (savedState.rooms) {
+                    savedState.rooms.forEach(savedRoomState => {
+                        const room = this.map.rooms.find(r => r.id === savedRoomState.id);
+                        if (room) {
+                            room.cleared = savedRoomState.cleared || false;
+                            room.visited = savedRoomState.visited || false;
+                        }
+                    });
+                }
+            } else {
+                this.currentRoomId = this.map.startRoomId;
+            }
+        } else {
+            this.currentRoomId = this.map.startRoomId;
+        }
+    }
+    
+    // Get state for saving
+    getState() {
+        return {
+            level: this.level,
+            currentRoomId: this.currentRoomId,
+            rooms: this.map.rooms.map(r => ({
+                id: r.id,
+                cleared: r.cleared,
+                visited: r.visited
+            }))
+        };
     }
     
     getCurrentRoom() {

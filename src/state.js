@@ -63,7 +63,7 @@ export const GS = {
     score: 0,
     gold: 0,
     currentLevel: 1,
-    currentRoom: 0,        // Current room in level (0 = first room)
+    currentRoom: 0,        // Current room in level (0 = first room) - SYNCED with dungeon.currentRoomId
     totalRooms: 2,         // Total rooms in current level
     roomCleared: false,    // Is current room cleared?
     enemies: [],
@@ -79,6 +79,7 @@ export const GS = {
     playerXP: 0,
     joystickInput: { x: 0, y: 0 },
     lastMoveDir: { x: 1, y: 0 },
+    dungeon: null,          // DungeonManager instance - persists between scenes
     
     // Selected hero
     selectedHero: 'warrior',

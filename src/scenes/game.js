@@ -378,12 +378,23 @@ function onRoomCleared() {
 export function createGameScene() {
     scene("game", () => {
         // Initialize dungeon manager if not exists
-        if (!GS.dungeon || GS.currentRoom === 0) {
+        if (!GS.dungeon) {
             GS.dungeon = new DungeonManager(GS.currentLevel);
+            // Restore current room if we have saved state
+            if (GS.currentRoom !== undefined && GS.currentRoom !== null) {
+                const savedRoom = GS.dungeon.getRoom(GS.currentRoom);
+                if (savedRoom) {
+                    GS.dungeon.currentRoomId = GS.currentRoom;
+                    savedRoom.visited = true;
+                }
+            }
         }
         
         const dungeon = GS.dungeon;
         const currentRoom = dungeon.getCurrentRoom();
+        
+        // CRITICAL: Sync GS.currentRoom with dungeon.currentRoomId
+        GS.currentRoom = dungeon.currentRoomId;
         GS.totalRooms = dungeon.map.rooms.length;
         
         Logger.info('=== GAME SCENE START ===', { 
