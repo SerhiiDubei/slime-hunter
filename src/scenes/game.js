@@ -261,27 +261,41 @@ function generateRoomShape(seed) {
     };
 }
 
-// Get room configuration
+// Get room configuration with WEIGHT SYSTEM (d20)
 function getRoomConfig() {
     const level = GS.currentLevel;
     const room = GS.currentRoom;
     const totalRooms = GS.totalRooms;
     const isBossRoom = room >= totalRooms - 1;
     
-    // Base enemies per room (scales with level and room)
-    // MORE enemies on early levels!
-    let enemyCount;
+    // Weight system: d20 = 20 points total
+    // Example: 1x4 (4 points), 2x3 (6 points), 10x1 (10 points) = 20 total
+    // Each enemy type has a weight value
+    const MAX_WEIGHT = 20; // d20 system
+    const baseWeight = 10 + level * 2; // Base weight scales with level (Level 1: 12, Level 2: 14, etc.)
+    const roomWeightBonus = room * 1; // Later rooms get more weight
+    const totalWeight = Math.min(MAX_WEIGHT, baseWeight + roomWeightBonus);
+    
+    Logger.info('Room weight calculation', { 
+        level, 
+        room, 
+        baseWeight, 
+        roomWeightBonus, 
+        totalWeight,
+        maxWeight: MAX_WEIGHT 
+    });
+    
+    let enemyCount = 0;
     if (isBossRoom) {
         enemyCount = 0; // Boss room - only boss spawns
     } else {
-        // Base: 6 enemies minimum, scales with level
-        const baseEnemies = 6 + level * 2;
-        const roomMultiplier = 0.8 + (room * 0.2); // Room 0: 80%, Room 1: 100%, Room 2: 120%
-        enemyCount = Math.floor(baseEnemies * roomMultiplier);
+        // Use weight system to determine enemy composition
+        enemyCount = totalWeight; // Will be distributed by weight
     }
     
     return {
         enemyCount,
+        totalWeight,
         isBossRoom,
         roomNumber: room + 1,
         totalRooms,
@@ -299,6 +313,98 @@ function checkAllKeysCollected(dungeon) {
     
     // Check if all required rooms have their keys collected
     return requiredRooms.length > 0 && requiredRooms.every(room => GS.collectedKeys.includes(room.id));
+}
+
+// Distribute enemy weight across enemy types (d20 system)
+// Returns object: { "slime": 10, "ranged_slime": 2, "tank_slime": 1 }
+function distributeEnemyWeight(totalWeight, level) {
+    const distribution = {};
+    let remainingWeight = totalWeight;
+    
+    // Available enemy types based on level
+    const availableTypes = [];
+    if (level >= 1) availableTypes.push("slime", "fast_slime", "ranged_slime");
+    if (level >= 2) availableTypes.push("tank_slime");
+    if (level >= 3) availableTypes.push("bomber_slime");
+    
+    // Weight distribution strategy:
+    // - Common enemies (weight 1): 50-70% of weight
+    // - Medium enemies (weight 2-3): 20-30% of weight
+    // - Heavy enemies (weight 4): 10-20% of weight
+    
+    const commonWeight = Math.floor(remainingWeight * (0.5 + Math.random() * 0.2)); // 50-70%
+    const mediumWeight = Math.floor(remainingWeight * (0.2 + Math.random() * 0.1)); // 20-30%
+    const heavyWeight = remainingWeight - commonWeight - mediumWeight; // Rest
+    
+    Logger.debug('Weight distribution', { commonWeight, mediumWeight, heavyWeight, totalWeight });
+    
+    // Spawn common enemies (weight 1)
+    const commonTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight === 1);
+    if (commonTypes.length > 0 && commonWeight > 0) {
+        const commonCount = commonWeight; // Each is 1 weight
+        const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
+        distribution[type] = (distribution[type] || 0) + commonCount;
+        remainingWeight -= commonCount;
+    }
+    
+    // Spawn medium enemies (weight 2-3)
+    const mediumTypes = availableTypes.filter(t => {
+        const w = ENEMY_TYPES[t]?.weight;
+        return w && w >= 2 && w <= 3;
+    });
+    if (mediumTypes.length > 0 && mediumWeight > 0) {
+        let mediumRemaining = mediumWeight;
+        while (mediumRemaining > 0 && mediumTypes.length > 0) {
+            const type = mediumTypes[Math.floor(Math.random() * mediumTypes.length)];
+            const weight = ENEMY_TYPES[type].weight;
+            if (mediumRemaining >= weight) {
+                distribution[type] = (distribution[type] || 0) + 1;
+                mediumRemaining -= weight;
+            } else {
+                break;
+            }
+        }
+        remainingWeight -= (mediumWeight - mediumRemaining);
+    }
+    
+    // Spawn heavy enemies (weight 4+)
+    const heavyTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight >= 4);
+    if (heavyTypes.length > 0 && heavyWeight > 0) {
+        let heavyRemaining = heavyWeight;
+        while (heavyRemaining > 0 && heavyTypes.length > 0) {
+            const type = heavyTypes[Math.floor(Math.random() * heavyTypes.length)];
+            const weight = ENEMY_TYPES[type].weight;
+            if (heavyRemaining >= weight) {
+                distribution[type] = (distribution[type] || 0) + 1;
+                heavyRemaining -= weight;
+            } else {
+                break;
+            }
+        }
+        remainingWeight -= (heavyWeight - heavyRemaining);
+    }
+    
+    // Use remaining weight for more common enemies
+    if (remainingWeight > 0 && commonTypes.length > 0) {
+        const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
+        distribution[type] = (distribution[type] || 0) + remainingWeight;
+    }
+    
+    // Calculate actual total weight
+    let actualWeight = 0;
+    for (const [type, count] of Object.entries(distribution)) {
+        const weight = ENEMY_TYPES[type]?.weight || 1;
+        actualWeight += weight * count;
+    }
+    
+    Logger.info('Enemy weight distribution complete', { 
+        distribution, 
+        totalWeight, 
+        actualWeight,
+        difference: totalWeight - actualWeight
+    });
+    
+    return distribution;
 }
 
 // Spawn colored key for a specific room
@@ -321,7 +427,7 @@ function spawnKey(p, roomId, keyColor = null) {
     // Create key sprite with color
     const k = add([
         sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), 
-        color(...color), "key",
+        color(color[0], color[1], color[2]), "key",
         { roomId, keyColor: color } // Store room ID and color
     ]);
     
@@ -339,7 +445,7 @@ function spawnKey(p, roomId, keyColor = null) {
     
     // OPTIMIZED: Colored glow matching key color
     add([
-        circle(25), pos(p), color(...color), opacity(0.3), anchor("center"), z(4), "keyPart"
+        circle(25), pos(p), color(color[0], color[1], color[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
     ]);
 }
 

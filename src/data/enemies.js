@@ -25,6 +25,7 @@ export const ENEMY_TYPES = {
         score: 10,
         gold: [8, 15],
         behavior: "chase",
+        weight: 1,  // Weight for d20 system (1 point)
     },
     
     // Ranged slime - mage that shoots!
@@ -46,6 +47,7 @@ export const ENEMY_TYPES = {
         attackCooldown: 2.0,
         projectileSpeed: 180,
         projectileDamage: 12,
+        weight: 2,  // Weight for d20 system (2 points)
     },
     
     // Tank slime - slow but LOTS of HP!
@@ -63,6 +65,7 @@ export const ENEMY_TYPES = {
         gold: [20, 35],
         behavior: "chase",
         knockbackResist: 0.8,
+        weight: 4,  // Weight for d20 system (4 points - heavy!)
     },
     
     // Bomber slime - explodes on death!
@@ -82,6 +85,7 @@ export const ENEMY_TYPES = {
         explodeOnDeath: true,
         explosionRadius: 60,
         explosionDamage: 25,
+        weight: 3,  // Weight for d20 system (3 points)
     },
     
     // Fast slime - very quick, low HP
@@ -98,6 +102,7 @@ export const ENEMY_TYPES = {
         score: 15,
         gold: [10, 18],
         behavior: "chase",
+        weight: 1,  // Weight for d20 system (1 point)
     },
 };
 
