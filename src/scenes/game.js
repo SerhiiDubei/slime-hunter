@@ -410,44 +410,87 @@ function distributeEnemyWeight(totalWeight, level) {
 
 // Spawn colored key for a specific room
 function spawnKey(p, roomId, keyColor = null) {
-    Logger.info('Spawning key at', { x: p.x, y: p.y, roomId, keyColor });
-    
-    // Key colors for different rooms (rainbow colors)
-    const keyColors = [
-        [255, 100, 100],  // Red
-        [255, 200, 100],  // Orange
-        [255, 255, 100],  // Yellow
-        [100, 255, 100],  // Green
-        [100, 200, 255],  // Blue
-        [200, 100, 255],  // Purple
-        [255, 100, 200],  // Pink
-    ];
-    
-    const keyColorArray = keyColor || keyColors[roomId % keyColors.length];
-    
-    // Create key sprite with color
-    const k = add([
-        sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), 
-        color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
-        { roomId, keyColor: keyColorArray } // Store room ID and color
-    ]);
-    
-    // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
-    const startY = p.y;
-    let keyAnimTimer = 0;
-    k.onUpdate(() => {
-        keyAnimTimer += dt();
-        if (keyAnimTimer >= 0.1) {
-            keyAnimTimer = 0;
-        k.pos.y = startY + Math.sin(time() * 4) * 5;
-        k.angle = Math.sin(time() * 2) * 10;
+    try {
+        // Validate position
+        if (!p || (p.x === undefined && p.pos === undefined)) {
+            Logger.error('CRITICAL: Invalid position for spawnKey', { p, roomId, keyColor });
+            return;
         }
-    });
-    
-    // OPTIMIZED: Colored glow matching key color
-    add([
-        circle(25), pos(p), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
-    ]);
+        
+        const pos = p.pos || p;
+        Logger.info('Spawning key at', { x: pos.x, y: pos.y, roomId, keyColor });
+        
+        // Key colors for different rooms (rainbow colors)
+        const keyColors = [
+            [255, 100, 100],  // Red
+            [255, 200, 100],  // Orange
+            [255, 255, 100],  // Yellow
+            [100, 255, 100],  // Green
+            [100, 200, 255],  // Blue
+            [200, 100, 255],  // Purple
+            [255, 100, 200],  // Pink
+        ];
+        
+        // Validate and get color array
+        let keyColorArray;
+        if (keyColor && Array.isArray(keyColor) && keyColor.length >= 3) {
+            keyColorArray = keyColor;
+        } else {
+            // Validate roomId
+            const safeRoomId = (roomId !== undefined && roomId !== null) ? Math.abs(roomId) : 0;
+            const colorIndex = safeRoomId % keyColors.length;
+            keyColorArray = keyColors[colorIndex];
+            
+            if (!keyColorArray || !Array.isArray(keyColorArray) || keyColorArray.length < 3) {
+                Logger.error('CRITICAL: Invalid keyColorArray from keyColors', { 
+                    roomId, 
+                    safeRoomId, 
+                    colorIndex, 
+                    keyColorArray,
+                    keyColorsLength: keyColors.length
+                });
+                keyColorArray = [255, 200, 100]; // Fallback to orange
+            }
+        }
+        
+        Logger.debug('Key color array', { keyColorArray, roomId });
+        
+        // Create key sprite with color
+        const k = add([
+            sprite("key"), pos(pos), anchor("center"), area(), z(5), scale(1), 
+            color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
+            { roomId, keyColor: keyColorArray } // Store room ID and color
+        ]);
+        
+        // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
+        const startY = pos.y;
+        let keyAnimTimer = 0;
+        k.onUpdate(() => {
+            try {
+                keyAnimTimer += dt();
+                if (keyAnimTimer >= 0.1) {
+                    keyAnimTimer = 0;
+                    k.pos.y = startY + Math.sin(time() * 4) * 5;
+                    k.angle = Math.sin(time() * 2) * 10;
+                }
+            } catch (error) {
+                Logger.error('Key animation error', { error: error.message, stack: error.stack });
+            }
+        });
+        
+        // OPTIMIZED: Colored glow matching key color
+        add([
+            circle(25), pos(pos), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
+        ]);
+    } catch (error) {
+        Logger.error('CRITICAL: spawnKey failed', {
+            error: error.message,
+            stack: error.stack,
+            p,
+            roomId,
+            keyColor
+        });
+    }
 }
 
 // Called when all room enemies are killed
