@@ -554,7 +554,24 @@ export function createGameScene() {
         }
         
         const dungeon = GS.dungeon;
+        
+        if (!dungeon) {
+            Logger.error('CRITICAL: No dungeon!', { currentLevel: GS.currentLevel });
+            wait(1, () => go("start"));
+            return;
+        }
+        
         const currentRoom = dungeon.getCurrentRoom();
+        
+        if (!currentRoom) {
+            Logger.error('CRITICAL: No current room!', { 
+                dungeon: !!dungeon,
+                currentRoomId: dungeon?.currentRoomId,
+                rooms: dungeon?.map?.rooms?.length
+            });
+            wait(1, () => go("start"));
+            return;
+        }
         
         // CRITICAL: Sync GS.currentRoom with dungeon.currentRoomId
         GS.currentRoom = dungeon.currentRoomId;
@@ -569,27 +586,33 @@ export function createGameScene() {
         
         try {
             GS.enemies = [];
-            GS.roomCleared = currentRoom.cleared;
+            GS.roomCleared = currentRoom.cleared || false;
             GS.roomEnemiesKilled = 0;
-            GS.doorOpen = currentRoom.cleared;
+            GS.doorOpen = currentRoom.cleared || false;
             
             const roomConfig = getRoomConfig();
             // Override with dungeon room data
-            GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount;
+            GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount || 0;
             
-            const lv = GS.currentLevel;
-            const roomNum = GS.currentRoom;
+            const lv = GS.currentLevel || 1;
+            const roomNum = GS.currentRoom || 0;
             
             // Room-specific background colors (darker as you go deeper)
             const baseColors = [[26, 26, 46], [35, 25, 45], [45, 25, 30], [30, 30, 50], [40, 20, 35], [25, 35, 45], [50, 30, 40]];
-            const baseBg = baseColors[(lv - 1) % baseColors.length];
+            const baseBgIndex = Math.max(0, (lv - 1) % baseColors.length);
+            const baseBg = baseColors[baseBgIndex];
+            
+            if (!baseBg || !Array.isArray(baseBg) || baseBg.length < 3) {
+                Logger.error('CRITICAL: Invalid baseBg!', { baseBg, baseBgIndex, lv, baseColors });
+                baseBg = [26, 26, 46]; // Fallback
+            }
             
             // Darken based on room number
-            const roomDarken = roomNum * 5;
+            const roomDarken = (roomNum || 0) * 5;
             const bg = [
-                Math.max(10, baseBg[0] - roomDarken),
-                Math.max(10, baseBg[1] - roomDarken),
-                Math.max(10, baseBg[2] - roomDarken)
+                Math.max(10, (baseBg[0] || 26) - roomDarken),
+                Math.max(10, (baseBg[1] || 26) - roomDarken),
+                Math.max(10, (baseBg[2] || 46) - roomDarken)
             ];
 
             // ========== PERFORMANCE PROFILING ==========
@@ -1316,15 +1339,24 @@ export function createGameScene() {
                     // Spawn enemies based on distribution
                     let spawnIndex = 0;
                     for (const [enemyType, count] of Object.entries(enemyDistribution)) {
-                        for (let i = 0; i < count; i++) {
+                        if (!enemyType || !ENEMY_TYPES[enemyType]) {
+                            Logger.warn('Invalid enemy type in distribution', { enemyType, distribution: enemyDistribution });
+                            continue;
+                        }
+                        const spawnCount = Math.max(0, Math.floor(count || 0));
+                        for (let i = 0; i < spawnCount; i++) {
                             wait(spawnIndex * 0.3, () => {
-                                Logger.debug('Spawning enemy', { 
-                                    type: enemyType, 
-                                    index: i + 1, 
-                                    total: count,
-                                    spawnIndex: spawnIndex + 1
-                                });
-                                spawnEnemy(enemyType);
+                                try {
+                                    Logger.debug('Spawning enemy', { 
+                                        type: enemyType, 
+                                        index: i + 1, 
+                                        total: spawnCount,
+                                        spawnIndex: spawnIndex + 1
+                                    });
+                                    spawnEnemy(enemyType);
+                                } catch (error) {
+                                    Logger.error('Error spawning enemy', { error: error.message, enemyType, stack: error.stack });
+                                }
                             });
                             spawnIndex++;
                         }
