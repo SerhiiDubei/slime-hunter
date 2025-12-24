@@ -419,56 +419,61 @@ export function createGameScene() {
                 return floorSeed / 0x7fffffff;
             };
             
-            // OPTIMIZED: Draw all tiles synchronously but efficiently
-            // (Chunked async was causing issues - doing it sync but optimized)
+            // ULTRA-OPTIMIZED: Group tiles by type, use fewer operations
+            // Pre-calculate colors (only 3-4 shades instead of random per tile)
+            const floorShades = [
+                [bg[0], bg[1], bg[2]],                    // Base
+                [Math.floor(bg[0] * 0.9), Math.floor(bg[1] * 0.9), Math.floor(bg[2] * 0.9)],  // Dark
+                [Math.floor(bg[0] * 1.1), Math.floor(bg[1] * 1.1), Math.floor(bg[2] * 1.1)],  // Light
+            ];
+            
+            // Pre-create gradients (reuse instead of creating per tile)
+            const wallGrad = fctx.createLinearGradient(0, 0, 0, 40);
+            wallGrad.addColorStop(0, '#4a4a6a');
+            wallGrad.addColorStop(1, '#3a3a5a');
+            
+            // Draw by type to minimize fillStyle changes
+            // 1. Draw all floor tiles first (most common)
+            fctx.fillStyle = `rgb(${floorShades[0][0]}, ${floorShades[0][1]}, ${floorShades[0][2]})`;
             for (let gy = 0; gy < roomShape.height; gy++) {
                 for (let gx = 0; gx < roomShape.width; gx++) {
-                    const tileX = roomShape.offsetX + gx * 40;
-                    const tileY = roomShape.offsetY + gy * 40;
-                    const tileType = roomShape.grid[gy][gx];
-                    
-                    if (tileType === 1) {
-                        // Walkable floor tile
-                        const tileShade = 0.85 + floorRng() * 0.25;
-                        const r = Math.floor(bg[0] * tileShade);
-                        const g = Math.floor(bg[1] * tileShade);
-                        const b = Math.floor(bg[2] * tileShade);
-                        fctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    if (roomShape.grid[gy][gx] === 1) {
+                        const tileX = gx * 40;
+                        const tileY = gy * 40;
+                        // Use one of 3 shades (deterministic based on position)
+                        const shadeIdx = (gx + gy * 3) % 3;
+                        fctx.fillStyle = `rgb(${floorShades[shadeIdx][0]}, ${floorShades[shadeIdx][1]}, ${floorShades[shadeIdx][2]})`;
                         fctx.fillRect(tileX, tileY, 40, 40);
-                        
-                        // Grid lines - only every 2nd tile
-                        if (gx % 2 === 0 && gy % 2 === 0) {
-                            fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
-                            fctx.lineWidth = 1;
-                            fctx.strokeRect(tileX, tileY, 40, 40);
-                        }
-                        
-                        // Random cracks (reduced)
-                        if (floorRng() < 0.02) {
-                            fctx.strokeStyle = `rgba(0, 0, 0, 0.3)`;
-                            fctx.beginPath();
-                            fctx.moveTo(tileX + 5, tileY + 10);
-                            fctx.lineTo(tileX + 20, tileY + 25);
-                            fctx.lineTo(tileX + 35, tileY + 20);
-                            fctx.stroke();
-                        }
-                    } else if (tileType === 2) {
-                        // Pillar
-                        fctx.fillStyle = `rgb(${50 + lv * 5}, ${45 + lv * 3}, ${60 + lv * 4})`;
+                    }
+                }
+            }
+            
+            // 2. Draw pillars (fewer operations)
+            const pillarColor1 = `rgb(${50 + lv * 5}, ${45 + lv * 3}, ${60 + lv * 4})`;
+            const pillarColor2 = `rgb(${70 + lv * 5}, ${65 + lv * 3}, ${85 + lv * 4})`;
+            for (let gy = 0; gy < roomShape.height; gy++) {
+                for (let gx = 0; gx < roomShape.width; gx++) {
+                    if (roomShape.grid[gy][gx] === 2) {
+                        const tileX = gx * 40;
+                        const tileY = gy * 40;
+                        fctx.fillStyle = pillarColor1;
                         fctx.fillRect(tileX, tileY, 40, 40);
-                        fctx.fillStyle = `rgb(${70 + lv * 5}, ${65 + lv * 3}, ${85 + lv * 4})`;
+                        fctx.fillStyle = pillarColor2;
                         fctx.fillRect(tileX + 2, tileY + 2, 36, 36);
-                        fctx.fillStyle = `rgba(20, 20, 30, 0.4)`;
-                        fctx.fillRect(tileX, tileY + 32, 40, 8);
-                    } else {
-                        // Wall tile
-                        const grad = fctx.createLinearGradient(tileX, tileY, tileX, tileY + 40);
-                        grad.addColorStop(0, '#4a4a6a');
-                        grad.addColorStop(1, '#3a3a5a');
-                        fctx.fillStyle = grad;
+                    }
+                }
+            }
+            
+            // 3. Draw walls (reuse gradient)
+            fctx.fillStyle = wallGrad;
+            fctx.strokeStyle = '#2a2a4a';
+            fctx.lineWidth = 2;
+            for (let gy = 0; gy < roomShape.height; gy++) {
+                for (let gx = 0; gx < roomShape.width; gx++) {
+                    if (roomShape.grid[gy][gx] === 0) {
+                        const tileX = gx * 40;
+                        const tileY = gy * 40;
                         fctx.fillRect(tileX, tileY, 40, 40);
-                        fctx.strokeStyle = '#2a2a4a';
-                        fctx.lineWidth = 2;
                         fctx.strokeRect(tileX, tileY, 40, 20);
                         fctx.strokeRect(tileX, tileY + 20, 40, 20);
                     }
