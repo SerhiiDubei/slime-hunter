@@ -48,9 +48,9 @@ export function createPlayer() {
     const p = add([
         sprite(heroSprite),
         pos(startX, startY),
-        area({ shape: new Rect(vec2(-14, -14), 28, 28) }),
+        area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
         body(), anchor("center"), z(10),
-        scale(1.1), // Slightly larger hero
+        // No extra scaling - sprites are 32x32
         {
             hp: stats.maxHp,
             maxHp: stats.maxHp,
@@ -228,14 +228,13 @@ export function setupPlayerMovement(p) {
             }
         }
         
-        // Squash and stretch based on movement
+        // Subtle squash and stretch (minimal to avoid clipping)
         if (moving) {
-            const squash = 1 + Math.sin(time() * 12) * 0.05;
-            p.scale = vec2(1.1 * squash, 1.1 / squash);
+            const squash = 1 + Math.sin(time() * 12) * 0.03;
+            p.scale = vec2(squash, 1 / squash);
         } else {
-            // Idle breathing
-            const breath = 1 + Math.sin(time() * 3) * 0.02;
-            p.scale = vec2(1.1, 1.1 * breath);
+            // Idle - no scaling
+            p.scale = vec2(1, 1);
         }
         
         // Cooldowns

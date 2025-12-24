@@ -8,94 +8,81 @@ function createCanvas(w, h) {
 }
 
 // ==================== ANIMATED PLAYER SPRITES ====================
+// All sprites use 32x32 canvas with character centered to avoid clipping
 
 // Warrior - Armored knight with sword (4 frames)
 function makeWarriorFrames() {
     const frames = [];
+    const size = 32;
+    const cx = size / 2; // Center X
+    
     for (let f = 0; f < 4; f++) {
-        const { canvas, ctx } = createCanvas(36, 36);
-        const bounce = Math.sin(f * Math.PI / 2) * 2;
-        const legOffset = f % 2 === 0 ? 0 : 3;
+        const { canvas, ctx } = createCanvas(size, size);
+        const bounce = Math.sin(f * Math.PI / 2) * 1.5;
+        const legOffset = f % 2 === 0 ? 0 : 2;
         
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
-        ctx.ellipse(18, 33, 10, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, 28, 8, 3, 0, 0, Math.PI * 2);
         ctx.fill();
         
         // Legs (animated)
         ctx.fillStyle = '#2d3436';
-        ctx.fillRect(12 - legOffset, 24, 5, 8);
-        ctx.fillRect(19 + legOffset, 24, 5, 8);
+        ctx.fillRect(cx - 5 - legOffset, 20, 4, 7);
+        ctx.fillRect(cx + 1 + legOffset, 20, 4, 7);
         
         // Body - armor
-        const bodyGrad = ctx.createLinearGradient(8, 10, 28, 28);
+        const bodyGrad = ctx.createLinearGradient(cx - 8, 8, cx + 8, 22);
         bodyGrad.addColorStop(0, '#636e72');
         bodyGrad.addColorStop(0.5, '#b2bec3');
         bodyGrad.addColorStop(1, '#636e72');
         ctx.fillStyle = bodyGrad;
         ctx.beginPath();
-        ctx.roundRect(8, 10 - bounce, 20, 16, 3);
+        ctx.roundRect(cx - 8, 9 - bounce, 16, 13, 2);
         ctx.fill();
-        
-        // Armor details
-        ctx.strokeStyle = '#2d3436';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(18, 12 - bounce);
-        ctx.lineTo(18, 24 - bounce);
-        ctx.stroke();
         
         // Belt
         ctx.fillStyle = '#8B4513';
-        ctx.fillRect(10, 22 - bounce, 16, 3);
+        ctx.fillRect(cx - 6, 19 - bounce, 12, 2);
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(16, 21 - bounce, 4, 5);
+        ctx.fillRect(cx - 2, 18 - bounce, 4, 4);
         
         // Head
         ctx.fillStyle = '#ffe0bd';
         ctx.beginPath();
-        ctx.arc(18, 8 - bounce, 7, 0, Math.PI * 2);
+        ctx.arc(cx, 7 - bounce, 5, 0, Math.PI * 2);
         ctx.fill();
         
         // Helmet
         ctx.fillStyle = '#636e72';
         ctx.beginPath();
-        ctx.ellipse(18, 5 - bounce, 8, 5, 0, Math.PI, 0);
+        ctx.ellipse(cx, 5 - bounce, 6, 4, 0, Math.PI, 0);
         ctx.fill();
         ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(16, 0 - bounce, 4, 6); // Plume
+        ctx.fillRect(cx - 1, 2 - bounce, 3, 4); // Small plume
         
         // Eyes
         ctx.fillStyle = '#2d3436';
         ctx.beginPath();
-        ctx.arc(15, 7 - bounce, 1.5, 0, Math.PI * 2);
-        ctx.arc(21, 7 - bounce, 1.5, 0, Math.PI * 2);
+        ctx.arc(cx - 2, 6 - bounce, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 6 - bounce, 1, 0, Math.PI * 2);
         ctx.fill();
         
-        // Sword (animated swing)
-        const swordAngle = f * 15 - 20;
-        ctx.save();
-        ctx.translate(28, 16 - bounce);
-        ctx.rotate(swordAngle * Math.PI / 180);
+        // Sword (smaller, within bounds)
         ctx.fillStyle = '#dfe6e9';
-        ctx.fillRect(-2, -12, 4, 18);
+        ctx.fillRect(cx + 6, 6 - bounce, 3, 12);
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(-3, 4, 6, 4);
-        ctx.restore();
+        ctx.fillRect(cx + 5, 16 - bounce, 5, 3);
         
-        // Shield
+        // Shield (smaller)
         ctx.fillStyle = '#636e72';
         ctx.beginPath();
-        ctx.ellipse(6, 18 - bounce, 5, 7, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx - 8, 14 - bounce, 4, 5, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#e74c3c';
         ctx.beginPath();
-        ctx.moveTo(6, 12 - bounce);
-        ctx.lineTo(10, 18 - bounce);
-        ctx.lineTo(6, 24 - bounce);
-        ctx.lineTo(2, 18 - bounce);
-        ctx.closePath();
+        ctx.arc(cx - 8, 14 - bounce, 2.5, 0, Math.PI * 2);
         ctx.fill();
         
         frames.push(canvas.toDataURL());
@@ -106,91 +93,85 @@ function makeWarriorFrames() {
 // Mage - Robed wizard with staff (4 frames)
 function makeMageFrames() {
     const frames = [];
+    const size = 32;
+    const cx = size / 2;
+    
     for (let f = 0; f < 4; f++) {
-        const { canvas, ctx } = createCanvas(36, 36);
-        const hover = Math.sin(f * Math.PI / 2) * 3;
-        const orbPulse = 0.8 + Math.sin(f * Math.PI / 2) * 0.3;
+        const { canvas, ctx } = createCanvas(size, size);
+        const hover = Math.sin(f * Math.PI / 2) * 1.5;
+        const orbPulse = 0.9 + Math.sin(f * Math.PI / 2) * 0.15;
         
-        // Shadow (moves with hover)
-        ctx.fillStyle = `rgba(0,0,0,${0.3 - hover * 0.02})`;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.beginPath();
-        ctx.ellipse(18, 34, 8 - hover * 0.3, 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, 29, 7, 2, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Staff
+        // Staff (within bounds)
         ctx.fillStyle = '#5D4037';
-        ctx.fillRect(28, 4 - hover, 3, 28);
+        ctx.fillRect(cx + 7, 6 - hover, 2, 20);
         
-        // Staff orb
-        const orbGrad = ctx.createRadialGradient(29, 6 - hover, 1, 29, 6 - hover, 6 * orbPulse);
+        // Staff orb (smaller)
+        const orbGrad = ctx.createRadialGradient(cx + 8, 6 - hover, 1, cx + 8, 6 - hover, 4 * orbPulse);
         orbGrad.addColorStop(0, '#fff');
-        orbGrad.addColorStop(0.3, '#9b59b6');
+        orbGrad.addColorStop(0.4, '#9b59b6');
         orbGrad.addColorStop(1, '#4a235a');
         ctx.fillStyle = orbGrad;
         ctx.beginPath();
-        ctx.arc(29, 6 - hover, 6 * orbPulse, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Orb glow
-        ctx.fillStyle = `rgba(155, 89, 182, ${0.3 * orbPulse})`;
-        ctx.beginPath();
-        ctx.arc(29, 6 - hover, 10 * orbPulse, 0, Math.PI * 2);
+        ctx.arc(cx + 8, 6 - hover, 4 * orbPulse, 0, Math.PI * 2);
         ctx.fill();
         
         // Robe
-        const robeGrad = ctx.createLinearGradient(6, 10, 26, 32);
+        const robeGrad = ctx.createLinearGradient(cx - 8, 10, cx + 8, 28);
         robeGrad.addColorStop(0, '#2980b9');
         robeGrad.addColorStop(1, '#1a5276');
         ctx.fillStyle = robeGrad;
         ctx.beginPath();
-        ctx.moveTo(10, 10 - hover);
-        ctx.lineTo(26, 10 - hover);
-        ctx.lineTo(30, 32 - hover);
-        ctx.lineTo(6, 32 - hover);
+        ctx.moveTo(cx - 6, 11 - hover);
+        ctx.lineTo(cx + 6, 11 - hover);
+        ctx.lineTo(cx + 9, 27 - hover);
+        ctx.lineTo(cx - 9, 27 - hover);
         ctx.closePath();
         ctx.fill();
         
-        // Robe details (stars)
+        // Robe stars
         ctx.fillStyle = '#FFD700';
-        for (let i = 0; i < 3; i++) {
-            const sx = 12 + i * 5;
-            const sy = 18 + (i % 2) * 6 - hover;
-            ctx.beginPath();
-            ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.beginPath();
+        ctx.arc(cx - 3, 18 - hover, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 22 - hover, 1, 0, Math.PI * 2);
+        ctx.fill();
         
         // Head
         ctx.fillStyle = '#ffe0bd';
         ctx.beginPath();
-        ctx.arc(18, 8 - hover, 6, 0, Math.PI * 2);
+        ctx.arc(cx, 9 - hover, 5, 0, Math.PI * 2);
         ctx.fill();
         
-        // Wizard hat
+        // Wizard hat (within bounds)
         ctx.fillStyle = '#2980b9';
         ctx.beginPath();
-        ctx.moveTo(8, 8 - hover);
-        ctx.lineTo(18, -4 - hover);
-        ctx.lineTo(28, 8 - hover);
+        ctx.moveTo(cx - 6, 9 - hover);
+        ctx.lineTo(cx, 2 - hover);
+        ctx.lineTo(cx + 6, 9 - hover);
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = '#FFD700';
         ctx.beginPath();
-        ctx.arc(18, -3 - hover, 3, 0, Math.PI * 2);
+        ctx.arc(cx, 3 - hover, 2, 0, Math.PI * 2);
         ctx.fill();
         
         // Beard
         ctx.fillStyle = '#ecf0f1';
         ctx.beginPath();
-        ctx.moveTo(14, 12 - hover);
-        ctx.quadraticCurveTo(18, 20 - hover, 22, 12 - hover);
+        ctx.moveTo(cx - 3, 12 - hover);
+        ctx.quadraticCurveTo(cx, 17 - hover, cx + 3, 12 - hover);
         ctx.fill();
         
         // Eyes
         ctx.fillStyle = '#2d3436';
         ctx.beginPath();
-        ctx.arc(15, 7 - hover, 1.2, 0, Math.PI * 2);
-        ctx.arc(21, 7 - hover, 1.2, 0, Math.PI * 2);
+        ctx.arc(cx - 2, 8 - hover, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 8 - hover, 1, 0, Math.PI * 2);
         ctx.fill();
         
         frames.push(canvas.toDataURL());
@@ -201,93 +182,77 @@ function makeMageFrames() {
 // Assassin - Hooded rogue with daggers (4 frames)
 function makeAssassinFrames() {
     const frames = [];
+    const size = 32;
+    const cx = size / 2;
+    
     for (let f = 0; f < 4; f++) {
-        const { canvas, ctx } = createCanvas(36, 36);
-        const lean = Math.sin(f * Math.PI / 2) * 2;
-        const legOffset = f % 2 === 0 ? 0 : 4;
+        const { canvas, ctx } = createCanvas(size, size);
+        const legOffset = f % 2 === 0 ? 0 : 2;
         
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.beginPath();
-        ctx.ellipse(18 + lean, 33, 9, 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, 28, 7, 2, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Legs (animated fast)
+        // Legs (animated)
         ctx.fillStyle = '#2d3436';
-        ctx.fillRect(11 - legOffset + lean, 24, 4, 9);
-        ctx.fillRect(21 + legOffset + lean, 24, 4, 9);
+        ctx.fillRect(cx - 5 - legOffset, 20, 3, 7);
+        ctx.fillRect(cx + 2 + legOffset, 20, 3, 7);
         
         // Boots
         ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(10 - legOffset + lean, 30, 6, 4);
-        ctx.fillRect(20 + legOffset + lean, 30, 6, 4);
+        ctx.fillRect(cx - 6 - legOffset, 25, 4, 3);
+        ctx.fillRect(cx + 2 + legOffset, 25, 4, 3);
         
         // Body - leather armor
-        const bodyGrad = ctx.createLinearGradient(8, 10, 28, 26);
+        const bodyGrad = ctx.createLinearGradient(cx - 7, 10, cx + 7, 22);
         bodyGrad.addColorStop(0, '#1a1a2e');
         bodyGrad.addColorStop(0.5, '#2d2d44');
         bodyGrad.addColorStop(1, '#1a1a2e');
         ctx.fillStyle = bodyGrad;
         ctx.beginPath();
-        ctx.roundRect(9 + lean, 10, 18, 15, 2);
+        ctx.roundRect(cx - 7, 10, 14, 12, 2);
         ctx.fill();
         
-        // Belt with pouches
+        // Belt
         ctx.fillStyle = '#4a3728';
-        ctx.fillRect(10 + lean, 22, 16, 3);
-        ctx.fillStyle = '#5d4e37';
-        ctx.fillRect(12 + lean, 20, 4, 5);
-        ctx.fillRect(20 + lean, 20, 4, 5);
+        ctx.fillRect(cx - 6, 19, 12, 2);
         
         // Hood & head
         ctx.fillStyle = '#1a1a2e';
         ctx.beginPath();
-        ctx.moveTo(8 + lean, 14);
-        ctx.quadraticCurveTo(18 + lean, -2, 28 + lean, 14);
-        ctx.lineTo(26 + lean, 12);
-        ctx.quadraticCurveTo(18 + lean, 4, 10 + lean, 12);
+        ctx.moveTo(cx - 7, 12);
+        ctx.quadraticCurveTo(cx, 2, cx + 7, 12);
+        ctx.lineTo(cx + 6, 10);
+        ctx.quadraticCurveTo(cx, 5, cx - 6, 10);
         ctx.closePath();
         ctx.fill();
         
         // Face in shadow
         ctx.fillStyle = '#2d3436';
         ctx.beginPath();
-        ctx.arc(18 + lean, 10, 5, 0, Math.PI * 2);
+        ctx.arc(cx, 10, 4, 0, Math.PI * 2);
         ctx.fill();
         
-        // Glowing eyes
+        // Glowing eyes (no shadow blur to avoid issues)
         ctx.fillStyle = '#e74c3c';
-        ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 4;
         ctx.beginPath();
-        ctx.arc(15 + lean, 9, 1.5, 0, Math.PI * 2);
-        ctx.arc(21 + lean, 9, 1.5, 0, Math.PI * 2);
+        ctx.arc(cx - 2, 9, 1.2, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 9, 1.2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
         
-        // Daggers (animated)
-        const daggerAngle1 = -45 + f * 20;
-        const daggerAngle2 = 45 - f * 20;
-        
+        // Daggers (simplified, within bounds)
+        ctx.fillStyle = '#bdc3c7';
         // Left dagger
-        ctx.save();
-        ctx.translate(6 + lean, 16);
-        ctx.rotate(daggerAngle1 * Math.PI / 180);
-        ctx.fillStyle = '#bdc3c7';
-        ctx.fillRect(-1, -10, 2, 12);
+        ctx.fillRect(cx - 10, 12 - f, 2, 8);
         ctx.fillStyle = '#2d3436';
-        ctx.fillRect(-2, 0, 4, 3);
-        ctx.restore();
-        
+        ctx.fillRect(cx - 10, 18 - f, 2, 2);
         // Right dagger
-        ctx.save();
-        ctx.translate(30 + lean, 16);
-        ctx.rotate(daggerAngle2 * Math.PI / 180);
         ctx.fillStyle = '#bdc3c7';
-        ctx.fillRect(-1, -10, 2, 12);
+        ctx.fillRect(cx + 8, 12 + f, 2, 8);
         ctx.fillStyle = '#2d3436';
-        ctx.fillRect(-2, 0, 4, 3);
-        ctx.restore();
+        ctx.fillRect(cx + 8, 18 + f, 2, 2);
         
         frames.push(canvas.toDataURL());
     }
