@@ -9,7 +9,7 @@ import { KEYS } from '../keyboard.js';
 import { choose } from '../utils.js';
 import { KEYBINDS } from '../state.js';
 import { createPlayer, setupPlayerMovement } from '../entities/player.js';
-import { spawnRandomEnemy, spawnBoss } from '../entities/enemies.js';
+import { spawnRandomEnemy, spawnBoss, spawnEnemy } from '../entities/enemies.js';
 import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
 import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
