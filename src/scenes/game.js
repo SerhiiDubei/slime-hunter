@@ -1102,6 +1102,8 @@ export function createGameScene() {
             
             let keyStates = {};
             let camUpdateTimer = 0;
+            let roomClearCheckTimer = 0;
+            let alreadyClearedTimer = 0;
             onUpdate(() => {
                 const rangedPressed = isKeyDown(rangedKey);
                 if (rangedPressed && !keyStates.ranged) doRangedAttack();
