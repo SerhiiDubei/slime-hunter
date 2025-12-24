@@ -413,7 +413,7 @@ export function createGameScene() {
                 return floorSeed / 0x7fffffff;
             };
             
-            // Draw all tiles to canvas at once
+            // Draw all tiles to canvas at once (OPTIMIZED: fewer cracks)
             for (let gx = 0; gx < roomShape.width; gx++) {
                 for (let gy = 0; gy < roomShape.height; gy++) {
                     const tileX = roomShape.offsetX + gx * 40;
@@ -429,13 +429,15 @@ export function createGameScene() {
                         fctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
                         fctx.fillRect(tileX, tileY, 40, 40);
                         
-                        // Grid lines (subtle)
-                        fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
-                        fctx.lineWidth = 1;
-                        fctx.strokeRect(tileX, tileY, 40, 40);
+                        // Grid lines (subtle) - only every 2nd tile for performance
+                        if (gx % 2 === 0 && gy % 2 === 0) {
+                            fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
+                            fctx.lineWidth = 1;
+                            fctx.strokeRect(tileX, tileY, 40, 40);
+                        }
                         
-                        // Random cracks (reduced frequency)
-                        if (floorRng() < 0.04) {
+                        // Random cracks (FURTHER REDUCED: 0.02 instead of 0.04)
+                        if (floorRng() < 0.02) {
                             fctx.strokeStyle = `rgba(0, 0, 0, 0.3)`;
                             fctx.beginPath();
                             fctx.moveTo(tileX + 5, tileY + 10);
@@ -498,28 +500,27 @@ export function createGameScene() {
             add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
             add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
 
-            // ========== OPTIMIZATION: Reduced decorations, batched torch updates ==========
-            // Torches (reduced to 4, shared update timer)
-            const torches = [];
+            // ========== OPTIMIZATION: FURTHER REDUCED decorations ==========
+            // Torches (reduced to 2 max, static only)
             const torchPositions = [
                 [roomShape.centerX - 200, roomShape.centerY - 150],
                 [roomShape.centerX + 200, roomShape.centerY + 150],
             ];
-            torchPositions.forEach(([tx, ty]) => {
-                if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) return;
-                const torch = add([sprite("torch"), pos(tx, ty), z(1), scale(1)]);
-                const glow = add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
-                torches.push({ torch, glow });
-            });
-            
-            // OPTIMIZATION: No torch animation - static torches
-            // (removed onUpdate to reduce CPU load)
+            // Only add 1-2 torches max
+            const torchCount = Math.min(2, 1 + Math.floor(lv / 4));
+            for (let i = 0; i < torchCount; i++) {
+                const [tx, ty] = torchPositions[i];
+                if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) continue;
+                add([sprite("torch"), pos(tx, ty), z(1), scale(1)]);
+                // Static glow only (no animation)
+                add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
+            }
 
-            // Cobwebs (static, no updates)
-            add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.5)]);
+            // Cobwebs (REMOVED for performance - not essential)
+            // add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.5)]);
 
-            // Wall decorations (reduced count)
-            const decorCount = Math.min(3, 2 + Math.floor(lv / 2));
+            // Wall decorations (FURTHER REDUCED for performance)
+            const decorCount = Math.min(2, 1 + Math.floor(lv / 3));
             for (let i = 0; i < decorCount; i++) {
                 const side = i % 4;
                 let dx, dy;
@@ -531,8 +532,8 @@ export function createGameScene() {
                 add([sprite("skull"), pos(dx, dy), z(1), opacity(0.6)]);
             }
 
-            // Obstacles (reduced count, no shadows)
-            const obstacleCount = Math.min(4, 2 + roomNum);
+            // Obstacles (FURTHER REDUCED - only 2-3 max)
+            const obstacleCount = Math.min(3, 1 + Math.floor(roomNum / 2));
             for (let i = 0; i < obstacleCount; i++) {
                 const ox = 150 + (i % 3) * 300 + rand(-50, 50);
                 const oy = 200 + Math.floor(i / 3) * 300 + rand(-50, 50);
@@ -801,10 +802,11 @@ export function createGameScene() {
                         return;
                     }
                     
-                    // Go to the target room
+                    // Go to the target room through loading screen
                     GS.resetRoom();
                     Logger.info('Going to room', { roomId: targetRoomId, type: targetRoom.type });
-                    go("game"); // Reload scene with new room
+                    GS.loadingTargetScene = "game";
+                    go("loading"); // Show loading screen during room generation
                     
                 } catch (error) {
                     Logger.error('Door collision error', { error: error.message, stack: error.stack });

@@ -312,23 +312,18 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             proj.angle = angle + proj.spin;
         }
         
-        // Trail particles
+        // Trail particles (OPTIMIZED: less frequent, use lifespan)
         trailTimer -= dt();
         if (trailTimer <= 0) {
-            trailTimer = projShape === "axe" ? 0.03 : 0.06;
+            trailTimer = projShape === "axe" ? 0.05 : 0.1; // Less frequent
             
             const trailSize = projShape === "axe" ? projSize * 0.4 : projSize * 0.3;
-            const trail = add([
+            add([
                 projShape === "dagger" ? rect(trailSize * 2, trailSize) : circle(trailSize),
                 pos(proj.pos), color(...trailColor), opacity(0.5),
-                anchor("center"), z(12), rotate(projShape === "dagger" ? angle : 0), { t: 0 }
+                anchor("center"), z(12), rotate(projShape === "dagger" ? angle : 0),
+                lifespan(0.2, { fade: 0.15 })
             ]);
-            trail.onUpdate(() => {
-                trail.t += dt();
-                trail.opacity = 0.5 - trail.t * 2.5;
-                if (projShape === "orb") trail.scale = vec2(1 - trail.t * 2);
-                if (trail.t > 0.2) destroy(trail);
-            });
         }
         
         // Check hit

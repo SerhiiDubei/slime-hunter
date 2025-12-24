@@ -201,22 +201,16 @@ function ultimateMeteorShower(config) {
                     }
                 }
                 
-                // Fire particles
-                for (let j = 0; j < 6; j++) {
-                    const angle = (j / 6) * Math.PI * 2;
-                    const part = add([
-                        circle(rand(5, 10)), pos(targetX, targetY),
+                // Fire particles (OPTIMIZED: reduced count, use lifespan)
+                for (let j = 0; j < 3; j++) {
+                    const angle = (j / 3) * Math.PI * 2;
+                    add([
+                        circle(rand(5, 8)), pos(targetX, targetY),
                         color(255, rand(100, 200), 50), opacity(0.8),
                         anchor("center"), z(11),
-                        { vx: Math.cos(angle) * rand(60, 100), vy: Math.sin(angle) * rand(60, 100), t: 0 }
+                        move(angle * 180 / Math.PI, rand(60, 100)),
+                        lifespan(0.5, { fade: 0.4 })
                     ]);
-                    part.onUpdate(() => {
-                        part.pos.x += part.vx * dt();
-                        part.pos.y += part.vy * dt();
-                        part.t += dt();
-                        part.opacity -= 2 * dt();
-                        if (part.t > 0.5) destroy(part);
-                    });
                 }
             });
         });
