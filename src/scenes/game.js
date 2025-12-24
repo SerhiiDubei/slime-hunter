@@ -458,13 +458,44 @@ function onRoomCleared() {
     });
     // #endregion
     
-    // For BOSS rooms: just mark as cleared, no key spawn
+    // For BOSS rooms: spawn level progression key
     if (currentRoom.type === ROOM_TYPES.BOSS) {
-        Logger.info('🔑 BOSS ROOM CLEARED - Level progression ready', { 
+        Logger.info('🔑 BOSS ROOM CLEARED - Spawning level progression key', { 
             roomId: currentRoom.id,
             currentLevel: GS.currentLevel,
             maxLevels: CONFIG.MAX_LEVELS
         });
+        
+        // Spawn boss key for level progression (roomId = -1 means boss key)
+        const BOSS_KEY_ID = -1;
+        const p = GS.player;
+        
+        if (p && p.exists() && p.pos && !GS.collectedKeys.includes(BOSS_KEY_ID)) {
+            wait(0.5, () => {
+                try {
+                    Logger.info('🔑 BOSS KEY SPAWN - Calling spawnKey for boss', { 
+                        bossKeyId: BOSS_KEY_ID,
+                        playerPos: { x: p.pos.x, y: p.pos.y },
+                        currentLevel: GS.currentLevel
+                    });
+                    // Boss key is golden color
+                    spawnKey(vec2(p.pos.x, p.pos.y - 60), BOSS_KEY_ID, [255, 215, 0]); // Gold color
+                } catch (error) {
+                    Logger.error('Failed to spawn boss key', {
+                        error: error.message,
+                        stack: error.stack,
+                        bossKeyId: BOSS_KEY_ID,
+                        playerPos: p.pos
+                    });
+                }
+            });
+        } else if (GS.collectedKeys.includes(BOSS_KEY_ID)) {
+            Logger.info('🔑 BOSS KEY already collected', { bossKeyId: BOSS_KEY_ID });
+        } else {
+            Logger.warn('🔑 Cannot spawn boss key - player invalid', { 
+                player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
+            });
+        }
     } else if (currentRoom.type !== ROOM_TYPES.START) {
         // #region agent log
         Logger.debug('🔑 onRoomCleared:KEY_CHECK', { 
@@ -1324,17 +1355,41 @@ export function createGameScene() {
                     });
                     // #endregion
                     
-                    // If we're LEAVING a cleared boss room, level is complete!
+                    // If we're LEAVING a cleared boss room, check for boss key before level progression
                     if (currentRoom && currentRoom.type === ROOM_TYPES.BOSS && currentRoom.cleared) {
+                        const BOSS_KEY_ID = -1;
+                        const hasBossKey = GS.collectedKeys.includes(BOSS_KEY_ID);
+                        
                         Logger.info('🔑 Level complete! Leaving boss room', { 
                             currentLevel: GS.currentLevel,
-                            maxLevels: CONFIG.MAX_LEVELS
+                            maxLevels: CONFIG.MAX_LEVELS,
+                            hasBossKey
                         });
+                        
+                        if (!hasBossKey) {
+                            // Show message that boss key is required
+                            const msg = add([
+                                text("Collect the boss key first!", { size: 20 }),
+                                pos(width() / 2, height() / 2 - 50),
+                                anchor("center"),
+                                color(255, 200, 100),
+                                fixed(),
+                                z(1000),
+                                lifespan(2),
+                            ]);
+                            Logger.warn('🔑 Cannot proceed - boss key not collected', { 
+                                collectedKeys: GS.collectedKeys 
+                            });
+                            return; // Don't proceed without boss key
+                        }
+                        
                         // Level complete!
                         if (GS.currentLevel >= CONFIG.MAX_LEVELS) {
                             Logger.info('Victory! All levels complete');
                             go("victory");
                         } else {
+                            // Remove boss key from collected keys (it's only for this level)
+                            GS.collectedKeys = GS.collectedKeys.filter(id => id !== BOSS_KEY_ID);
                             // Go to shop, then next level
                             GS.currentLevel++;
                             GS.currentRoom = 0;

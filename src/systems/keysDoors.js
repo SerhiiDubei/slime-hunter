@@ -30,6 +30,12 @@ function getKeyColor(roomId) {
         Logger.warn('getKeyColor: Invalid roomId', { roomId });
         return [255, 200, 100]; // Fallback to orange
     }
+    
+    // Boss key (roomId = -1) is always gold
+    if (roomId === -1) {
+        return [255, 215, 0]; // Gold color for boss key
+    }
+    
     const safeRoomId = Math.abs(roomId);
     const colorIndex = safeRoomId % KEY_COLORS.length;
     const colorArray = KEY_COLORS[colorIndex];
