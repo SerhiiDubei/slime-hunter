@@ -353,10 +353,17 @@ export function createGameScene() {
             const isBossRoom = currentRoom.type === ROOM_TYPES.BOSS;
             roomIndicator = null;
 
-            // Create player (spawn on left side)
+            // Create player (spawn in center of map)
             const p = createPlayer();
-            p.pos = vec2(CONFIG.WALL_THICKNESS + 60, CONFIG.MAP_HEIGHT / 2);
+            p.pos = vec2(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2);
             setupPlayerMovement(p);
+            
+            // Initialize camera to player position
+            const halfViewW = CONFIG.VIEWPORT_WIDTH / 2;
+            const halfViewH = CONFIG.VIEWPORT_HEIGHT / 2;
+            let camX = Math.max(halfViewW, Math.min(p.pos.x, CONFIG.MAP_WIDTH - halfViewW));
+            let camY = Math.max(halfViewH, Math.min(p.pos.y, CONFIG.MAP_HEIGHT - halfViewH));
+            camPos(camX, camY);
 
             // Attack handlers
             const doMeleeAttack = () => meleeAttack(spawnKey);

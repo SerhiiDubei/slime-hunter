@@ -8,19 +8,24 @@ export function createOptionsScene() {
     scene("options", () => {
         initAudio();
         
+        // Reset camera for menu
+        camPos(CONFIG.VIEWPORT_WIDTH / 2, CONFIG.VIEWPORT_HEIGHT / 2);
+        const W = CONFIG.VIEWPORT_WIDTH;
+        const H = CONFIG.VIEWPORT_HEIGHT;
+        
         // Dark background
-        add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(12, 10, 18), z(-2)]);
+        add([rect(W, H), pos(0, 0), color(12, 10, 18), z(-2)]);
         
         // Title
         add([
             text("⚙️ OPTIONS", { size: 32 }),
-            pos(CONFIG.MAP_WIDTH / 2, 40),
+            pos(W / 2, 40),
             anchor("center"), color(200, 160, 100)
         ]);
         
         add([
             text("Key Bindings", { size: 18 }),
-            pos(CONFIG.MAP_WIDTH / 2, 80),
+            pos(W / 2, 80),
             anchor("center"), color(150, 140, 130)
         ]);
         
@@ -121,12 +126,12 @@ export function createOptionsScene() {
         // Reset button
         const resetBtn = add([
             rect(180, 40, { radius: 5 }),
-            pos(CONFIG.MAP_WIDTH / 2, 450), anchor("center"),
+            pos(W / 2, 450), anchor("center"),
             color(120, 60, 60), area()
         ]);
         add([
             text("Reset to Default", { size: 14 }),
-            pos(CONFIG.MAP_WIDTH / 2, 450), anchor("center"),
+            pos(W / 2, 450), anchor("center"),
             color(255, 220, 200)
         ]);
         
@@ -141,12 +146,12 @@ export function createOptionsScene() {
         // Back button
         const backBtn = add([
             rect(180, 45, { radius: 5 }),
-            pos(CONFIG.MAP_WIDTH / 2, 520), anchor("center"),
+            pos(W / 2, 520), anchor("center"),
             color(50, 40, 35), area()
         ]);
         add([
             text("← Back to Menu", { size: 16 }),
-            pos(CONFIG.MAP_WIDTH / 2, 520), anchor("center"),
+            pos(W / 2, 520), anchor("center"),
             color(200, 180, 150)
         ]);
         
@@ -165,7 +170,7 @@ export function createOptionsScene() {
         // Instructions
         add([
             text("Click a key box and press a new key to rebind", { size: 10 }),
-            pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 30),
+            pos(W / 2, H - 30),
             anchor("center"), color(80, 70, 60)
         ]);
     });

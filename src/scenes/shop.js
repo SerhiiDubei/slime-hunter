@@ -19,14 +19,19 @@ export function createShopScene() {
     scene("shop", () => {
         initAudio();
         
+        // Reset camera for menu
+        camPos(CONFIG.VIEWPORT_WIDTH / 2, CONFIG.VIEWPORT_HEIGHT / 2);
+        const W = CONFIG.VIEWPORT_WIDTH;
+        const H = CONFIG.VIEWPORT_HEIGHT;
+        
         // Dark background
-        add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(12, 10, 18), z(-2)]);
+        add([rect(W, H), pos(0, 0), color(12, 10, 18), z(-2)]);
         
         // Atmospheric particles
         for (let i = 0; i < 25; i++) {
             const p = add([
                 circle(rand(1, 2)),
-                pos(rand(0, CONFIG.MAP_WIDTH), rand(0, CONFIG.MAP_HEIGHT)),
+                pos(rand(0, W), rand(0, H)),
                 color(180, 140, 80),
                 opacity(rand(0.1, 0.3)),
                 z(-1),
@@ -36,28 +41,28 @@ export function createShopScene() {
                 p.pos.y += p.vy * dt();
                 p.life -= dt();
                 if (p.life <= 0 || p.pos.y < -10) {
-                    p.pos.y = CONFIG.MAP_HEIGHT + 10;
-                    p.pos.x = rand(0, CONFIG.MAP_WIDTH);
+                    p.pos.y = H + 10;
+                    p.pos.x = rand(0, W);
                     p.life = rand(3, 8);
                 }
             });
         }
         
         // Top border
-        add([rect(CONFIG.MAP_WIDTH, 2), pos(0, 0), color(139, 90, 43), z(50)]);
-        add([rect(CONFIG.MAP_WIDTH, 2), pos(0, CONFIG.MAP_HEIGHT - 2), color(139, 90, 43), z(50)]);
+        add([rect(W, 2), pos(0, 0), color(139, 90, 43), z(50)]);
+        add([rect(W, 2), pos(0, H - 2), color(139, 90, 43), z(50)]);
         
         // Title
         add([
             text("SANCTUARY", { size: 28 }),
-            pos(CONFIG.MAP_WIDTH / 2, 30),
+            pos(W / 2, 30),
             anchor("center"),
             color(180, 140, 90),
         ]);
         
         add([
             text(`Level ${GS.currentLevel - 1} Complete`, { size: 12 }),
-            pos(CONFIG.MAP_WIDTH / 2, 52),
+            pos(W / 2, 52),
             anchor("center"),
             color(100, 180, 100),
         ]);
@@ -65,7 +70,7 @@ export function createShopScene() {
         // Gold display
         add([
             rect(140, 35, { radius: 4 }),
-            pos(CONFIG.MAP_WIDTH / 2, 80),
+            pos(W / 2, 80),
             anchor("center"),
             color(35, 30, 25),
             outline(2, rgb(139, 90, 43)),
@@ -73,7 +78,7 @@ export function createShopScene() {
         
         add([
             text(`💰 ${GS.gold}`, { size: 18 }),
-            pos(CONFIG.MAP_WIDTH / 2, 80),
+            pos(W / 2, 80),
             anchor("center"),
             color(255, 220, 100),
         ]);
@@ -177,7 +182,7 @@ export function createShopScene() {
         });
         
         // ========== RIGHT PANEL: PASSIVE SKILLS ==========
-        const rightX = CONFIG.MAP_WIDTH - 180;
+        const rightX = W - 180;
         
         add([
             text("PASSIVE SKILLS", { size: 14 }),
@@ -269,11 +274,11 @@ export function createShopScene() {
         });
         
         // ========== CONTINUE BUTTON ==========
-        const btnY = CONFIG.MAP_HEIGHT - 55;
+        const btnY = H - 55;
         
         add([
             rect(180, 45, { radius: 4 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(139, 90, 43),
             opacity(0.3),
@@ -282,7 +287,7 @@ export function createShopScene() {
         
         const continueBtn = add([
             rect(170, 40, { radius: 3 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(50, 40, 30),
             area(),
@@ -292,7 +297,7 @@ export function createShopScene() {
         
         add([
             text(`ENTER LEVEL ${GS.currentLevel}`, { size: 14 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(200, 170, 120),
             z(21),
@@ -345,7 +350,7 @@ export function createShopScene() {
         // Mobile touch support for continue button
         onTouchStart((touchPos) => {
             // Continue button
-            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 85 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 85 &&
+            if (touchPos.x >= W / 2 - 85 && touchPos.x <= W / 2 + 85 &&
                 touchPos.y >= btnY - 20 && touchPos.y <= btnY + 20) {
                 playSound('start');
                 GS.resetLevel();
@@ -357,7 +362,7 @@ export function createShopScene() {
         const s = GS.getStats();
         add([
             text(`DMG:${s.meleeDamage} MAG:${s.rangedDamage} SPD:${s.moveSpeed} HP:${s.maxHp}`, { size: 9 }),
-            pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 18),
+            pos(W / 2, H - 18),
             anchor("center"),
             color(80, 75, 70),
         ]);

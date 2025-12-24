@@ -12,14 +12,19 @@ export function createLevelIntroScene() {
         const level = getLevel(GS.currentLevel);
         const hero = HEROES[GS.selectedHero];
         
+        // Reset camera for menu
+        camPos(CONFIG.VIEWPORT_WIDTH / 2, CONFIG.VIEWPORT_HEIGHT / 2);
+        const W = CONFIG.VIEWPORT_WIDTH;
+        const H = CONFIG.VIEWPORT_HEIGHT;
+        
         // Dark background
-        add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(8, 6, 12), z(-2)]);
+        add([rect(W, H), pos(0, 0), color(8, 6, 12), z(-2)]);
         
         // Particles
         for (let i = 0; i < 30; i++) {
             const p = add([
                 circle(rand(1, 2)),
-                pos(rand(0, CONFIG.MAP_WIDTH), rand(0, CONFIG.MAP_HEIGHT)),
+                pos(rand(0, W), rand(0, H)),
                 color(rand(100, 180), rand(80, 140), rand(60, 100)),
                 opacity(rand(0.2, 0.4)),
                 z(-1),
@@ -29,21 +34,21 @@ export function createLevelIntroScene() {
                 p.pos.y += p.vy * dt();
                 p.life -= dt();
                 if (p.life <= 0 || p.pos.y < -10) {
-                    p.pos.y = CONFIG.MAP_HEIGHT + 10;
-                    p.pos.x = rand(0, CONFIG.MAP_WIDTH);
+                    p.pos.y = H + 10;
+                    p.pos.x = rand(0, W);
                     p.life = rand(3, 8);
                 }
             });
         }
         
         // Borders
-        add([rect(CONFIG.MAP_WIDTH, 3), pos(0, 0), color(139, 90, 43), z(50)]);
-        add([rect(CONFIG.MAP_WIDTH, 3), pos(0, CONFIG.MAP_HEIGHT - 3), color(139, 90, 43), z(50)]);
+        add([rect(W, 3), pos(0, 0), color(139, 90, 43), z(50)]);
+        add([rect(W, 3), pos(0, H - 3), color(139, 90, 43), z(50)]);
         
         // Level number (big)
         add([
             text(`LEVEL ${GS.currentLevel}`, { size: 56 }),
-            pos(CONFIG.MAP_WIDTH / 2, 120),
+            pos(W / 2, 120),
             anchor("center"),
             color(200, 160, 100),
         ]);
@@ -51,7 +56,7 @@ export function createLevelIntroScene() {
         // Level name
         add([
             text(level.name, { size: 32 }),
-            pos(CONFIG.MAP_WIDTH / 2, 180),
+            pos(W / 2, 180),
             anchor("center"),
             color(180, 140, 90),
         ]);
@@ -59,13 +64,13 @@ export function createLevelIntroScene() {
         // Subtitle
         add([
             text(level.subtitle || "", { size: 14 }),
-            pos(CONFIG.MAP_WIDTH / 2, 215),
+            pos(W / 2, 215),
             anchor("center"),
             color(120, 100, 80),
         ]);
         
         // Separator
-        add([rect(350, 2), pos(CONFIG.MAP_WIDTH / 2, 250), anchor("center"), color(80, 60, 45)]);
+        add([rect(350, 2), pos(W / 2, 250), anchor("center"), color(80, 60, 45)]);
         
         // Hero portrait area
         add([
@@ -122,24 +127,24 @@ export function createLevelIntroScene() {
         // Enemy count info
         add([
             text(`Enemies: ${level.enemyCount}`, { size: 12 }),
-            pos(CONFIG.MAP_WIDTH / 2 - 80, 440),
+            pos(W / 2 - 80, 440),
             anchor("center"),
             color(150, 140, 130),
         ]);
         
         add([
             text(`Difficulty: x${level.difficultyMultiplier}`, { size: 12 }),
-            pos(CONFIG.MAP_WIDTH / 2 + 80, 440),
+            pos(W / 2 + 80, 440),
             anchor("center"),
             color(150, 140, 130),
         ]);
         
         // Continue button
-        const btnY = CONFIG.MAP_HEIGHT - 70;
+        const btnY = H - 70;
         
         add([
             rect(200, 50, { radius: 5 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(139, 90, 43),
             opacity(0.4),
@@ -148,7 +153,7 @@ export function createLevelIntroScene() {
         
         const btn = add([
             rect(190, 45, { radius: 4 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(50, 40, 30),
             area(),
@@ -158,7 +163,7 @@ export function createLevelIntroScene() {
         
         add([
             text("ENTER DUNGEON", { size: 16 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(200, 170, 120),
             z(11),
@@ -179,7 +184,7 @@ export function createLevelIntroScene() {
         
         // Mobile touch support
         onTouchStart((touchPos) => {
-            if (touchPos.x >= CONFIG.MAP_WIDTH / 2 - 95 && touchPos.x <= CONFIG.MAP_WIDTH / 2 + 95 &&
+            if (touchPos.x >= W / 2 - 95 && touchPos.x <= W / 2 + 95 &&
                 touchPos.y >= btnY - 22 && touchPos.y <= btnY + 22) {
                 startLevel();
             }
@@ -187,7 +192,7 @@ export function createLevelIntroScene() {
         
         add([
             text("TAP to enter", { size: 11 }),
-            pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 20),
+            pos(W / 2, H - 20),
             anchor("center"),
             color(100, 90, 80),
         ]);

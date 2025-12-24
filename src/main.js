@@ -25,11 +25,11 @@ import { createOptionsScene } from './scenes/options.js';
 
 Logger.info('🎮 Slime Hunter starting...');
 
-// Initialize Kaboom with fixed dimensions (CSS handles scaling)
+// Initialize Kaboom with viewport dimensions (camera will scroll larger map)
 try {
     kaboom({
-        width: CONFIG.MAP_WIDTH,     // Fixed 800
-        height: CONFIG.MAP_HEIGHT,   // Fixed 600
+        width: CONFIG.VIEWPORT_WIDTH,     // 800 viewport
+        height: CONFIG.VIEWPORT_HEIGHT,   // 600 viewport
         background: [26, 26, 46],
         canvas: document.getElementById("game"),
         global: true,
@@ -41,7 +41,10 @@ try {
         debug: false,
     });
     
-    Logger.info('Kaboom initialized', { width: CONFIG.MAP_WIDTH, height: CONFIG.MAP_HEIGHT });
+    Logger.info('Kaboom initialized', { 
+        viewport: `${CONFIG.VIEWPORT_WIDTH}x${CONFIG.VIEWPORT_HEIGHT}`,
+        map: `${CONFIG.MAP_WIDTH}x${CONFIG.MAP_HEIGHT}` 
+    });
 } catch (error) {
     Logger.error('Failed to initialize Kaboom', { error: error.message });
     throw error;

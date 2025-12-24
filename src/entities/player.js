@@ -7,12 +7,33 @@ import { KEYS } from '../keyboard.js';
 import { KEYBINDS } from '../state.js';
 import { clamp } from '../utils.js';
 
+// Camera follow function - keeps player centered
+function updateCamera(player) {
+    const halfViewW = CONFIG.VIEWPORT_WIDTH / 2;
+    const halfViewH = CONFIG.VIEWPORT_HEIGHT / 2;
+    
+    // Target camera position (centered on player)
+    let camX = player.pos.x;
+    let camY = player.pos.y;
+    
+    // Clamp camera to map bounds so we don't see outside the map
+    camX = clamp(camX, halfViewW, CONFIG.MAP_WIDTH - halfViewW);
+    camY = clamp(camY, halfViewH, CONFIG.MAP_HEIGHT - halfViewH);
+    
+    // Set camera position
+    camPos(camX, camY);
+}
+
 export function createPlayer() {
     const stats = GS.getStats();
     
+    // Spawn player in center of map
+    const startX = CONFIG.MAP_WIDTH / 2;
+    const startY = CONFIG.MAP_HEIGHT / 2;
+    
     const p = add([
         sprite("player"),
-        pos(80, CONFIG.MAP_HEIGHT / 2),
+        pos(startX, startY),
         area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
         body(), anchor("center"), z(10),
         {
@@ -144,9 +165,12 @@ export function setupPlayerMovement(p) {
             }
         }
         
-        // Clamp position
+        // Clamp position to map bounds
         p.pos.x = clamp(p.pos.x, CONFIG.WALL_THICKNESS + 16, CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 16);
         p.pos.y = clamp(p.pos.y, CONFIG.WALL_THICKNESS + 16, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 16);
+        
+        // CAMERA FOLLOW - player stays centered, camera follows
+        updateCamera(p);
         
         // Flip sprite based on direction
         if (mx < 0) p.flipX = true;

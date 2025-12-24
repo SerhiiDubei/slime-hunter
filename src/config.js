@@ -43,9 +43,11 @@ export const CONFIG = {
     DIFFICULTY_INCREASE: 0.20,  // 20% per level
     MAX_LEVELS: 7,              // 7 levels!
 
-    // Map settings
-    MAP_WIDTH: 800,
-    MAP_HEIGHT: 600,
+    // Map settings (larger for camera scrolling)
+    MAP_WIDTH: 1600,
+    MAP_HEIGHT: 1200,
+    VIEWPORT_WIDTH: 800,    // What player sees
+    VIEWPORT_HEIGHT: 600,
     WALL_THICKNESS: 20,
 
     // Scoring & Gold

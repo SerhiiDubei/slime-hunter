@@ -8,9 +8,14 @@ import { playSound } from '../audio.js';
 
 export function createHeroSelectScene() {
     scene("heroSelect", () => {
+        // Reset camera for menu
+        camPos(CONFIG.VIEWPORT_WIDTH / 2, CONFIG.VIEWPORT_HEIGHT / 2);
+        const W = CONFIG.VIEWPORT_WIDTH;
+        const H = CONFIG.VIEWPORT_HEIGHT;
+        
         // Dark gradient background
         add([
-            rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT),
+            rect(W, H),
             color(10, 8, 15),
             z(-2),
         ]);
@@ -19,7 +24,7 @@ export function createHeroSelectScene() {
         for (let i = 0; i < 40; i++) {
             const p = add([
                 circle(rand(1, 2)),
-                pos(rand(0, CONFIG.MAP_WIDTH), rand(0, CONFIG.MAP_HEIGHT)),
+                pos(rand(0, W), rand(0, H)),
                 color(rand(150, 255), rand(80, 150), rand(20, 60)),
                 opacity(rand(0.2, 0.5)),
                 z(-1),
@@ -30,8 +35,8 @@ export function createHeroSelectScene() {
                 p.pos.x += p.vx * dt();
                 p.life -= dt();
                 if (p.life <= 0 || p.pos.y < -10) {
-                    p.pos.y = CONFIG.MAP_HEIGHT + 10;
-                    p.pos.x = rand(0, CONFIG.MAP_WIDTH);
+                    p.pos.y = H + 10;
+                    p.pos.x = rand(0, W);
                     p.life = rand(3, 8);
                 }
             });
@@ -39,7 +44,7 @@ export function createHeroSelectScene() {
         
         // Decorative top border
         add([
-            rect(CONFIG.MAP_WIDTH, 3),
+            rect(W, 3),
             pos(0, 0),
             color(139, 90, 43),
             z(50),
@@ -48,7 +53,7 @@ export function createHeroSelectScene() {
         // Title with glow effect
         add([
             text("CHOOSE YOUR CHAMPION", { size: 32 }),
-            pos(CONFIG.MAP_WIDTH / 2, 45),
+            pos(W / 2, 45),
             anchor("center"),
             color(180, 140, 90),
             z(10),
@@ -57,7 +62,7 @@ export function createHeroSelectScene() {
         // Subtitle
         add([
             text("Select a hero to begin your journey", { size: 12 }),
-            pos(CONFIG.MAP_WIDTH / 2, 72),
+            pos(W / 2, 72),
             anchor("center"),
             color(120, 100, 80),
             z(10),
@@ -107,8 +112,8 @@ export function createHeroSelectScene() {
         const cardWidth = 220;
         const cardHeight = 380;
         const cardGap = 25;
-        const startX = (CONFIG.MAP_WIDTH - (cardWidth * 3 + cardGap * 2)) / 2;
-        const cardY = CONFIG.MAP_HEIGHT / 2 + 20;
+        const startX = (W - (cardWidth * 3 + cardGap * 2)) / 2;
+        const cardY = H / 2 + 20;
         
         const cards = [];
         
@@ -295,12 +300,12 @@ export function createHeroSelectScene() {
         // Start button
         const btnWidth = 200;
         const btnHeight = 50;
-        const btnY = CONFIG.MAP_HEIGHT - 55;
+        const btnY = H - 55;
         
         // Button glow/shadow
         add([
             rect(btnWidth + 6, btnHeight + 6, { radius: 6 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(139, 90, 43),
             opacity(0.5),
@@ -309,7 +314,7 @@ export function createHeroSelectScene() {
         
         const startBtn = add([
             rect(btnWidth, btnHeight, { radius: 4 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(45, 35, 25),
             area(),
@@ -320,7 +325,7 @@ export function createHeroSelectScene() {
         // Button border
         add([
             rect(btnWidth - 4, btnHeight - 4, { radius: 3 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(70, 55, 40),
             opacity(0),
@@ -330,7 +335,7 @@ export function createHeroSelectScene() {
         
         add([
             text("BEGIN ADVENTURE", { size: 16 }),
-            pos(CONFIG.MAP_WIDTH / 2, btnY),
+            pos(W / 2, btnY),
             anchor("center"),
             color(200, 170, 120),
             z(22),
@@ -358,8 +363,8 @@ export function createHeroSelectScene() {
         // Touch support for mobile
         onTouchStart((touchPos) => {
             // Check start button
-            const btnLeft = CONFIG.MAP_WIDTH / 2 - btnWidth / 2;
-            const btnRight = CONFIG.MAP_WIDTH / 2 + btnWidth / 2;
+            const btnLeft = W / 2 - btnWidth / 2;
+            const btnRight = W / 2 + btnWidth / 2;
             const btnTop = btnY - btnHeight / 2;
             const btnBottom = btnY + btnHeight / 2;
             
@@ -386,8 +391,8 @@ export function createHeroSelectScene() {
         
         // Bottom decorative border
         add([
-            rect(CONFIG.MAP_WIDTH, 3),
-            pos(0, CONFIG.MAP_HEIGHT - 3),
+            rect(W, 3),
+            pos(0, H - 3),
             color(139, 90, 43),
             z(50),
         ]);
@@ -395,7 +400,7 @@ export function createHeroSelectScene() {
         // Navigation hint (works for mobile and desktop)
         add([
             text("TAP hero to select • TAP button to start", { size: 11 }),
-            pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 18),
+            pos(W / 2, H - 18),
             anchor("center"),
             color(100, 90, 80),
             z(10),
