@@ -17,6 +17,7 @@ import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
+import { spawnKey, checkAllKeysCollected, collectKey, updateBossDoorVisuals, canEnterDoor, getKeysNeeded } from '../systems/keysDoors.js';
 
 let doors = [];  // Multiple doors now
 let doorTexts = [];
@@ -303,32 +304,11 @@ function getRoomConfig() {
     };
 }
 
-// Check if all keys collected (all non-boss, non-start rooms cleared)
-function checkAllKeysCollected(dungeon) {
-    if (!dungeon) return false;
-    
-    const allRooms = dungeon.map.rooms;
-    const requiredRooms = allRooms.filter(r => 
-        r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
-    );
-    
-    // Check if all required rooms have their keys collected
-    return requiredRooms.length > 0 && requiredRooms.every(room => GS.collectedKeys.includes(room.id));
-}
+// checkAllKeysCollected moved to src/systems/keysDoors.js
 
 // Distribute enemy weight across enemy types (d20 system)
 // Returns object: { "slime": 10, "ranged_slime": 2, "tank_slime": 1 }
 function distributeEnemyWeight(totalWeight, level) {
-    if (!totalWeight || totalWeight <= 0) {
-        Logger.warn('Invalid totalWeight', { totalWeight, level });
-        return { "slime": 1 }; // Fallback
-    }
-    
-    if (!level || level < 1) {
-        Logger.warn('Invalid level', { level, totalWeight });
-        level = 1; // Fallback
-    }
-    
     const distribution = {};
     let remainingWeight = totalWeight;
     
@@ -337,11 +317,6 @@ function distributeEnemyWeight(totalWeight, level) {
     if (level >= 1) availableTypes.push("slime", "fast_slime", "ranged_slime");
     if (level >= 2) availableTypes.push("tank_slime");
     if (level >= 3) availableTypes.push("bomber_slime");
-    
-    if (availableTypes.length === 0) {
-        Logger.warn('No available enemy types!', { level });
-        availableTypes.push("slime"); // Fallback
-    }
     
     // Weight distribution strategy:
     // - Common enemies (weight 1): 50-70% of weight
@@ -355,32 +330,24 @@ function distributeEnemyWeight(totalWeight, level) {
     Logger.debug('Weight distribution', { commonWeight, mediumWeight, heavyWeight, totalWeight });
     
     // Spawn common enemies (weight 1)
-    const commonTypes = availableTypes.filter(t => {
-        const enemyType = ENEMY_TYPES[t];
-        return enemyType && enemyType.weight === 1;
-    });
+    const commonTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight === 1);
     if (commonTypes.length > 0 && commonWeight > 0) {
         const commonCount = commonWeight; // Each is 1 weight
         const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
-        if (type && ENEMY_TYPES[type]) {
-            distribution[type] = (distribution[type] || 0) + commonCount;
-            remainingWeight -= commonCount;
-        }
+        distribution[type] = (distribution[type] || 0) + commonCount;
+        remainingWeight -= commonCount;
     }
     
     // Spawn medium enemies (weight 2-3)
     const mediumTypes = availableTypes.filter(t => {
-        const enemyType = ENEMY_TYPES[t];
-        const w = enemyType?.weight;
+        const w = ENEMY_TYPES[t]?.weight;
         return w && w >= 2 && w <= 3;
     });
     if (mediumTypes.length > 0 && mediumWeight > 0) {
         let mediumRemaining = mediumWeight;
         while (mediumRemaining > 0 && mediumTypes.length > 0) {
             const type = mediumTypes[Math.floor(Math.random() * mediumTypes.length)];
-            const enemyType = ENEMY_TYPES[type];
-            if (!enemyType) break;
-            const weight = enemyType.weight;
+            const weight = ENEMY_TYPES[type].weight;
             if (mediumRemaining >= weight) {
                 distribution[type] = (distribution[type] || 0) + 1;
                 mediumRemaining -= weight;
@@ -392,17 +359,12 @@ function distributeEnemyWeight(totalWeight, level) {
     }
     
     // Spawn heavy enemies (weight 4+)
-    const heavyTypes = availableTypes.filter(t => {
-        const enemyType = ENEMY_TYPES[t];
-        return enemyType && enemyType.weight >= 4;
-    });
+    const heavyTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight >= 4);
     if (heavyTypes.length > 0 && heavyWeight > 0) {
         let heavyRemaining = heavyWeight;
         while (heavyRemaining > 0 && heavyTypes.length > 0) {
             const type = heavyTypes[Math.floor(Math.random() * heavyTypes.length)];
-            const enemyType = ENEMY_TYPES[type];
-            if (!enemyType) break;
-            const weight = enemyType.weight;
+            const weight = ENEMY_TYPES[type].weight;
             if (heavyRemaining >= weight) {
                 distribution[type] = (distribution[type] || 0) + 1;
                 heavyRemaining -= weight;
@@ -416,9 +378,7 @@ function distributeEnemyWeight(totalWeight, level) {
     // Use remaining weight for more common enemies
     if (remainingWeight > 0 && commonTypes.length > 0) {
         const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
-        if (type && ENEMY_TYPES[type]) {
-            distribution[type] = (distribution[type] || 0) + remainingWeight;
-        }
+        distribution[type] = (distribution[type] || 0) + remainingWeight;
     }
     
     // Calculate actual total weight
@@ -438,112 +398,241 @@ function distributeEnemyWeight(totalWeight, level) {
     return distribution;
 }
 
-// Spawn colored key for a specific room
-function spawnKey(p, roomId, keyColor = null) {
-    Logger.info('Spawning key at', { x: p.x, y: p.y, roomId, keyColor });
-    
-    // Key colors for different rooms (rainbow colors)
-    const keyColors = [
-        [255, 100, 100],  // Red
-        [255, 200, 100],  // Orange
-        [255, 255, 100],  // Yellow
-        [100, 255, 100],  // Green
-        [100, 200, 255],  // Blue
-        [200, 100, 255],  // Purple
-        [255, 100, 200],  // Pink
-    ];
-    
-    const keyColorArray = keyColor || keyColors[roomId % keyColors.length];
-    
-    // Create key sprite with color
-    const k = add([
-        sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), 
-        color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
-        { roomId, keyColor: keyColorArray } // Store room ID and color
-    ]);
-    
-    // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
-    const startY = p.y;
-    let keyAnimTimer = 0;
-    k.onUpdate(() => {
-        keyAnimTimer += dt();
-        if (keyAnimTimer >= 0.1) {
-            keyAnimTimer = 0;
-        k.pos.y = startY + Math.sin(time() * 4) * 5;
-        k.angle = Math.sin(time() * 2) * 10;
-        }
-    });
-    
-    // OPTIMIZED: Colored glow matching key color
-    add([
-        circle(25), pos(p), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
-    ]);
-}
+// spawnKey moved to src/systems/keysDoors.js
 
 // Called when all room enemies are killed
 function onRoomCleared() {
+    // #region agent log
+    Logger.debug('🔑 onRoomCleared:ENTRY', { 
+        currentRoom: GS.currentRoom, 
+        level: GS.currentLevel, 
+        roomCleared: GS.roomCleared 
+    });
+    // #endregion
+    
     Logger.info('Room cleared!', { room: GS.currentRoom, level: GS.currentLevel });
     
     GS.roomCleared = true;
     
     // Mark room as cleared in dungeon
     const dungeon = GS.dungeon;
+    // #region agent log
+    Logger.debug('🔑 onRoomCleared:DUNGEON', { 
+        dungeon: !!dungeon, 
+        currentRoomId: dungeon?.currentRoomId 
+    });
+    // #endregion
+    
     if (dungeon) {
         dungeon.clearCurrentRoom();
     }
     
     const currentRoom = dungeon ? dungeon.getCurrentRoom() : null;
     
+    // #region agent log
+    Logger.debug('🔑 onRoomCleared:CURRENT_ROOM', { 
+        currentRoom: currentRoom ? {
+            id: currentRoom.id,
+            type: currentRoom.type,
+            cleared: currentRoom.cleared
+        } : null 
+    });
+    // #endregion
+    
     // Spawn key in non-boss, non-start rooms (if not already collected)
-    if (currentRoom && currentRoom.type !== ROOM_TYPES.BOSS && currentRoom.type !== ROOM_TYPES.START) {
+    if (!currentRoom) {
+        Logger.error('CRITICAL: currentRoom is null in onRoomCleared', { dungeon: !!dungeon });
+        // #region agent log
+        Logger.error('🔑 onRoomCleared:ERROR - currentRoom is null', { dungeon: !!dungeon });
+        // #endregion
+        return;
+    }
+    
+    // #region agent log
+    Logger.debug('🔑 onRoomCleared:ROOM_TYPE_CHECK', { 
+        roomType: currentRoom.type,
+        isBoss: currentRoom.type === ROOM_TYPES.BOSS,
+        isStart: currentRoom.type === ROOM_TYPES.START,
+        roomId: currentRoom.id,
+        allRoomTypes: Object.values(ROOM_TYPES)
+    });
+    // #endregion
+    
+    // For BOSS rooms: spawn level progression key
+    if (currentRoom.type === ROOM_TYPES.BOSS) {
+        Logger.info('🔑 BOSS ROOM CLEARED - Spawning level progression key', { 
+            roomId: currentRoom.id,
+            currentLevel: GS.currentLevel,
+            maxLevels: CONFIG.MAX_LEVELS
+        });
+        
+        // Spawn boss key for level progression (roomId = -1 means boss key)
+        const BOSS_KEY_ID = -1;
+        const p = GS.player;
+        
+        if (p && p.exists() && p.pos && !GS.collectedKeys.includes(BOSS_KEY_ID)) {
+            wait(0.5, () => {
+                try {
+                    Logger.info('🔑 BOSS KEY SPAWN - Calling spawnKey for boss', { 
+                        bossKeyId: BOSS_KEY_ID,
+                        playerPos: { x: p.pos.x, y: p.pos.y },
+                        currentLevel: GS.currentLevel
+                    });
+                    // Boss key is golden color
+                    spawnKey(vec2(p.pos.x, p.pos.y - 60), BOSS_KEY_ID, [255, 215, 0]); // Gold color
+                } catch (error) {
+                    Logger.error('Failed to spawn boss key', {
+                        error: error.message,
+                        stack: error.stack,
+                        bossKeyId: BOSS_KEY_ID,
+                        playerPos: p.pos
+                    });
+                }
+            });
+        } else if (GS.collectedKeys.includes(BOSS_KEY_ID)) {
+            Logger.info('🔑 BOSS KEY already collected', { bossKeyId: BOSS_KEY_ID });
+        } else {
+            Logger.warn('🔑 Cannot spawn boss key - player invalid', { 
+                player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
+            });
+        }
+    } else if (currentRoom.type !== ROOM_TYPES.START) {
+        // #region agent log
+        Logger.debug('🔑 onRoomCleared:KEY_CHECK', { 
+            roomId: currentRoom.id,
+            collectedKeys: GS.collectedKeys,
+            alreadyCollected: GS.collectedKeys.includes(currentRoom.id)
+        });
+        // #endregion
+        
         if (!GS.collectedKeys.includes(currentRoom.id)) {
             const p = GS.player;
-            if (p && p.exists()) {
-                wait(0.5, () => {
-                    spawnKey(vec2(p.pos.x, p.pos.y - 60), currentRoom.id);
+            // #region agent log
+            Logger.debug('🔑 onRoomCleared:PLAYER_CHECK', { 
+                player: !!p,
+                exists: p?.exists(),
+                hasPos: !!p?.pos,
+                playerPos: p?.pos ? { x: p.pos.x, y: p.pos.y } : null
+            });
+            // #endregion
+            
+            if (p && p.exists() && p.pos) {
+                const roomId = currentRoom.id;
+                if (roomId === undefined || roomId === null) {
+                    Logger.error('CRITICAL: currentRoom.id is invalid', { 
+                        currentRoom, 
+                        roomId: currentRoom.id 
+                    });
+                    // #region agent log
+                    Logger.error('🔑 onRoomCleared:ERROR - Invalid roomId', { 
+                        currentRoom, 
+                        roomId: currentRoom.id 
+                    });
+                    // #endregion
+        } else {
+                    // #region agent log
+                    Logger.info('🔑 onRoomCleared:SPAWN_SCHEDULED', { 
+                        roomId, 
+                        playerPos: { x: p.pos.x, y: p.pos.y }, 
+                        delay: 0.5 
+                    });
+                    // #endregion
+                    
+                    wait(0.5, () => {
+                        try {
+                            // #region agent log
+                            Logger.info('🔑 onRoomCleared:SPAWN_KEY - Calling spawnKey', { 
+                                roomId, 
+                                playerPos: { x: p.pos.x, y: p.pos.y } 
+                            });
+                            // #endregion
+                            spawnKey(vec2(p.pos.x, p.pos.y - 60), roomId);
+                        } catch (error) {
+                            Logger.error('Failed to spawn key in onRoomCleared', {
+                                error: error.message,
+                                stack: error.stack,
+                                roomId,
+                                playerPos: p.pos
+                            });
+                            // #region agent log
+                            Logger.error('🔑 onRoomCleared:SPAWN_ERROR', { 
+                                error: error.message,
+                                stack: error.stack,
+                                roomId,
+                                playerPos: p.pos
+                            });
+                            // #endregion
+                        }
+                    });
+                }
+            } else {
+                Logger.warn('Cannot spawn key - player invalid', { 
+                    player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
                 });
+                // #region agent log
+                Logger.warn('🔑 onRoomCleared:PLAYER_INVALID', { 
+                    player: !!p,
+                    exists: p?.exists(),
+                    hasPos: !!p?.pos
+                });
+                // #endregion
             }
+        } else {
+            Logger.info('Key already collected for this room', { roomId: currentRoom.id });
+            // #region agent log
+            Logger.info('🔑 onRoomCleared:KEY_ALREADY_COLLECTED', { 
+                roomId: currentRoom.id,
+                collectedKeys: GS.collectedKeys
+            });
+            // #endregion
         }
+    } else {
+        Logger.info('Room is BOSS or START, no key spawn', { roomType: currentRoom.type });
+        // #region agent log
+        Logger.info('🔑 onRoomCleared:NO_KEY_SPAWN', { 
+            roomType: currentRoom.type,
+            roomId: currentRoom.id,
+            reason: currentRoom.type === ROOM_TYPES.BOSS ? 'BOSS room' : 'START room'
+        });
+        // #endregion
     }
     
     // Check if all keys collected for boss door
     const allKeysCollected = checkAllKeysCollected(dungeon);
     
-    // Update door visuals
-    doors.forEach(door => {
-    if (door && door.exists()) {
-            const isBossDoor = door.targetRoomType === ROOM_TYPES.BOSS;
-            const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
-            if (canOpen) {
-        door.use(sprite("doorOpen"));
-    }
-        }
+    // #region agent log
+    Logger.debug('🔑 onRoomCleared:KEYS_CHECK', { 
+        allKeysCollected,
+        collectedKeys: GS.collectedKeys,
+        currentRoomId: currentRoom?.id
     });
+    // #endregion
     
-    // Update door texts
+    // Update door visuals using centralized function
+    updateBossDoorVisuals(doors, doorTexts, allKeysCollected);
+    
+    // Update other door texts
     doorTexts.forEach(dt => {
         if (dt && dt.exists()) {
             if (dungeon) {
                 const targetRoom = dungeon.getRoom(dt.targetRoomId);
                 if (targetRoom) {
                     const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
                     const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
                     
                     if (targetRoom.type === ROOM_TYPES.BOSS) {
-                        dt.text = canOpen ? "🚪" : "🔒";
-                        dt.color = canOpen ? rgb(100, 255, 150) : rgb(255, 50, 50);
+                        // Already handled by updateBossDoorVisuals
                     } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
                         dt.text = "💎";
                         dt.color = rgb(255, 220, 100);
                     } else if (targetRoom.cleared) {
                         dt.text = "✓";
                         dt.color = rgb(100, 200, 100);
-        } else {
+                    } else {
                         dt.text = canOpen ? "→" : "🔒";
                         dt.color = canOpen ? rgb(100, 255, 150) : rgb(150, 150, 150);
-        }
-    }
+                    }
+                }
             }
         }
     });
@@ -584,24 +673,7 @@ export function createGameScene() {
         }
         
         const dungeon = GS.dungeon;
-        
-        if (!dungeon) {
-            Logger.error('CRITICAL: No dungeon!', { currentLevel: GS.currentLevel });
-            wait(1, () => go("start"));
-            return;
-        }
-        
         const currentRoom = dungeon.getCurrentRoom();
-        
-        if (!currentRoom) {
-            Logger.error('CRITICAL: No current room!', { 
-                dungeon: !!dungeon,
-                currentRoomId: dungeon?.currentRoomId,
-                rooms: dungeon?.map?.rooms?.length
-            });
-            wait(1, () => go("start"));
-            return;
-        }
         
         // CRITICAL: Sync GS.currentRoom with dungeon.currentRoomId
         GS.currentRoom = dungeon.currentRoomId;
@@ -615,35 +687,68 @@ export function createGameScene() {
         });
         
         try {
+            Logger.debug('Initializing game state', {
+                currentLevel: GS.currentLevel,
+                currentRoom: GS.currentRoom,
+                dungeon: !!GS.dungeon,
+                currentRoomData: currentRoom ? { id: currentRoom.id, type: currentRoom.type, cleared: currentRoom.cleared } : null
+            });
+            
             GS.enemies = [];
-            GS.roomCleared = currentRoom.cleared || false;
+            GS.roomCleared = currentRoom.cleared;
             GS.roomEnemiesKilled = 0;
-            GS.doorOpen = currentRoom.cleared || false;
+            GS.doorOpen = currentRoom.cleared;
             
-            const roomConfig = getRoomConfig();
+            let roomConfig;
+            try {
+                roomConfig = getRoomConfig();
+                Logger.debug('Room config loaded', { 
+                    enemyCount: roomConfig.enemyCount,
+                    totalWeight: roomConfig.totalWeight 
+                });
+            } catch (error) {
+                Logger.error('Failed to get room config', { 
+                    error: error.message, 
+                    stack: error.stack,
+                    level: GS.currentLevel,
+                    room: GS.currentRoom
+                });
+                roomConfig = { enemyCount: 5, totalWeight: 10 }; // Fallback
+            }
+            
             // Override with dungeon room data
-            GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount || 0;
+            GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount;
             
-            const lv = GS.currentLevel || 1;
-            const roomNum = GS.currentRoom || 0;
+            const lv = GS.currentLevel;
+            const roomNum = GS.currentRoom;
             
             // Room-specific background colors (darker as you go deeper)
             const baseColors = [[26, 26, 46], [35, 25, 45], [45, 25, 30], [30, 30, 50], [40, 20, 35], [25, 35, 45], [50, 30, 40]];
-            const baseBgIndex = Math.max(0, (lv - 1) % baseColors.length);
-            const baseBg = baseColors[baseBgIndex];
-            
-            if (!baseBg || !Array.isArray(baseBg) || baseBg.length < 3) {
-                Logger.error('CRITICAL: Invalid baseBg!', { baseBg, baseBgIndex, lv, baseColors });
+            let baseBg;
+            try {
+                const bgIndex = (lv - 1) % baseColors.length;
+                baseBg = baseColors[bgIndex];
+                if (!baseBg || !Array.isArray(baseBg) || baseBg.length < 3) {
+                    throw new Error(`Invalid baseBg at index ${bgIndex}`);
+                }
+            } catch (error) {
+                Logger.error('Failed to get background color', { 
+                    error: error.message,
+                    level: lv,
+                    baseColorsLength: baseColors.length
+                });
                 baseBg = [26, 26, 46]; // Fallback
             }
             
             // Darken based on room number
-            const roomDarken = (roomNum || 0) * 5;
+            const roomDarken = roomNum * 5;
             const bg = [
-                Math.max(10, (baseBg[0] || 26) - roomDarken),
-                Math.max(10, (baseBg[1] || 26) - roomDarken),
-                Math.max(10, (baseBg[2] || 46) - roomDarken)
+                Math.max(10, baseBg[0] - roomDarken),
+                Math.max(10, baseBg[1] - roomDarken),
+                Math.max(10, baseBg[2] - roomDarken)
             ];
+
+            Logger.debug('Background color calculated', { bg, baseBg, roomDarken, roomNum });
 
             // ========== PERFORMANCE PROFILING ==========
             const perf = {
@@ -1074,9 +1179,11 @@ export function createGameScene() {
             let camY = Math.max(halfViewH, Math.min(p.pos.y, CONFIG.MAP_HEIGHT - halfViewH));
             camPos(camX, camY);
 
-            // Attack handlers
-            const doMeleeAttack = () => meleeAttack(spawnKey);
-            const doRangedAttack = () => rangedAttack(spawnKey);
+            // Attack handlers - spawnKeyFn is no longer needed (keys spawn in onRoomCleared)
+            // But keep for backward compatibility with killEnemy signature
+            const spawnKeyFn = null; // Keys are spawned in onRoomCleared, not from enemy deaths
+            const doMeleeAttack = () => meleeAttack(spawnKeyFn);
+            const doRangedAttack = () => rangedAttack(spawnKeyFn);
 
             // Setup ultimate
             setupUltimate();
@@ -1091,6 +1198,8 @@ export function createGameScene() {
             
             let keyStates = {};
             let camUpdateTimer = 0;
+            let roomClearCheckTimer = 0;
+            let alreadyClearedTimer = 0;
             onUpdate(() => {
                 const rangedPressed = isKeyDown(rangedKey);
                 if (rangedPressed && !keyStates.ranged) doRangedAttack();
@@ -1120,10 +1229,53 @@ export function createGameScene() {
                 }
                 
                 // Check if room is cleared (all enemies killed)
-                if (!GS.roomCleared && !isBossRoom) {
+                // Check if room is cleared (all enemies killed)
+                if (!GS.roomCleared) {
                     const aliveEnemies = GS.enemies.filter(e => e && e.exists());
-                    if (GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0) {
+                    
+                    // For boss room: check if boss is dead
+                    if (isBossRoom) {
+                        const aliveBosses = aliveEnemies.filter(e => e.isBoss);
+                        const shouldClear = aliveBosses.length === 0 && GS.bossSpawned; // Boss was spawned and now dead
+                        
+                        // #region agent log
+                        if (shouldClear) {
+                            Logger.info('🔑 onUpdate:BOSS_ROOM_CLEAR_CHECK - Boss defeated!', { 
+                                aliveBosses: aliveBosses.length,
+                                aliveEnemies: aliveEnemies.length,
+                                bossSpawned: GS.bossSpawned,
+                                isBossRoom,
+                                roomCleared: GS.roomCleared,
+                                currentRoomId: currentRoom?.id,
+                                currentRoomType: currentRoom?.type
+                            });
+                        }
+                        // #endregion
+                        
+                        if (shouldClear) {
                         onRoomCleared();
+                        }
+                    } else {
+                        // For regular rooms: check enemy count
+                        const shouldClear = GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0;
+                        
+                        // #region agent log
+                        if (shouldClear) {
+                            Logger.info('🔑 onUpdate:ROOM_CLEAR_CHECK - Conditions met!', { 
+                                roomEnemiesKilled: GS.roomEnemiesKilled,
+                                roomEnemyCount: GS.roomEnemyCount,
+                                aliveEnemies: aliveEnemies.length,
+                                isBossRoom,
+                                roomCleared: GS.roomCleared,
+                                currentRoomId: currentRoom?.id,
+                                currentRoomType: currentRoom?.type
+                            });
+                        }
+                        // #endregion
+                        
+                        if (shouldClear) {
+                            onRoomCleared();
+                        }
                     }
                 }
             });
@@ -1151,54 +1303,17 @@ export function createGameScene() {
                         wait(0.5, () => go("gameover")); 
                     }
                 } catch (error) {
-                    Logger.error('Enemy collision error', { error: error.message });
+                    Logger.error('Enemy collision error', { 
+                        error: error.message,
+                        stack: error.stack,
+                        player: pl ? { exists: pl.exists(), hp: pl.hp, invuln: pl.invuln } : null,
+                        enemy: en ? { exists: en.exists(), pos: en.pos } : null
+                    });
                 }
             });
 
             onCollide("player", "key", (p, k) => {
-                try {
-                    const roomId = k.roomId;
-                    if (roomId === undefined || roomId === null) {
-                        Logger.warn('Key without roomId!', { key: k });
-                        return;
-                    }
-                    
-                    // Check if already collected
-                    if (GS.collectedKeys.includes(roomId)) {
-                        Logger.debug('Key already collected', { roomId });
-                        return;
-                    }
-                    
-                    Logger.info('Key collected!', { roomId, totalKeys: GS.collectedKeys.length + 1 });
-                    GS.collectedKeys.push(roomId);
-                    GS.hasKey = true; // Legacy compatibility
-                    playSound('key');
-                    
-                    // Destroy this specific key
-                    destroy(k);
-                    destroyAll("keyPart");
-                    
-                    // Check if all keys collected
-                    const dungeon = GS.dungeon;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
-                    
-                    if (allKeysCollected) {
-                        Logger.info('All keys collected! Boss door unlocked!');
-                        // Update door visuals
-                        doors.forEach(d => {
-                            if (d && d.exists() && d.targetRoomType === ROOM_TYPES.BOSS) {
-                                d.use(sprite("doorOpen"));
-                            }
-                        });
-                        doorTexts.forEach(t => {
-                            if (t && t.exists() && t.targetRoomType === ROOM_TYPES.BOSS) {
-                                t.text = "🚪";
-                            }
-                        });
-                    }
-                } catch (error) {
-                    Logger.error('Key collision error', { error: error.message });
-                }
+                collectKey(k, dungeon, doors, doorTexts);
             });
 
             onCollide("player", "door", (pl, doorObj) => {
@@ -1209,17 +1324,13 @@ export function createGameScene() {
                     const targetRoom = dungeon.getRoom(targetRoomId);
                     if (!targetRoom) return;
                     
-                    // Check if door is locked
+                    // Check if door is locked using centralized function
+                    const doorCheck = canEnterDoor(targetRoom, currentRoom, dungeon);
                     const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
-                    const allKeysCollected = checkAllKeysCollected(dungeon);
-                    const canEnter = isBossDoor ? allKeysCollected : currentRoom.cleared;
                     
-                    if (!canEnter) {
+                    if (!doorCheck.canEnter) {
                         if (isBossDoor) {
-                            const requiredRooms = dungeon.map.rooms.filter(r => 
-                                r.type !== ROOM_TYPES.BOSS && r.type !== ROOM_TYPES.START
-                            );
-                            const keysNeeded = requiredRooms.length - GS.collectedKeys.length;
+                            const keysNeeded = getKeysNeeded(dungeon);
                             const msg = add([
                                 text(`Collect ${keysNeeded} more key${keysNeeded > 1 ? 's' : ''} first!`, { size: 20 }),
                                 pos(width() / 2, height() / 2 - 50),
@@ -1236,7 +1347,7 @@ export function createGameScene() {
                         } else {
                             // Regular door - need to clear room first
                             const msg = add([
-                                text("Clear room first!", { size: 20 }),
+                                text("Clear the room first!", { size: 20 }),
                                 pos(width() / 2, height() / 2 - 50),
                                 anchor("center"),
                                 color(255, 100, 100),
@@ -1259,30 +1370,66 @@ export function createGameScene() {
                     dungeon.enterRoom(targetRoomId);
                     GS.currentRoom = targetRoomId;
                     
-                    // Check if entering boss room and boss is defeated
-                    if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
+                    // Check if LEAVING boss room after boss is defeated (level complete)
+                    // #region agent log
+                    Logger.debug('🔑 doorCollision:BOSS_CHECK', { 
+                        currentRoomType: currentRoom?.type,
+                        currentRoomCleared: currentRoom?.cleared,
+                        targetRoomType: targetRoom.type,
+                        targetRoomCleared: targetRoom.cleared,
+                        currentLevel: GS.currentLevel
+                    });
+                    // #endregion
+                    
+                    // If we're LEAVING a cleared boss room, check for boss key before level progression
+                    if (currentRoom && currentRoom.type === ROOM_TYPES.BOSS && currentRoom.cleared) {
+                        const BOSS_KEY_ID = -1;
+                        const hasBossKey = GS.collectedKeys.includes(BOSS_KEY_ID);
+                        
+                        Logger.info('🔑 Level complete! Leaving boss room', { 
+                            currentLevel: GS.currentLevel,
+                            maxLevels: CONFIG.MAX_LEVELS,
+                            hasBossKey
+                        });
+                        
+                        if (!hasBossKey) {
+                            // Show message that boss key is required
+                            const msg = add([
+                                text("Collect the boss key first!", { size: 20 }),
+                                pos(width() / 2, height() / 2 - 50),
+                                anchor("center"),
+                                color(255, 200, 100),
+                                fixed(),
+                                z(1000),
+                                lifespan(2),
+                            ]);
+                            Logger.warn('🔑 Cannot proceed - boss key not collected', { 
+                                collectedKeys: GS.collectedKeys 
+                            });
+                            return; // Don't proceed without boss key
+                        }
+                        
                         // Level complete!
                         if (GS.currentLevel >= CONFIG.MAX_LEVELS) {
                             Logger.info('Victory! All levels complete');
                             go("victory");
                         } else {
+                            // Remove boss key from collected keys (it's only for this level)
+                            GS.collectedKeys = GS.collectedKeys.filter(id => id !== BOSS_KEY_ID);
                             // Go to shop, then next level
-                            const newLevel = (GS.currentLevel || 1) + 1;
-                            Logger.info('Level complete, going to shop', { 
-                                oldLevel: GS.currentLevel, 
-                                newLevel,
-                                maxLevels: CONFIG.MAX_LEVELS
-                            });
-                            
-                            // Reset state BEFORE changing level
-                            GS.resetLevel();
-                            GS.currentLevel = newLevel;
+                            GS.currentLevel++;
                             GS.currentRoom = 0;
-                            GS.dungeon = null; // Will create new dungeon for next level
-                            
+                            GS.dungeon = null; // Generate new dungeon for next level
+                            GS.resetLevel();
+                            Logger.info('Level complete, going to shop', { newLevel: GS.currentLevel });
                             go("shop");
                         }
                         return;
+                    }
+                    
+                    // Check if entering boss room and boss is already defeated (shouldn't happen, but handle it)
+                    if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
+                        Logger.warn('Entering already-cleared boss room - this should not happen');
                     }
                     
                     // Go to the target room through loading screen
@@ -1292,7 +1439,16 @@ export function createGameScene() {
                     go("loading"); // Show loading screen during room generation
                     
                 } catch (error) {
-                    Logger.error('Door collision error', { error: error.message, stack: error.stack });
+                    Logger.error('CRITICAL: Door collision error', { 
+                        error: error.message, 
+                        stack: error.stack,
+                        currentRoomId: currentRoom?.id,
+                        targetRoomId: targetRoomId,
+                        targetRoom: targetRoom ? { id: targetRoom.id, type: targetRoom.type, cleared: targetRoom.cleared } : null,
+                        allKeysCollected: allKeysCollected,
+                        collectedKeys: GS.collectedKeys,
+                        currentRoomCleared: currentRoom?.cleared
+                    });
                 }
             });
 
@@ -1378,7 +1534,11 @@ export function createGameScene() {
                     let spawnIndex = 0;
                     for (const [enemyType, count] of Object.entries(enemyDistribution)) {
                         if (!enemyType || !ENEMY_TYPES[enemyType]) {
-                            Logger.warn('Invalid enemy type in distribution', { enemyType, distribution: enemyDistribution });
+                            Logger.warn('Invalid enemy type in distribution, skipping', { 
+                                enemyType, 
+                                distribution: enemyDistribution,
+                                availableTypes: Object.keys(ENEMY_TYPES)
+                            });
                             continue;
                         }
                         const spawnCount = Math.max(0, Math.floor(count || 0));
@@ -1393,7 +1553,13 @@ export function createGameScene() {
                                     });
                                     spawnEnemy(enemyType);
                                 } catch (error) {
-                                    Logger.error('Error spawning enemy', { error: error.message, enemyType, stack: error.stack });
+                                    Logger.error('Failed to spawn enemy', {
+                                        error: error.message,
+                                        stack: error.stack,
+                                        enemyType,
+                                        index: i + 1,
+                                        total: spawnCount
+                                    });
                                 }
                             });
                             spawnIndex++;
@@ -1517,11 +1683,27 @@ export function createGameScene() {
             });
             
         } catch (error) {
-            Logger.error('CRITICAL: Game scene failed', { 
+            Logger.error('CRITICAL: Game scene initialization failed', { 
                 error: error.message, 
                 stack: error.stack,
                 level: GS.currentLevel,
-                room: GS.currentRoom
+                room: GS.currentRoom,
+                dungeon: GS.dungeon ? {
+                    exists: true,
+                    currentRoomId: GS.dungeon.currentRoomId,
+                    roomsCount: GS.dungeon.map?.rooms?.length
+                } : null,
+                gameState: {
+                    playerLevel: GS.playerLevel,
+                    gold: GS.gold,
+                    score: GS.score
+                }
+            });
+            
+            // Try to recover - go back to start
+            wait(2, () => {
+                Logger.warn('Attempting recovery - returning to start screen');
+                go("start");
             });
         }
     });

@@ -1579,7 +1579,9 @@ export function killEnemy(e, spawnKeyFn) {
         });
     }
     
-    if (isBoss && spawnKeyFn) spawnKeyFn(e.pos);
+    // NOTE: Keys are spawned in onRoomCleared, not here
+    // Boss keys are handled separately when boss room is cleared
+    // if (isBoss && spawnKeyFn) spawnKeyFn(e.pos); // REMOVED - causes undefined roomId error
     
     // Cleanup
     if (e.hpBg) destroy(e.hpBg);
