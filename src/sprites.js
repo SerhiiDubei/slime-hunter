@@ -7,33 +7,306 @@ function createCanvas(w, h) {
     return { canvas: c, ctx: c.getContext('2d') };
 }
 
-// Player sprite (knight)
+// ==================== ANIMATED PLAYER SPRITES ====================
+
+// Warrior - Armored knight with sword (4 frames)
+function makeWarriorFrames() {
+    const frames = [];
+    for (let f = 0; f < 4; f++) {
+        const { canvas, ctx } = createCanvas(36, 36);
+        const bounce = Math.sin(f * Math.PI / 2) * 2;
+        const legOffset = f % 2 === 0 ? 0 : 3;
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(18, 33, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Legs (animated)
+        ctx.fillStyle = '#2d3436';
+        ctx.fillRect(12 - legOffset, 24, 5, 8);
+        ctx.fillRect(19 + legOffset, 24, 5, 8);
+        
+        // Body - armor
+        const bodyGrad = ctx.createLinearGradient(8, 10, 28, 28);
+        bodyGrad.addColorStop(0, '#636e72');
+        bodyGrad.addColorStop(0.5, '#b2bec3');
+        bodyGrad.addColorStop(1, '#636e72');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.roundRect(8, 10 - bounce, 20, 16, 3);
+        ctx.fill();
+        
+        // Armor details
+        ctx.strokeStyle = '#2d3436';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(18, 12 - bounce);
+        ctx.lineTo(18, 24 - bounce);
+        ctx.stroke();
+        
+        // Belt
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(10, 22 - bounce, 16, 3);
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(16, 21 - bounce, 4, 5);
+        
+        // Head
+        ctx.fillStyle = '#ffe0bd';
+        ctx.beginPath();
+        ctx.arc(18, 8 - bounce, 7, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Helmet
+        ctx.fillStyle = '#636e72';
+        ctx.beginPath();
+        ctx.ellipse(18, 5 - bounce, 8, 5, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(16, 0 - bounce, 4, 6); // Plume
+        
+        // Eyes
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(15, 7 - bounce, 1.5, 0, Math.PI * 2);
+        ctx.arc(21, 7 - bounce, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Sword (animated swing)
+        const swordAngle = f * 15 - 20;
+        ctx.save();
+        ctx.translate(28, 16 - bounce);
+        ctx.rotate(swordAngle * Math.PI / 180);
+        ctx.fillStyle = '#dfe6e9';
+        ctx.fillRect(-2, -12, 4, 18);
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(-3, 4, 6, 4);
+        ctx.restore();
+        
+        // Shield
+        ctx.fillStyle = '#636e72';
+        ctx.beginPath();
+        ctx.ellipse(6, 18 - bounce, 5, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.moveTo(6, 12 - bounce);
+        ctx.lineTo(10, 18 - bounce);
+        ctx.lineTo(6, 24 - bounce);
+        ctx.lineTo(2, 18 - bounce);
+        ctx.closePath();
+        ctx.fill();
+        
+        frames.push(canvas.toDataURL());
+    }
+    return frames;
+}
+
+// Mage - Robed wizard with staff (4 frames)
+function makeMageFrames() {
+    const frames = [];
+    for (let f = 0; f < 4; f++) {
+        const { canvas, ctx } = createCanvas(36, 36);
+        const hover = Math.sin(f * Math.PI / 2) * 3;
+        const orbPulse = 0.8 + Math.sin(f * Math.PI / 2) * 0.3;
+        
+        // Shadow (moves with hover)
+        ctx.fillStyle = `rgba(0,0,0,${0.3 - hover * 0.02})`;
+        ctx.beginPath();
+        ctx.ellipse(18, 34, 8 - hover * 0.3, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Staff
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(28, 4 - hover, 3, 28);
+        
+        // Staff orb
+        const orbGrad = ctx.createRadialGradient(29, 6 - hover, 1, 29, 6 - hover, 6 * orbPulse);
+        orbGrad.addColorStop(0, '#fff');
+        orbGrad.addColorStop(0.3, '#9b59b6');
+        orbGrad.addColorStop(1, '#4a235a');
+        ctx.fillStyle = orbGrad;
+        ctx.beginPath();
+        ctx.arc(29, 6 - hover, 6 * orbPulse, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Orb glow
+        ctx.fillStyle = `rgba(155, 89, 182, ${0.3 * orbPulse})`;
+        ctx.beginPath();
+        ctx.arc(29, 6 - hover, 10 * orbPulse, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Robe
+        const robeGrad = ctx.createLinearGradient(6, 10, 26, 32);
+        robeGrad.addColorStop(0, '#2980b9');
+        robeGrad.addColorStop(1, '#1a5276');
+        ctx.fillStyle = robeGrad;
+        ctx.beginPath();
+        ctx.moveTo(10, 10 - hover);
+        ctx.lineTo(26, 10 - hover);
+        ctx.lineTo(30, 32 - hover);
+        ctx.lineTo(6, 32 - hover);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Robe details (stars)
+        ctx.fillStyle = '#FFD700';
+        for (let i = 0; i < 3; i++) {
+            const sx = 12 + i * 5;
+            const sy = 18 + (i % 2) * 6 - hover;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Head
+        ctx.fillStyle = '#ffe0bd';
+        ctx.beginPath();
+        ctx.arc(18, 8 - hover, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wizard hat
+        ctx.fillStyle = '#2980b9';
+        ctx.beginPath();
+        ctx.moveTo(8, 8 - hover);
+        ctx.lineTo(18, -4 - hover);
+        ctx.lineTo(28, 8 - hover);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(18, -3 - hover, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Beard
+        ctx.fillStyle = '#ecf0f1';
+        ctx.beginPath();
+        ctx.moveTo(14, 12 - hover);
+        ctx.quadraticCurveTo(18, 20 - hover, 22, 12 - hover);
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(15, 7 - hover, 1.2, 0, Math.PI * 2);
+        ctx.arc(21, 7 - hover, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        frames.push(canvas.toDataURL());
+    }
+    return frames;
+}
+
+// Assassin - Hooded rogue with daggers (4 frames)
+function makeAssassinFrames() {
+    const frames = [];
+    for (let f = 0; f < 4; f++) {
+        const { canvas, ctx } = createCanvas(36, 36);
+        const lean = Math.sin(f * Math.PI / 2) * 2;
+        const legOffset = f % 2 === 0 ? 0 : 4;
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(18 + lean, 33, 9, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Legs (animated fast)
+        ctx.fillStyle = '#2d3436';
+        ctx.fillRect(11 - legOffset + lean, 24, 4, 9);
+        ctx.fillRect(21 + legOffset + lean, 24, 4, 9);
+        
+        // Boots
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(10 - legOffset + lean, 30, 6, 4);
+        ctx.fillRect(20 + legOffset + lean, 30, 6, 4);
+        
+        // Body - leather armor
+        const bodyGrad = ctx.createLinearGradient(8, 10, 28, 26);
+        bodyGrad.addColorStop(0, '#1a1a2e');
+        bodyGrad.addColorStop(0.5, '#2d2d44');
+        bodyGrad.addColorStop(1, '#1a1a2e');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.roundRect(9 + lean, 10, 18, 15, 2);
+        ctx.fill();
+        
+        // Belt with pouches
+        ctx.fillStyle = '#4a3728';
+        ctx.fillRect(10 + lean, 22, 16, 3);
+        ctx.fillStyle = '#5d4e37';
+        ctx.fillRect(12 + lean, 20, 4, 5);
+        ctx.fillRect(20 + lean, 20, 4, 5);
+        
+        // Hood & head
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.moveTo(8 + lean, 14);
+        ctx.quadraticCurveTo(18 + lean, -2, 28 + lean, 14);
+        ctx.lineTo(26 + lean, 12);
+        ctx.quadraticCurveTo(18 + lean, 4, 10 + lean, 12);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Face in shadow
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(18 + lean, 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glowing eyes
+        ctx.fillStyle = '#e74c3c';
+        ctx.shadowColor = '#e74c3c';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(15 + lean, 9, 1.5, 0, Math.PI * 2);
+        ctx.arc(21 + lean, 9, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Daggers (animated)
+        const daggerAngle1 = -45 + f * 20;
+        const daggerAngle2 = 45 - f * 20;
+        
+        // Left dagger
+        ctx.save();
+        ctx.translate(6 + lean, 16);
+        ctx.rotate(daggerAngle1 * Math.PI / 180);
+        ctx.fillStyle = '#bdc3c7';
+        ctx.fillRect(-1, -10, 2, 12);
+        ctx.fillStyle = '#2d3436';
+        ctx.fillRect(-2, 0, 4, 3);
+        ctx.restore();
+        
+        // Right dagger
+        ctx.save();
+        ctx.translate(30 + lean, 16);
+        ctx.rotate(daggerAngle2 * Math.PI / 180);
+        ctx.fillStyle = '#bdc3c7';
+        ctx.fillRect(-1, -10, 2, 12);
+        ctx.fillStyle = '#2d3436';
+        ctx.fillRect(-2, 0, 4, 3);
+        ctx.restore();
+        
+        frames.push(canvas.toDataURL());
+    }
+    return frames;
+}
+
+// Default player (used when no specific hero selected) - animated knight
 function makePlayer() {
-    const { canvas, ctx } = createCanvas(32, 32);
-    ctx.fillStyle = '#4ecca3';
-    ctx.beginPath();
-    ctx.roundRect(6, 8, 20, 20, 4);
-    ctx.fill();
-    ctx.fillStyle = '#ffe0bd';
-    ctx.beginPath();
-    ctx.arc(16, 10, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#2d3436';
-    ctx.beginPath();
-    ctx.arc(13, 9, 2, 0, Math.PI * 2);
-    ctx.arc(19, 9, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#636e72';
-    ctx.beginPath();
-    ctx.ellipse(16, 6, 9, 5, 0, Math.PI, 0);
-    ctx.fill();
-    ctx.fillStyle = '#4ecca3';
-    ctx.fillRect(14, 2, 4, 6);
-    ctx.fillStyle = '#dfe6e9';
-    ctx.fillRect(26, 10, 4, 16);
-    ctx.fillStyle = '#fdcb6e';
-    ctx.fillRect(24, 22, 8, 4);
-    return canvas.toDataURL();
+    // Return first frame as static sprite for compatibility
+    return makeWarriorFrames()[0];
+}
+
+// Generate all hero animation frames
+function makeHeroAnimations() {
+    return {
+        warrior: makeWarriorFrames(),
+        mage: makeMageFrames(),
+        assassin: makeAssassinFrames()
+    };
 }
 
 // Slime sprite
@@ -1096,7 +1369,7 @@ export function generateSprites() {
         bossSpeed: makeBossSpeed(),
         bossNecro: makeBossNecro(),
         bossFrost: makeBossFrost(),
-        bossInferno: makeBossInferno(),
+        bossInferno: makeBossFrost(),
         bossShadow: makeBossShadow(),
         bossMega: makeBossMega(),
         projectile: makeProjectile(),
@@ -1122,6 +1395,39 @@ export function loadAllSprites() {
     const sprites = generateSprites();
     Object.entries(sprites).forEach(([name, data]) => {
         loadSprite(name, data);
+    });
+    
+    // Load animated hero sprites (4 frames each)
+    const heroAnims = makeHeroAnimations();
+    
+    // Warrior animation frames
+    loadSprite("heroWarrior", heroAnims.warrior[0], {
+        sliceX: 1,
+        sliceY: 1,
+        anims: { idle: 0 }
+    });
+    heroAnims.warrior.forEach((frame, i) => {
+        loadSprite(`heroWarrior_${i}`, frame);
+    });
+    
+    // Mage animation frames
+    loadSprite("heroMage", heroAnims.mage[0], {
+        sliceX: 1,
+        sliceY: 1,
+        anims: { idle: 0 }
+    });
+    heroAnims.mage.forEach((frame, i) => {
+        loadSprite(`heroMage_${i}`, frame);
+    });
+    
+    // Assassin animation frames
+    loadSprite("heroAssassin", heroAnims.assassin[0], {
+        sliceX: 1,
+        sliceY: 1,
+        anims: { idle: 0 }
+    });
+    heroAnims.assassin.forEach((frame, i) => {
+        loadSprite(`heroAssassin_${i}`, frame);
     });
 }
 

@@ -155,10 +155,38 @@ export function createHeroSelectScene() {
                 z(5),
             ]);
             
-            // Hero icon (large)
-            add([
-                text(hero.icon, { size: 56 }),
+            // Hero sprite (animated preview)
+            const heroSpriteMap = {
+                'warrior': 'heroWarrior',
+                'mage': 'heroMage',
+                'assassin': 'heroAssassin'
+            };
+            const heroSprite = add([
+                sprite(heroSpriteMap[hero.id] || 'player'),
                 pos(x, cardY - 130),
+                anchor("center"),
+                scale(2.5),
+                z(10),
+                { animFrame: 0, animTimer: 0, heroId: hero.id }
+            ]);
+            
+            // Animate hero preview
+            heroSprite.onUpdate(() => {
+                heroSprite.animTimer += dt();
+                if (heroSprite.animTimer >= 0.15) {
+                    heroSprite.animTimer = 0;
+                    heroSprite.animFrame = (heroSprite.animFrame + 1) % 4;
+                    try {
+                        heroSprite.use(sprite(`${heroSpriteMap[hero.id]}_${heroSprite.animFrame}`));
+                        heroSprite.scale = vec2(2.5);
+                    } catch(e) {}
+                }
+            });
+            
+            // Hero icon (smaller, next to name)
+            add([
+                text(hero.icon, { size: 24 }),
+                pos(x - 55, cardY - 70),
                 anchor("center"),
                 z(10),
             ]);

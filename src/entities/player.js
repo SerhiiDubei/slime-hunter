@@ -24,6 +24,17 @@ function updateCamera(player) {
     camPos(camX, camY);
 }
 
+// Get hero sprite name based on selected hero
+function getHeroSpriteName() {
+    const heroType = GS.selectedHero || 'warrior';
+    const spriteMap = {
+        'warrior': 'heroWarrior',
+        'mage': 'heroMage',
+        'assassin': 'heroAssassin'
+    };
+    return spriteMap[heroType] || 'heroWarrior';
+}
+
 export function createPlayer() {
     const stats = GS.getStats();
     
@@ -31,11 +42,15 @@ export function createPlayer() {
     const startX = CONFIG.MAP_WIDTH / 2;
     const startY = CONFIG.MAP_HEIGHT / 2;
     
+    // Get hero-specific sprite
+    const heroSprite = getHeroSpriteName();
+    
     const p = add([
-        sprite("player"),
+        sprite(heroSprite),
         pos(startX, startY),
-        area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
+        area({ shape: new Rect(vec2(-14, -14), 28, 28) }),
         body(), anchor("center"), z(10),
+        scale(1.1), // Slightly larger hero
         {
             hp: stats.maxHp,
             maxHp: stats.maxHp,
@@ -48,7 +63,12 @@ export function createPlayer() {
             isSlowed: false,
             slowTimer: 0,
             staminaExhausted: false,
-            exhaustedTimer: 0
+            exhaustedTimer: 0,
+            // Animation state
+            animFrame: 0,
+            animTimer: 0,
+            heroType: GS.selectedHero || 'warrior',
+            isMoving: false
         },
         "player"
     ]);
@@ -175,6 +195,48 @@ export function setupPlayerMovement(p) {
         // Flip sprite based on direction
         if (mx < 0) p.flipX = true;
         else if (mx > 0) p.flipX = false;
+        
+        // ========== ANIMATION CYCLING ==========
+        p.isMoving = moving;
+        p.animTimer += dt();
+        
+        // Animation speed (faster when sprinting)
+        const animSpeed = p.sprinting ? 0.08 : 0.12;
+        
+        if (p.animTimer >= animSpeed) {
+            p.animTimer = 0;
+            
+            if (moving) {
+                // Cycle through 4 frames when moving
+                p.animFrame = (p.animFrame + 1) % 4;
+            } else {
+                // Idle animation - subtle breathing (frames 0-1)
+                p.animFrame = Math.floor(time() * 2) % 2;
+            }
+            
+            // Update sprite frame
+            const heroPrefix = {
+                'warrior': 'heroWarrior',
+                'mage': 'heroMage',
+                'assassin': 'heroAssassin'
+            }[p.heroType] || 'heroWarrior';
+            
+            try {
+                p.use(sprite(`${heroPrefix}_${p.animFrame}`));
+            } catch (e) {
+                // Fallback to base sprite if frame not found
+            }
+        }
+        
+        // Squash and stretch based on movement
+        if (moving) {
+            const squash = 1 + Math.sin(time() * 12) * 0.05;
+            p.scale = vec2(1.1 * squash, 1.1 / squash);
+        } else {
+            // Idle breathing
+            const breath = 1 + Math.sin(time() * 3) * 0.02;
+            p.scale = vec2(1.1, 1.1 * breath);
+        }
         
         // Cooldowns
         if (p.atkCD > 0) p.atkCD -= dt();
