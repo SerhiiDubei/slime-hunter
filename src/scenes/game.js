@@ -16,6 +16,7 @@ import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
+import { ENEMY_TYPES } from '../data/enemies.js';
 
 let doors = [];  // Multiple doors now
 let doorTexts = [];
@@ -1293,29 +1294,40 @@ export function createGameScene() {
                         return;
                     }
                     
-                    // Spawn enemies in waves (non-blocking)
-                    const initialSpawn = Math.min(5, enemyCount);
-                    Logger.info('Initial spawn wave', { initialSpawn, total: enemyCount });
+                    // WEIGHT SYSTEM: Spawn enemies based on weight distribution
+                    const roomConfig = getRoomConfig();
+                    const totalWeight = roomConfig.totalWeight || enemyCount;
                     
-                    for (let i = 0; i < initialSpawn; i++) {
-                        wait(i * 0.4, () => {
-                            Logger.debug('Spawning enemy', { i, total: initialSpawn });
-                            spawnRandomEnemy();
-                        });
-                    }
+                    Logger.info('Spawning enemies with weight system', { 
+                        totalWeight, 
+                        enemyCount,
+                        level: GS.currentLevel,
+                        room: currentRoom.id
+                    });
                     
-                    // Spawn remaining enemies after initial wave
-                    if (enemyCount > initialSpawn) {
-                        const remaining = enemyCount - initialSpawn;
-                        Logger.info('Remaining enemies spawn', { remaining, delay: initialSpawn * 0.4 + 1 });
-                        wait(initialSpawn * 0.4 + 1, () => {
-                            for (let i = 0; i < remaining; i++) {
-                                wait(i * 0.3, () => {
-                                    Logger.debug('Spawning remaining enemy', { i, total: remaining });
-                                    spawnRandomEnemy();
+                    // Distribute weight across enemy types
+                    const enemyDistribution = distributeEnemyWeight(totalWeight, GS.currentLevel);
+                    
+                    Logger.info('Enemy distribution', { 
+                        distribution: enemyDistribution,
+                        total: Object.values(enemyDistribution).reduce((sum, count) => sum + count, 0)
+                    });
+                    
+                    // Spawn enemies based on distribution
+                    let spawnIndex = 0;
+                    for (const [enemyType, count] of Object.entries(enemyDistribution)) {
+                        for (let i = 0; i < count; i++) {
+                            wait(spawnIndex * 0.3, () => {
+                                Logger.debug('Spawning enemy', { 
+                                    type: enemyType, 
+                                    index: i + 1, 
+                                    total: count,
+                                    spawnIndex: spawnIndex + 1
                                 });
-                            }
-                        });
+                                spawnEnemy(enemyType);
+                            });
+                            spawnIndex++;
+                        }
                     }
                 });
             }
