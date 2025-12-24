@@ -32,14 +32,14 @@ function getKeyColor(roomId) {
     }
     const safeRoomId = Math.abs(roomId);
     const colorIndex = safeRoomId % KEY_COLORS.length;
-    const color = KEY_COLORS[colorIndex];
+    const colorArray = KEY_COLORS[colorIndex];
     
-    if (!color || !Array.isArray(color) || color.length < 3) {
-        Logger.error('getKeyColor: Invalid color from array', { roomId, safeRoomId, colorIndex, color });
+    if (!colorArray || !Array.isArray(colorArray) || colorArray.length < 3) {
+        Logger.error('getKeyColor: Invalid color from array', { roomId, safeRoomId, colorIndex, colorArray });
         return [255, 200, 100]; // Fallback
     }
     
-    return color;
+    return colorArray;
 }
 
 /**
