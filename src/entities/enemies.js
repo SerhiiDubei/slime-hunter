@@ -15,7 +15,10 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
     // Check if room has enough enemies already
     const aliveEnemies = GS.enemies.filter(e => e && e.exists() && !e.isBoss);
     const totalSpawned = GS.roomEnemiesKilled + aliveEnemies.length;
-    if (totalSpawned >= GS.roomEnemyCount) return;
+    if (totalSpawned >= GS.roomEnemyCount) {
+        Logger.debug('Enemy spawn skipped - room full', { totalSpawned, roomEnemyCount: GS.roomEnemyCount });
+        return;
+    }
     
     // Random enemy type based on current level if not specified
     if (!enemyType) {

@@ -931,15 +931,42 @@ export function createGameScene() {
                 // Start room already cleared
                 Logger.info('Start room - already cleared');
             } else if (!currentRoom.cleared) {
-                // Combat/Elite room - spawn enemies
-                const enemyCount = GS.roomEnemyCount;
-                Logger.info('Spawning enemies', { count: enemyCount, type: roomType });
-                
-                // Spawn 4-5 enemies initially
-                const initialSpawn = Math.min(5, enemyCount);
-                for (let i = 0; i < initialSpawn; i++) {
-                    wait(i * 0.4, spawnRandomEnemy);
-                }
+                // Combat/Elite room - spawn enemies AFTER room is fully loaded
+                // Wait longer for chunked generation to complete (floor + collisions + decorations)
+                wait(1.0, () => {
+                    const enemyCount = GS.roomEnemyCount;
+                    Logger.info('Spawning enemies', { count: enemyCount, type: roomType, roomId: currentRoom.id });
+                    
+                    if (enemyCount <= 0) {
+                        Logger.warn('No enemies to spawn!', { enemyCount, roomEnemyCount: GS.roomEnemyCount });
+                        return;
+                    }
+                    
+                    // Spawn enemies in waves (non-blocking)
+                    const initialSpawn = Math.min(5, enemyCount);
+                    Logger.info('Initial spawn wave', { initialSpawn, total: enemyCount });
+                    
+                    for (let i = 0; i < initialSpawn; i++) {
+                        wait(i * 0.4, () => {
+                            Logger.debug('Spawning enemy', { i, total: initialSpawn });
+                            spawnRandomEnemy();
+                        });
+                    }
+                    
+                    // Spawn remaining enemies after initial wave
+                    if (enemyCount > initialSpawn) {
+                        const remaining = enemyCount - initialSpawn;
+                        Logger.info('Remaining enemies spawn', { remaining, delay: initialSpawn * 0.4 + 1 });
+                        wait(initialSpawn * 0.4 + 1, () => {
+                            for (let i = 0; i < remaining; i++) {
+                                wait(i * 0.3, () => {
+                                    Logger.debug('Spawning remaining enemy', { i, total: remaining });
+                                    spawnRandomEnemy();
+                                });
+                            }
+                        });
+                    }
+                });
             }
             
             // Gold pickup collision
