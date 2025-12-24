@@ -511,9 +511,30 @@ function onRoomCleared() {
     if (currentRoom && currentRoom.type !== ROOM_TYPES.BOSS && currentRoom.type !== ROOM_TYPES.START) {
         if (!GS.collectedKeys.includes(currentRoom.id)) {
             const p = GS.player;
-            if (p && p.exists()) {
-                wait(0.5, () => {
-                    spawnKey(vec2(p.pos.x, p.pos.y - 60), currentRoom.id);
+            if (p && p.exists() && p.pos) {
+                const roomId = currentRoom.id;
+                if (roomId === undefined || roomId === null) {
+                    Logger.error('CRITICAL: currentRoom.id is invalid', { 
+                        currentRoom, 
+                        roomId: currentRoom.id 
+                    });
+                } else {
+                    wait(0.5, () => {
+                        try {
+                            spawnKey(vec2(p.pos.x, p.pos.y - 60), roomId);
+                        } catch (error) {
+                            Logger.error('Failed to spawn key in onRoomCleared', {
+                                error: error.message,
+                                stack: error.stack,
+                                roomId,
+                                playerPos: p.pos
+                            });
+                        }
+                    });
+                }
+            } else {
+                Logger.warn('Cannot spawn key - player invalid', { 
+                    player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
                 });
             }
         }
