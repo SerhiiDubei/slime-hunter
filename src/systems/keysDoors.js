@@ -74,7 +74,7 @@ export function spawnKey(position, roomId, keyColor = null) {
             return;
         }
         
-        const pos = position.pos || position;
+        let pos = position.pos || position;
         
         // Validate roomId
         if (roomId === undefined || roomId === null) {
@@ -85,7 +85,59 @@ export function spawnKey(position, roomId, keyColor = null) {
             return;
         }
         
-        Logger.info('Spawning key at', { x: pos.x, y: pos.y, roomId, keyColor });
+        // CRITICAL FIX: Ensure key spawns on walkable position
+        // If position is not walkable, find nearest walkable position
+        if (!isWalkable(pos)) {
+            Logger.warn('🔑 spawnKey: Position not walkable, finding walkable position', { 
+                originalPos: { x: pos.x, y: pos.y },
+                roomId 
+            });
+            
+            // Get vec2 function
+            const vec2Fn = (typeof window !== 'undefined' && typeof window.vec2 === 'function') ? window.vec2 :
+                          (typeof globalThis !== 'undefined' && typeof globalThis.vec2 === 'function') ? globalThis.vec2 :
+                          (typeof vec2 === 'function') ? vec2 : null;
+            
+            if (!vec2Fn) {
+                Logger.error('🔑 spawnKey: vec2 not available');
+                return;
+            }
+            
+            // Try positions in a spiral around the original position
+            let foundWalkable = false;
+            const maxRadius = 200; // Search radius
+            const step = 40; // Grid step size
+            
+            for (let radius = step; radius <= maxRadius && !foundWalkable; radius += step) {
+                for (let angle = 0; angle < Math.PI * 2 && !foundWalkable; angle += Math.PI / 4) {
+                    const testX = pos.x + Math.cos(angle) * radius;
+                    const testY = pos.y + Math.sin(angle) * radius;
+                    const testPos = vec2Fn(testX, testY);
+                    
+                    if (isWalkable(testPos)) {
+                        pos = testPos;
+                        foundWalkable = true;
+                        Logger.info('🔑 spawnKey: Found walkable position', { 
+                            originalPos: { x: position.x || position.pos?.x, y: position.y || position.pos?.y },
+                            newPos: { x: pos.x, y: pos.y },
+                            radius,
+                            angle: angle * 180 / Math.PI
+                        });
+                        break;
+                    }
+                }
+            }
+            
+            // If still not walkable, use player position as fallback
+            if (!foundWalkable && GS.player && GS.player.exists() && GS.player.pos) {
+                pos = vec2Fn(GS.player.pos.x, GS.player.pos.y);
+                Logger.warn('🔑 spawnKey: Using player position as fallback', { 
+                    pos: { x: pos.x, y: pos.y } 
+                });
+            }
+        }
+        
+        Logger.info('Spawning key at', { x: pos.x, y: pos.y, roomId, keyColor, isWalkable: isWalkable(pos) });
         
         // Get color array
         let keyColorArray;
@@ -164,11 +216,26 @@ export function spawnKey(position, roomId, keyColor = null) {
             
             // Create sprite WITHOUT color component first
             // posFn expects (x, y) coordinates
+            // Get Rect and vec2 for larger collision area
+            const RectFn = (typeof window !== 'undefined' && typeof window.Rect === 'function') ? window.Rect :
+                          (typeof globalThis !== 'undefined' && typeof globalThis.Rect === 'function') ? globalThis.Rect :
+                          (typeof Rect === 'function') ? Rect : null;
+            const vec2FnForRect = (typeof window !== 'undefined' && typeof window.vec2 === 'function') ? window.vec2 :
+                                 (typeof globalThis !== 'undefined' && typeof globalThis.vec2 === 'function') ? globalThis.vec2 :
+                                 (typeof vec2 === 'function') ? vec2 : null;
+            
+            let areaComponent;
+            if (RectFn && vec2FnForRect) {
+                areaComponent = areaFn({ shape: new RectFn(vec2FnForRect(-20, -20), 40, 40) }); // Larger collision area (40x40) for easier pickup
+            } else {
+                areaComponent = areaFn(); // Fallback to default area
+            }
+            
             k = addFn([
                 spriteFn("key"), 
                 posFn(pos.x, pos.y), 
                 anchorFn("center"), 
-                areaFn(), 
+                areaComponent,
                 zFn(5), 
                 scaleFn(1), 
                 "key",
