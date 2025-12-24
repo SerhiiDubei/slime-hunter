@@ -495,19 +495,38 @@ export function createGameScene() {
                 }
                 
                 // Continue if not done
-                if (gy < roomShape.height || (gy === roomShape.height && gx < roomShape.width)) {
+                if (gy < roomShape.height) {
                     // Use setTimeout for non-blocking (allows browser to render)
                     setTimeout(drawChunk, 0);
                 } else {
                     // Done! Load sprite and add to scene
                     const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
-                    loadSprite(floorSpriteName, floorCanvas.toDataURL());
-                    add([sprite(floorSpriteName), pos(0, 0), z(-100)]);
+                    try {
+                        loadSprite(floorSpriteName, floorCanvas.toDataURL());
+                        const floorObj = add([sprite(floorSpriteName), pos(0, 0), z(-100), "floor"]);
+                        Logger.info('Floor loaded', { sprite: floorSpriteName, tiles: processedTiles, roomId: currentRoom.id });
+                    } catch (error) {
+                        Logger.error('Failed to load floor sprite', { error: error.message });
+                        // Fallback: add simple background
+                        add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
+                    }
                 }
             };
             
             // Start chunked generation
             drawChunk();
+            
+            // FALLBACK: If floor doesn't load in 2 seconds, add simple background
+            wait(2, () => {
+                const floorObjects = get("floor");
+                const hasFloor = floorObjects.length > 0;
+                if (!hasFloor) {
+                    Logger.warn('Floor not loaded after 2s, adding fallback background', { roomId: currentRoom.id });
+                    add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
+                } else {
+                    Logger.info('Floor verified', { count: floorObjects.length });
+                }
+            });
             
             // CHUNKED: Add collision for walls and pillars (non-blocking)
             let colGx = 0, colGy = 0;
@@ -541,7 +560,7 @@ export function createGameScene() {
                     colGy += CHUNK_SIZE;
                 }
                 
-                if (colGy < roomShape.height || (colGy === roomShape.height && colGx < roomShape.width)) {
+                if (colGy < roomShape.height) {
                     setTimeout(addCollisionChunk, 0);
                 } else {
                     // Done with collisions - add boundary walls
@@ -549,6 +568,7 @@ export function createGameScene() {
                     add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), area(), body({ isStatic: true }), opacity(0), "wall"]);
                     add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
                     add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+                    Logger.info('Collisions loaded', { roomId: currentRoom.id });
                 }
             };
             
@@ -558,7 +578,7 @@ export function createGameScene() {
             // ========== CHUNKED: Decorations added with delay (non-blocking) ==========
             wait(0.2, () => {
                 // Torches (reduced to 2 max, static only)
-                const torchPositions = [
+            const torchPositions = [
                     [roomShape.centerX - 200, roomShape.centerY - 150],
                     [roomShape.centerX + 200, roomShape.centerY + 150],
                 ];
@@ -576,7 +596,7 @@ export function createGameScene() {
                 const decorCount = Math.min(2, 1 + Math.floor(lv / 3));
                 for (let i = 0; i < decorCount; i++) {
                     const side = i % 4;
-                    let dx, dy;
+                let dx, dy;
                     if (side === 0) { dx = 150 + i * 200; dy = 90; }
                     else if (side === 1) { dx = 150 + i * 200; dy = CONFIG.MAP_HEIGHT - 90; }
                     else if (side === 2) { dx = 90; dy = 150 + i * 200; }
@@ -592,12 +612,12 @@ export function createGameScene() {
                 for (let i = 0; i < obstacleCount; i++) {
                     const ox = 150 + (i % 3) * 300 + rand(-50, 50);
                     const oy = 200 + Math.floor(i / 3) * 300 + rand(-50, 50);
-                    add([
+                add([
                         sprite("crate"), pos(ox, oy),
-                        area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
-                        body({ isStatic: true }), anchor("center"), z(3), "obstacle"
-                    ]);
-                }
+                    area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
+                    body({ isStatic: true }), anchor("center"), z(3), "obstacle"
+                ]);
+            }
             });
 
             // Create doors based on dungeon connections
