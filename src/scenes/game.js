@@ -423,13 +423,13 @@ function spawnKey(p, roomId, keyColor = null) {
         [255, 100, 200],  // Pink
     ];
     
-    const color = keyColor || keyColors[roomId % keyColors.length];
+    const keyColorArray = keyColor || keyColors[roomId % keyColors.length];
     
     // Create key sprite with color
     const k = add([
         sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), 
-        color(color[0], color[1], color[2]), "key",
-        { roomId, keyColor: color } // Store room ID and color
+        color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), "key",
+        { roomId, keyColor: keyColorArray } // Store room ID and color
     ]);
     
     // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
@@ -446,7 +446,7 @@ function spawnKey(p, roomId, keyColor = null) {
     
     // OPTIMIZED: Colored glow matching key color
     add([
-        circle(25), pos(p), color(color[0], color[1], color[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
+        circle(25), pos(p), color(keyColorArray[0], keyColorArray[1], keyColorArray[2]), opacity(0.3), anchor("center"), z(4), "keyPart"
     ]);
 }
 
