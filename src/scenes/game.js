@@ -15,8 +15,11 @@ import { meleeAttack, rangedAttack } from '../attacks.js';
 import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
+import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
 
-let door, doorText, roomIndicator;
+let doors = [];  // Multiple doors now
+let doorTexts = [];
+let roomIndicator;
 
 // Get room configuration
 function getRoomConfig() {
@@ -26,13 +29,14 @@ function getRoomConfig() {
     const isBossRoom = room >= totalRooms - 1;
     
     // Base enemies per room (scales with level and room)
+    // MORE enemies on early levels!
     let enemyCount;
     if (isBossRoom) {
         enemyCount = 0; // Boss room - only boss spawns
     } else {
-        // Earlier rooms have fewer enemies
-        const baseEnemies = 3 + level;
-        const roomMultiplier = 0.7 + (room * 0.3); // Room 0: 70%, Room 1: 100%, Room 2: 130%
+        // Base: 6 enemies minimum, scales with level
+        const baseEnemies = 6 + level * 2;
+        const roomMultiplier = 0.8 + (room * 0.2); // Room 0: 80%, Room 1: 100%, Room 2: 120%
         enemyCount = Math.floor(baseEnemies * roomMultiplier);
     }
     
@@ -75,59 +79,88 @@ function onRoomCleared() {
     GS.roomCleared = true;
     GS.doorOpen = true;
     
-    // Update door visual
-    if (door && door.exists()) {
-        door.use(sprite("doorOpen"));
+    // Mark room as cleared in dungeon
+    if (GS.dungeon) {
+        GS.dungeon.clearCurrentRoom();
     }
     
-    // Update door text
-    if (doorText && doorText.exists()) {
-        const isBossRoom = GS.isBossRoom();
-        if (isBossRoom) {
-            doorText.text = "🏆 NEXT LEVEL!";
-        } else {
-            doorText.text = "🚪 NEXT ROOM";
+    // Update all doors visuals
+    doors.forEach(door => {
+        if (door && door.exists()) {
+            door.use(sprite("doorOpen"));
         }
-        doorText.color = rgb(100, 255, 100);
-    }
+    });
+    
+    // Update door texts
+    doorTexts.forEach(dt => {
+        if (dt && dt.exists()) {
+            const dungeon = GS.dungeon;
+            if (dungeon) {
+                const targetRoom = dungeon.getRoom(dt.targetRoomId);
+                if (targetRoom) {
+                    if (targetRoom.type === ROOM_TYPES.BOSS) {
+                        dt.text = "💀";
+                        dt.color = rgb(255, 50, 50);
+                    } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
+                        dt.text = "💎";
+                        dt.color = rgb(255, 220, 100);
+                    } else if (targetRoom.cleared) {
+                        dt.text = "✓";
+                        dt.color = rgb(100, 200, 100);
+                    } else {
+                        dt.text = "→";
+                        dt.color = rgb(100, 255, 150);
+                    }
+                }
+            }
+        }
+    });
     
     playSound('door');
     
-    // Room clear celebration effect
-    shake(5);
+    // Room clear celebration effect - compact
+    shake(4);
     
     const clearText = add([
-        text("✨ ROOM CLEARED! ✨", { size: 28 }),
-        pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 - 50),
+        text("✨ CLEAR! ✨", { size: 20 }),
+        pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 - 30),
         anchor("center"), color(100, 255, 150), z(150), opacity(1), { t: 0 }
     ]);
     clearText.onUpdate(() => {
         clearText.t += dt();
-        clearText.pos.y -= 30 * dt();
-        clearText.opacity = 1 - clearText.t / 2;
-        if (clearText.t > 2) destroy(clearText);
+        clearText.pos.y -= 25 * dt();
+        clearText.opacity = 1 - clearText.t / 1.5;
+        if (clearText.t > 1.5) destroy(clearText);
     });
 }
 
 export function createGameScene() {
     scene("game", () => {
-        // Initialize room count for this level
-        GS.totalRooms = GS.getRoomsForLevel();
+        // Initialize dungeon manager if not exists
+        if (!GS.dungeon || GS.currentRoom === 0) {
+            GS.dungeon = new DungeonManager(GS.currentLevel);
+        }
+        
+        const dungeon = GS.dungeon;
+        const currentRoom = dungeon.getCurrentRoom();
+        GS.totalRooms = dungeon.map.rooms.length;
         
         Logger.info('=== GAME SCENE START ===', { 
             level: GS.currentLevel, 
-            room: GS.currentRoom + 1, 
+            roomId: currentRoom.id,
+            roomType: currentRoom.type,
             totalRooms: GS.totalRooms 
         });
         
         try {
             GS.enemies = [];
-            GS.roomCleared = false;
+            GS.roomCleared = currentRoom.cleared;
             GS.roomEnemiesKilled = 0;
-            GS.doorOpen = false;
+            GS.doorOpen = currentRoom.cleared;
             
             const roomConfig = getRoomConfig();
-            GS.roomEnemyCount = roomConfig.enemyCount;
+            // Override with dungeon room data
+            GS.roomEnemyCount = currentRoom.enemies || roomConfig.enemyCount;
             
             const lv = GS.currentLevel;
             const roomNum = GS.currentRoom;
@@ -236,23 +269,89 @@ export function createGameScene() {
                 ]);
             }
 
-            // Door to next room/level
-            const doorX = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 30;
-            const doorY = CONFIG.MAP_HEIGHT / 2;
-            door = add([sprite("doorClosed"), pos(doorX, doorY), anchor("center"), area(), z(2), "door"]);
+            // Create doors based on dungeon connections
+            doors = [];
+            doorTexts = [];
+            const adjacentRooms = dungeon.getAdjacentRooms();
             
-            // Door text - shows room info
-            const isBossRoom = roomConfig.isBossRoom;
-            const doorLabel = isBossRoom ? "🔒 BOSS" : "🔒 LOCKED";
-            doorText = add([text(doorLabel, { size: 14 }), pos(doorX, doorY - 45), anchor("center"), color(255, 100, 100), z(10)]);
+            adjacentRooms.forEach(({ room: targetRoom, direction, canEnter }) => {
+                let doorX, doorY, textOffsetX = 0, textOffsetY = -25;
+                
+                // Position door based on direction
+                switch (direction) {
+                    case 'right':
+                        doorX = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20;
+                        doorY = CONFIG.MAP_HEIGHT / 2;
+                        break;
+                    case 'left':
+                        doorX = CONFIG.WALL_THICKNESS + 20;
+                        doorY = CONFIG.MAP_HEIGHT / 2;
+                        break;
+                    case 'up':
+                        doorX = CONFIG.MAP_WIDTH / 2;
+                        doorY = CONFIG.WALL_THICKNESS + 20;
+                        textOffsetY = 25;
+                        break;
+                    case 'down':
+                        doorX = CONFIG.MAP_WIDTH / 2;
+                        doorY = CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 20;
+                        textOffsetY = -25;
+                        break;
+                    default:
+                        doorX = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20;
+                        doorY = CONFIG.MAP_HEIGHT / 2;
+                }
+                
+                // Door sprite
+                const doorSprite = currentRoom.cleared ? "doorOpen" : "doorClosed";
+                const door = add([
+                    sprite(doorSprite), 
+                    pos(doorX, doorY), 
+                    anchor("center"), 
+                    area({ shape: new Rect(vec2(-15, -20), 30, 40) }), 
+                    z(2), 
+                    { targetRoomId: targetRoom.id, direction },
+                    "door"
+                ]);
+                doors.push(door);
+                
+                // Door label - show room type
+                let label = "🔒";
+                let labelColor = rgb(255, 100, 100);
+                
+                if (currentRoom.cleared) {
+                    if (targetRoom.type === ROOM_TYPES.BOSS) {
+                        label = "💀";
+                        labelColor = rgb(255, 50, 50);
+                    } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
+                        label = "💎";
+                        labelColor = rgb(255, 220, 100);
+                    } else if (targetRoom.type === ROOM_TYPES.ELITE) {
+                        label = "⭐";
+                        labelColor = rgb(180, 80, 255);
+                    } else if (targetRoom.visited) {
+                        label = "✓";
+                        labelColor = rgb(100, 200, 100);
+                    } else {
+                        label = "?";
+                        labelColor = rgb(100, 255, 150);
+                    }
+                }
+                
+                const doorTxt = add([
+                    text(label, { size: 16 }), 
+                    pos(doorX + textOffsetX, doorY + textOffsetY), 
+                    anchor("center"), 
+                    color(labelColor), 
+                    z(10),
+                    { targetRoomId: targetRoom.id }
+                ]);
+                doorTexts.push(doorTxt);
+            });
             
-            // Room indicator (top center)
-            const roomLabel = isBossRoom ? `BOSS ROOM` : `ROOM ${roomConfig.roomNumber}/${roomConfig.totalRooms}`;
-            roomIndicator = add([
-                text(roomLabel, { size: 14 }),
-                pos(CONFIG.MAP_WIDTH / 2, 65),
-                anchor("center"), color(180, 180, 200), z(100), fixed()
-            ]);
+            // Room type indicator
+            const isBossRoom = currentRoom.type === ROOM_TYPES.BOSS;
+            roomIndicator = null;
 
             // Create player (spawn on left side)
             const p = createPlayer();
@@ -341,17 +440,31 @@ export function createGameScene() {
                 }
             });
 
-            onCollide("player", "door", () => {
+            onCollide("player", "door", (pl, doorObj) => {
                 try {
-                    if (!GS.doorOpen) {
+                    if (!GS.doorOpen || !currentRoom.cleared) {
                         return; // Door is locked
                     }
                     
-                    Logger.debug('Going through door', { room: GS.currentRoom, level: GS.currentLevel });
+                    const targetRoomId = doorObj.targetRoomId;
+                    if (targetRoomId === undefined) return;
+                    
+                    const targetRoom = dungeon.getRoom(targetRoomId);
+                    if (!targetRoom) return;
+                    
+                    Logger.debug('Going through door', { 
+                        from: currentRoom.id, 
+                        to: targetRoomId,
+                        targetType: targetRoom.type 
+                    });
                     playSound('levelup');
                     
-                    // Check if this was the boss room
-                    if (GS.isBossRoom()) {
+                    // Enter the new room
+                    dungeon.enterRoom(targetRoomId);
+                    GS.currentRoom = targetRoomId;
+                    
+                    // Check if entering boss room and boss is defeated
+                    if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
                         // Level complete!
                         if (GS.currentLevel >= CONFIG.MAX_LEVELS) {
                             Logger.info('Victory! All levels complete');
@@ -360,24 +473,28 @@ export function createGameScene() {
                             // Go to shop, then next level
                             GS.currentLevel++;
                             GS.currentRoom = 0;
+                            GS.dungeon = null; // Generate new dungeon for next level
                             GS.resetLevel();
                             Logger.info('Level complete, going to shop', { newLevel: GS.currentLevel });
                             go("shop");
                         }
-                    } else {
-                        // Go to next room in same level
-                        GS.currentRoom++;
-                        GS.resetRoom();
-                        Logger.info('Going to next room', { room: GS.currentRoom });
-                        go("game"); // Reload scene with new room
+                        return;
                     }
+                    
+                    // Go to the target room
+                    GS.resetRoom();
+                    Logger.info('Going to room', { roomId: targetRoomId, type: targetRoom.type });
+                    go("game"); // Reload scene with new room
+                    
                 } catch (error) {
                     Logger.error('Door collision error', { error: error.message, stack: error.stack });
                 }
             });
 
-            // Spawn enemies based on room config
-            if (isBossRoom) {
+            // Spawn enemies based on room type
+            const roomType = currentRoom.type;
+            
+            if (roomType === ROOM_TYPES.BOSS) {
                 // Boss room - spawn boss after intro
                 Logger.info('Boss room - spawning boss');
                 GS.bossSpawned = false;
@@ -385,16 +502,68 @@ export function createGameScene() {
                     GS.bossSpawned = true;
                     spawnBoss();
                 });
-            } else {
-                // Regular room - spawn enemies
-                const enemyCount = roomConfig.enemyCount;
-                Logger.info('Spawning enemies', { count: enemyCount });
+            } else if (roomType === ROOM_TYPES.TREASURE) {
+                // Treasure room - no enemies, just rewards
+                Logger.info('Treasure room - no enemies');
+                GS.roomCleared = true;
+                GS.doorOpen = true;
+                currentRoom.cleared = true;
                 
-                const initialSpawn = Math.min(3, enemyCount);
+                // Spawn some gold pickups
+                for (let i = 0; i < 5; i++) {
+                    const gx = rand(150, CONFIG.MAP_WIDTH - 150);
+                    const gy = rand(150, CONFIG.MAP_HEIGHT - 150);
+                    const goldAmount = 20 + GS.currentLevel * 10;
+                    
+                    const goldPickup = add([
+                        text("💰", { size: 24 }),
+                        pos(gx, gy),
+                        anchor("center"),
+                        area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
+                        z(5),
+                        { goldValue: goldAmount, t: rand(0, 6.28) },
+                        "goldPickup"
+                    ]);
+                    goldPickup.onUpdate(() => {
+                        goldPickup.t += dt() * 3;
+                        goldPickup.pos.y += Math.sin(goldPickup.t) * 0.3;
+                    });
+                }
+            } else if (roomType === ROOM_TYPES.START && currentRoom.cleared) {
+                // Start room already cleared
+                Logger.info('Start room - already cleared');
+            } else if (!currentRoom.cleared) {
+                // Combat/Elite room - spawn enemies
+                const enemyCount = GS.roomEnemyCount;
+                Logger.info('Spawning enemies', { count: enemyCount, type: roomType });
+                
+                // Spawn 4-5 enemies initially
+                const initialSpawn = Math.min(5, enemyCount);
                 for (let i = 0; i < initialSpawn; i++) {
-                    wait(i * 0.5, spawnRandomEnemy);
+                    wait(i * 0.4, spawnRandomEnemy);
                 }
             }
+            
+            // Gold pickup collision
+            onCollide("player", "goldPickup", (pl, gold) => {
+                const amount = GS.addGold(gold.goldValue);
+                playSound('key');
+                
+                // Gold pickup effect
+                const fx = add([
+                    text(`+${amount}💰`, { size: 14 }),
+                    pos(gold.pos.x, gold.pos.y - 10),
+                    anchor("center"), color(255, 220, 100), z(100), { t: 0 }
+                ]);
+                fx.onUpdate(() => {
+                    fx.t += dt();
+                    fx.pos.y -= 40 * dt();
+                    fx.opacity = 1 - fx.t;
+                    if (fx.t > 1) destroy(fx);
+                });
+                
+                destroy(gold);
+            });
 
             // Create HUD
             createHUD();

@@ -6,12 +6,12 @@ import { GS } from '../state.js';
 import { playSound } from '../audio.js';
 import { clamp, getSpawnPos } from '../utils.js';
 import { createDeathFX, createXPFX, createLevelUpFX } from '../effects.js';
-import { ENEMY_TYPES, getRandomEnemyType } from '../data/enemies.js';
+import { ENEMY_TYPES, getRandomEnemyType, getRandomTier, applyTier, TIER_CONFIG } from '../data/enemies.js';
 import { getBossForLevel } from '../data/bosses.js';
 import { getLevel } from '../data/levels.js';
 
-// Spawn regular enemy
-export function spawnEnemy(enemyType = null) {
+// Spawn regular enemy with tier system
+export function spawnEnemy(enemyType = null, forceTier = null) {
     // Check if room has enough enemies already
     const aliveEnemies = GS.enemies.filter(e => e && e.exists() && !e.isBoss);
     const totalSpawned = GS.roomEnemiesKilled + aliveEnemies.length;
@@ -22,9 +22,17 @@ export function spawnEnemy(enemyType = null) {
         enemyType = getRandomEnemyType(GS.currentLevel);
     }
     
+    // Get random tier based on level and room
+    const tier = forceTier || getRandomTier(GS.currentLevel, GS.currentRoom);
+    
     const d = GS.difficulty();
     const sp = getSpawnPos();
-    const type = ENEMY_TYPES[enemyType] || ENEMY_TYPES.slime;
+    const baseType = ENEMY_TYPES[enemyType] || ENEMY_TYPES.slime;
+    
+    // Apply tier multipliers to base stats
+    const type = applyTier(baseType, tier);
+    const tierConfig = TIER_CONFIG[tier];
+    
     const halfSize = type.size / 2;
     
     const e = add([
@@ -35,10 +43,13 @@ export function spawnEnemy(enemyType = null) {
         {
             hp: type.hp * d,
             maxHp: type.hp * d,
-            speed: type.speed * d,
+            speed: type.speed * (tier >= 3 ? 0.85 : 1), // Higher tiers slightly slower but tankier
             damage: type.damage * d,
             isBoss: false,
             enemyType: enemyType,
+            tier: tier,
+            tierName: tierConfig.name,
+            tierColor: tierConfig.color,
             behavior: type.behavior || "chase",
             attackCooldown: type.attackCooldown || 2.0,
             attackTimer: 0,
@@ -60,17 +71,41 @@ export function spawnEnemy(enemyType = null) {
         "enemy"
     ]);
 
-    // HP bar
+    // HP bar - size based on tier
+    const hpBarWidth = CONFIG.ENEMY_SIZE + 10 + (tier - 1) * 8;
     e.hpBg = add([
-        rect(CONFIG.ENEMY_SIZE + 10, 5),
+        rect(hpBarWidth, 5),
         pos(e.pos.x, e.pos.y - 20),
         color(40, 40, 40), anchor("center"), z(15), opacity(0.8)
     ]);
     e.hpBar = add([
-        rect(CONFIG.ENEMY_SIZE + 10, 5),
-        pos(e.pos.x - (CONFIG.ENEMY_SIZE + 10) / 2, e.pos.y - 20),
-        color(100, 200, 100), anchor("topleft"), z(16)
+        rect(hpBarWidth, 5),
+        pos(e.pos.x - hpBarWidth / 2, e.pos.y - 20),
+        color(...tierConfig.color), anchor("topleft"), z(16)
     ]);
+    
+    // Tier indicator glow for rare+ enemies
+    if (tier >= 3) {
+        e.tierGlow = add([
+            circle(type.size * 0.6),
+            pos(e.pos),
+            color(...tierConfig.color),
+            opacity(0.25),
+            anchor("center"),
+            z(4)
+        ]);
+    }
+    
+    // Name tag for elite enemies
+    if (tier >= 4) {
+        e.nameTag = add([
+            text(`⭐ ${type.name}`, { size: 10 }),
+            pos(e.pos.x, e.pos.y - 32),
+            anchor("center"),
+            color(...tierConfig.color),
+            z(17)
+        ]);
+    }
 
     GS.enemies.push(e);
 
@@ -97,20 +132,46 @@ export function spawnEnemy(enemyType = null) {
         e.pos.x = clamp(e.pos.x, CONFIG.WALL_THICKNESS + 20, CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20);
         e.pos.y = clamp(e.pos.y, CONFIG.WALL_THICKNESS + 20, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 20);
 
+        // HP bar width based on tier
+        const hpBarWidth = CONFIG.ENEMY_SIZE + 10 + ((e.tier || 1) - 1) * 8;
+        
         if (e.hpBg) {
             e.hpBg.pos.x = e.pos.x;
             e.hpBg.pos.y = e.pos.y - 22;
         }
         if (e.hpBar) {
             const pct = Math.max(0, e.hp / e.maxHp);
-            e.hpBar.pos.x = e.pos.x - (CONFIG.ENEMY_SIZE + 10) / 2;
+            e.hpBar.pos.x = e.pos.x - hpBarWidth / 2;
             e.hpBar.pos.y = e.pos.y - 22;
-            e.hpBar.width = pct * (CONFIG.ENEMY_SIZE + 10);
-            if (e.behavior === "ranged") {
+            e.hpBar.width = pct * hpBarWidth;
+            
+            // Color based on tier
+            if (e.tierColor) {
+                const tc = e.tierColor;
+                if (pct > 0.5) {
+                    e.hpBar.color = rgb(tc[0], tc[1], tc[2]);
+                } else if (pct > 0.25) {
+                    e.hpBar.color = rgb(Math.min(255, tc[0] + 50), Math.min(255, tc[1] + 50), tc[2]);
+                } else {
+                    e.hpBar.color = rgb(200, 100, 100);
+                }
+            } else if (e.behavior === "ranged") {
                 e.hpBar.color = pct > 0.5 ? rgb(168, 85, 247) : pct > 0.25 ? rgb(200, 150, 200) : rgb(200, 100, 100);
             } else {
                 e.hpBar.color = pct > 0.5 ? rgb(100, 200, 100) : pct > 0.25 ? rgb(200, 200, 100) : rgb(200, 100, 100);
             }
+        }
+        
+        // Update tier glow position
+        if (e.tierGlow && e.tierGlow.exists()) {
+            e.tierGlow.pos = e.pos;
+            e.tierGlow.opacity = 0.2 + Math.sin(time() * 4) * 0.1;
+        }
+        
+        // Update name tag position
+        if (e.nameTag && e.nameTag.exists()) {
+            e.nameTag.pos.x = e.pos.x;
+            e.nameTag.pos.y = e.pos.y - 32;
         }
     });
 }
@@ -1429,6 +1490,7 @@ export function killEnemy(e, spawnKeyFn) {
     if (e.hpBg) destroy(e.hpBg);
     if (e.hpBar) destroy(e.hpBar);
     if (e.nameTag) destroy(e.nameTag);
+    if (e.tierGlow) destroy(e.tierGlow);
     
     GS.enemies = GS.enemies.filter(x => x !== e);
     destroy(e);

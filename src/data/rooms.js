@@ -1,107 +1,192 @@
-// ==================== ROOM SYSTEM ====================
-// Levels consist of multiple rooms connected by doors
-// Player must clear each room to unlock doors
+// ==================== DUNGEON MAP SYSTEM ====================
+// Diablo/Enter the Gungeon style procedural map generation
+// Each level has a pre-generated connected room layout
 
 export const ROOM_TYPES = {
     START: 'start',       // Starting room - no enemies
     COMBAT: 'combat',     // Regular enemies
-    ELITE: 'elite',       // Harder enemies  
-    TREASURE: 'treasure', // Gold/items
-    BOSS: 'boss',         // Boss room
+    ELITE: 'elite',       // Harder enemies (higher tier spawn)
+    TREASURE: 'treasure', // Gold/items only
+    BOSS: 'boss',         // Boss room (always last)
 };
 
-// Room templates - defines layout and connections
-export const ROOM_LAYOUTS = {
-    // Simple 2-room level (Level 1)
-    simple: {
-        rooms: [
-            { id: 0, type: ROOM_TYPES.START, x: 0, y: 0, width: 800, height: 600, enemies: 5, doors: [{ to: 1, side: 'right' }] },
-            { id: 1, type: ROOM_TYPES.BOSS, x: 800, y: 0, width: 800, height: 600, enemies: 0, doors: [{ to: 0, side: 'left' }] },
-        ],
-        startRoom: 0,
-        bossRoom: 1,
-    },
-    
-    // 3-room linear (Level 2-3)
-    linear: {
-        rooms: [
-            { id: 0, type: ROOM_TYPES.START, x: 0, y: 0, enemies: 3, doors: [{ to: 1, side: 'right' }] },
-            { id: 1, type: ROOM_TYPES.COMBAT, x: 1, y: 0, enemies: 4, doors: [{ to: 0, side: 'left' }, { to: 2, side: 'right' }] },
-            { id: 2, type: ROOM_TYPES.BOSS, x: 2, y: 0, enemies: 0, doors: [{ to: 1, side: 'left' }] },
-        ],
-        startRoom: 0,
-        bossRoom: 2,
-    },
-    
-    // T-shape (Level 4-5) - choice of paths
-    tshape: {
-        rooms: [
-            { id: 0, type: ROOM_TYPES.START, x: 0, y: 1, enemies: 2, doors: [{ to: 1, side: 'right' }] },
-            { id: 1, type: ROOM_TYPES.COMBAT, x: 1, y: 1, enemies: 4, doors: [{ to: 0, side: 'left' }, { to: 2, side: 'up' }, { to: 3, side: 'down' }] },
-            { id: 2, type: ROOM_TYPES.TREASURE, x: 1, y: 0, enemies: 0, doors: [{ to: 1, side: 'down' }] },
-            { id: 3, type: ROOM_TYPES.BOSS, x: 1, y: 2, enemies: 0, doors: [{ to: 1, side: 'up' }] },
-        ],
-        startRoom: 0,
-        bossRoom: 3,
-    },
-    
-    // Complex (Level 6-7) - multiple paths
-    complex: {
-        rooms: [
-            { id: 0, type: ROOM_TYPES.START, x: 0, y: 1, enemies: 2, doors: [{ to: 1, side: 'right' }] },
-            { id: 1, type: ROOM_TYPES.COMBAT, x: 1, y: 1, enemies: 3, doors: [{ to: 0, side: 'left' }, { to: 2, side: 'up' }, { to: 3, side: 'right' }] },
-            { id: 2, type: ROOM_TYPES.ELITE, x: 1, y: 0, enemies: 4, doors: [{ to: 1, side: 'down' }, { to: 4, side: 'right' }] },
-            { id: 3, type: ROOM_TYPES.COMBAT, x: 2, y: 1, enemies: 3, doors: [{ to: 1, side: 'left' }, { to: 4, side: 'up' }] },
-            { id: 4, type: ROOM_TYPES.BOSS, x: 2, y: 0, enemies: 0, doors: [{ to: 2, side: 'left' }, { to: 3, side: 'down' }] },
-        ],
-        startRoom: 0,
-        bossRoom: 4,
-    },
+// Direction helpers
+export const DIRECTIONS = {
+    UP: 'up',
+    DOWN: 'down',
+    LEFT: 'left',
+    RIGHT: 'right',
 };
 
-// Get layout for a level
-export function getLayoutForLevel(level) {
-    if (level <= 1) return ROOM_LAYOUTS.simple;
-    if (level <= 3) return ROOM_LAYOUTS.linear;
-    if (level <= 5) return ROOM_LAYOUTS.tshape;
-    return ROOM_LAYOUTS.complex;
+const OPPOSITE = {
+    up: 'down',
+    down: 'up',
+    left: 'right',
+    right: 'left',
+};
+
+// Generate a random dungeon map for a level
+export function generateDungeonMap(level) {
+    const roomCount = getRoomCountForLevel(level);
+    const rooms = [];
+    const grid = {}; // { "x,y": roomId }
+    
+    // Start room at origin
+    const startRoom = {
+        id: 0,
+        type: ROOM_TYPES.START,
+        x: 0,
+        y: 0,
+        doors: [],
+        enemies: 0,
+        cleared: true,
+        visited: true,
+    };
+    rooms.push(startRoom);
+    grid["0,0"] = 0;
+    
+    // Generate connected rooms using random walk
+    let currentX = 0;
+    let currentY = 0;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    while (rooms.length < roomCount && attempts < maxAttempts) {
+        attempts++;
+        
+        // Pick random direction
+        const dirs = ['up', 'down', 'left', 'right'];
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        
+        let newX = currentX;
+        let newY = currentY;
+        
+        if (dir === 'up') newY--;
+        else if (dir === 'down') newY++;
+        else if (dir === 'left') newX--;
+        else if (dir === 'right') newX++;
+        
+        const key = `${newX},${newY}`;
+        
+        // Check if space is free
+        if (grid[key] === undefined) {
+            const fromRoom = rooms.find(r => r.x === currentX && r.y === currentY);
+            
+            // Determine room type
+            let roomType;
+            if (rooms.length === roomCount - 1) {
+                roomType = ROOM_TYPES.BOSS;
+            } else if (rooms.length >= 2 && Math.random() < 0.15) {
+                roomType = ROOM_TYPES.TREASURE;
+            } else if (level >= 3 && Math.random() < 0.2) {
+                roomType = ROOM_TYPES.ELITE;
+            } else {
+                roomType = ROOM_TYPES.COMBAT;
+            }
+            
+            // Enemy count based on room type and level
+            let enemies = 0;
+            if (roomType === ROOM_TYPES.COMBAT) {
+                enemies = 5 + level * 2 + Math.floor(Math.random() * 3);
+            } else if (roomType === ROOM_TYPES.ELITE) {
+                enemies = 4 + level + Math.floor(Math.random() * 2);
+            }
+            
+            const newRoom = {
+                id: rooms.length,
+                type: roomType,
+                x: newX,
+                y: newY,
+                doors: [{ to: fromRoom.id, side: OPPOSITE[dir] }],
+                enemies,
+                cleared: roomType === ROOM_TYPES.START || roomType === ROOM_TYPES.TREASURE,
+                visited: false,
+            };
+            
+            // Add door connection to parent room
+            fromRoom.doors.push({ to: newRoom.id, side: dir });
+            
+            rooms.push(newRoom);
+            grid[key] = newRoom.id;
+            
+            // Move to new position or stay (50% chance to branch)
+            if (Math.random() > 0.5 || roomType === ROOM_TYPES.BOSS) {
+                currentX = newX;
+                currentY = newY;
+            }
+        } else {
+            // Space taken, try to connect if not already connected
+            const existingRoomId = grid[key];
+            const fromRoom = rooms.find(r => r.x === currentX && r.y === currentY);
+            const toRoom = rooms[existingRoomId];
+            
+            // Check if already connected
+            const alreadyConnected = fromRoom.doors.some(d => d.to === existingRoomId);
+            
+            // 30% chance to add extra connection (creates loops)
+            if (!alreadyConnected && Math.random() < 0.3) {
+                fromRoom.doors.push({ to: existingRoomId, side: dir });
+                toRoom.doors.push({ to: fromRoom.id, side: OPPOSITE[dir] });
+            }
+            
+            // Move to this room
+            currentX = newX;
+            currentY = newY;
+        }
+    }
+    
+    // Ensure boss room is at the end of a path (farthest from start)
+    const bossRoom = rooms.find(r => r.type === ROOM_TYPES.BOSS);
+    if (!bossRoom) {
+        // If no boss room was created, convert the farthest room
+        let farthest = rooms[rooms.length - 1];
+        farthest.type = ROOM_TYPES.BOSS;
+        farthest.enemies = 0;
+    }
+    
+    return {
+        rooms,
+        startRoomId: 0,
+        bossRoomId: rooms.find(r => r.type === ROOM_TYPES.BOSS).id,
+        grid,
+    };
 }
 
-// Room state manager
-export class RoomManager {
-    constructor(layout, levelConfig) {
-        this.layout = layout;
-        this.levelConfig = levelConfig;
-        this.currentRoomId = layout.startRoom;
-        this.roomStates = {};
-        
-        // Initialize room states
-        layout.rooms.forEach(room => {
-            this.roomStates[room.id] = {
-                cleared: room.type === ROOM_TYPES.START || room.type === ROOM_TYPES.TREASURE,
-                visited: room.id === layout.startRoom,
-                enemiesKilled: 0,
-                doorsUnlocked: room.type === ROOM_TYPES.START,
-            };
-        });
+// Get room count for level
+function getRoomCountForLevel(level) {
+    if (level <= 1) return 3;   // 3 rooms
+    if (level <= 2) return 4;   // 4 rooms
+    if (level <= 4) return 5;   // 5 rooms
+    if (level <= 6) return 6;   // 6 rooms
+    return 7;                    // 7 rooms for final level
+}
+
+// Dungeon state manager
+export class DungeonManager {
+    constructor(level) {
+        this.level = level;
+        this.map = generateDungeonMap(level);
+        this.currentRoomId = this.map.startRoomId;
     }
     
     getCurrentRoom() {
-        return this.layout.rooms.find(r => r.id === this.currentRoomId);
+        return this.map.rooms.find(r => r.id === this.currentRoomId);
     }
     
-    getRoomState(roomId) {
-        return this.roomStates[roomId];
+    getRoom(roomId) {
+        return this.map.rooms.find(r => r.id === roomId);
     }
     
     isRoomCleared(roomId) {
-        return this.roomStates[roomId]?.cleared || false;
+        const room = this.getRoom(roomId);
+        return room ? room.cleared : false;
     }
     
     clearCurrentRoom() {
-        const state = this.roomStates[this.currentRoomId];
-        state.cleared = true;
-        state.doorsUnlocked = true;
+        const room = this.getCurrentRoom();
+        if (room) {
+            room.cleared = true;
+        }
     }
     
     canEnterRoom(roomId) {
@@ -109,30 +194,109 @@ export class RoomManager {
         const door = currentRoom.doors.find(d => d.to === roomId);
         if (!door) return false;
         
-        // Must clear current room to use doors
-        return this.isRoomCleared(this.currentRoomId);
+        // Must clear current room to leave
+        return currentRoom.cleared;
     }
     
     enterRoom(roomId) {
         if (!this.canEnterRoom(roomId)) return false;
         
-        this.currentRoomId = roomId;
-        this.roomStates[roomId].visited = true;
+        const room = this.getRoom(roomId);
+        if (room) {
+            this.currentRoomId = roomId;
+            room.visited = true;
+        }
         return true;
     }
     
+    getEntryDirection(fromRoomId) {
+        const currentRoom = this.getCurrentRoom();
+        const door = currentRoom.doors.find(d => d.to === fromRoomId);
+        return door ? door.side : 'left';
+    }
+    
     isBossRoom() {
-        return this.currentRoomId === this.layout.bossRoom;
+        return this.currentRoomId === this.map.bossRoomId;
     }
     
     getProgress() {
-        const total = this.layout.rooms.length;
-        const cleared = Object.values(this.roomStates).filter(s => s.cleared).length;
-        return { cleared, total };
+        const total = this.map.rooms.length;
+        const cleared = this.map.rooms.filter(r => r.cleared).length;
+        const visited = this.map.rooms.filter(r => r.visited).length;
+        return { cleared, visited, total };
+    }
+    
+    getAllRooms() {
+        return this.map.rooms;
+    }
+    
+    // Get adjacent rooms to current
+    getAdjacentRooms() {
+        const current = this.getCurrentRoom();
+        return current.doors.map(d => ({
+            room: this.getRoom(d.to),
+            direction: d.side,
+            canEnter: current.cleared,
+        }));
     }
 }
 
-export default { ROOM_TYPES, ROOM_LAYOUTS, getLayoutForLevel, RoomManager };
+// Legacy exports for compatibility
+export const ROOM_LAYOUTS = {
+    simple: {
+        rooms: [
+            { id: 0, type: ROOM_TYPES.START, x: 0, y: 0, enemies: 5, doors: [{ to: 1, side: 'right' }] },
+            { id: 1, type: ROOM_TYPES.BOSS, x: 1, y: 0, enemies: 0, doors: [{ to: 0, side: 'left' }] },
+        ],
+        startRoom: 0,
+        bossRoom: 1,
+    },
+};
 
+export function getLayoutForLevel(level) {
+    return ROOM_LAYOUTS.simple;
+}
 
+export class RoomManager {
+    constructor(layout, levelConfig) {
+        this.dungeon = new DungeonManager(levelConfig?.id || 1);
+    }
+    
+    getCurrentRoom() {
+        return this.dungeon.getCurrentRoom();
+    }
+    
+    isRoomCleared(roomId) {
+        return this.dungeon.isRoomCleared(roomId);
+    }
+    
+    clearCurrentRoom() {
+        this.dungeon.clearCurrentRoom();
+    }
+    
+    canEnterRoom(roomId) {
+        return this.dungeon.canEnterRoom(roomId);
+    }
+    
+    enterRoom(roomId) {
+        return this.dungeon.enterRoom(roomId);
+    }
+    
+    isBossRoom() {
+        return this.dungeon.isBossRoom();
+    }
+    
+    getProgress() {
+        return this.dungeon.getProgress();
+    }
+}
 
+export default { 
+    ROOM_TYPES, 
+    DIRECTIONS,
+    ROOM_LAYOUTS, 
+    getLayoutForLevel, 
+    RoomManager,
+    DungeonManager,
+    generateDungeonMap,
+};
