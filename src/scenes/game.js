@@ -21,6 +21,187 @@ let doors = [];  // Multiple doors now
 let doorTexts = [];
 let roomIndicator;
 
+// Generate irregular room shape
+function generateRoomShape(seed) {
+    // Use seed for consistent room shapes
+    const rng = () => {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        return seed / 0x7fffffff;
+    };
+    
+    // Room grid (1 = walkable, 0 = wall)
+    const gridW = Math.floor(CONFIG.MAP_WIDTH / 40);
+    const gridH = Math.floor(CONFIG.MAP_HEIGHT / 40);
+    const grid = [];
+    
+    // Initialize with walls
+    for (let y = 0; y < gridH; y++) {
+        grid[y] = [];
+        for (let x = 0; x < gridW; x++) {
+            grid[y][x] = 0;
+        }
+    }
+    
+    // Choose room shape type
+    const shapeType = Math.floor(rng() * 6);
+    
+    const centerX = Math.floor(gridW / 2);
+    const centerY = Math.floor(gridH / 2);
+    const margin = 3; // Wall margin
+    
+    switch (shapeType) {
+        case 0: // L-shape
+            // Horizontal part
+            for (let x = margin; x < gridW - margin; x++) {
+                for (let y = centerY - 3; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Vertical part (left side)
+            for (let x = margin; x < centerX + 2; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            break;
+            
+        case 1: // T-shape
+            // Horizontal bar
+            for (let x = margin; x < gridW - margin; x++) {
+                for (let y = margin; y < centerY + 3; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Vertical stem
+            for (let x = centerX - 4; x < centerX + 5; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            break;
+            
+        case 2: // Cross shape
+            // Horizontal bar
+            for (let x = margin; x < gridW - margin; x++) {
+                for (let y = centerY - 4; y < centerY + 5; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Vertical bar
+            for (let x = centerX - 4; x < centerX + 5; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            break;
+            
+        case 3: // H-shape
+            // Left vertical
+            for (let x = margin; x < margin + 6; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Right vertical
+            for (let x = gridW - margin - 6; x < gridW - margin; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Middle connector
+            for (let x = margin; x < gridW - margin; x++) {
+                for (let y = centerY - 3; y < centerY + 4; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            break;
+            
+        case 4: // Organic/cave shape
+            // Start with central area
+            for (let x = margin + 2; x < gridW - margin - 2; x++) {
+                for (let y = margin + 2; y < gridH - margin - 2; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Add random protrusions
+            for (let i = 0; i < 8; i++) {
+                const px = margin + Math.floor(rng() * (gridW - margin * 2));
+                const py = margin + Math.floor(rng() * (gridH - margin * 2));
+                const size = 2 + Math.floor(rng() * 3);
+                for (let dx = -size; dx <= size; dx++) {
+                    for (let dy = -size; dy <= size; dy++) {
+                        const nx = px + dx;
+                        const ny = py + dy;
+                        if (nx >= margin && nx < gridW - margin && ny >= margin && ny < gridH - margin) {
+                            if (rng() > 0.3) grid[ny][nx] = 1;
+                        }
+                    }
+                }
+            }
+            // Carve out random holes (make irregular edges)
+            for (let i = 0; i < 12; i++) {
+                const hx = margin + Math.floor(rng() * (gridW - margin * 2));
+                const hy = margin + Math.floor(rng() * (gridH - margin * 2));
+                // Only carve near edges
+                if (hx < margin + 5 || hx > gridW - margin - 5 || hy < margin + 5 || hy > gridH - margin - 5) {
+                    const size = 1 + Math.floor(rng() * 2);
+                    for (let dx = -size; dx <= size; dx++) {
+                        for (let dy = -size; dy <= size; dy++) {
+                            const nx = hx + dx;
+                            const ny = hy + dy;
+                            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH) {
+                                grid[ny][nx] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            
+        default: // U-shape or irregular rectangle
+            // Main rectangle
+            for (let x = margin; x < gridW - margin; x++) {
+                for (let y = margin; y < gridH - margin; y++) {
+                    grid[y][x] = 1;
+                }
+            }
+            // Cut out center-top or random section
+            const cutX = centerX - 4 + Math.floor(rng() * 8);
+            const cutY = margin;
+            const cutW = 4 + Math.floor(rng() * 6);
+            const cutH = 4 + Math.floor(rng() * 6);
+            for (let x = cutX; x < cutX + cutW && x < gridW - margin; x++) {
+                for (let y = cutY; y < cutY + cutH; y++) {
+                    if (x >= 0 && x < gridW && y >= 0 && y < gridH) {
+                        grid[y][x] = 0;
+                    }
+                }
+            }
+            break;
+    }
+    
+    // Ensure center is always walkable (player spawn)
+    for (let dx = -3; dx <= 3; dx++) {
+        for (let dy = -3; dy <= 3; dy++) {
+            const nx = centerX + dx;
+            const ny = centerY + dy;
+            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH) {
+                grid[ny][nx] = 1;
+            }
+        }
+    }
+    
+    return {
+        grid,
+        width: gridW,
+        height: gridH,
+        offsetX: 0,
+        offsetY: 0,
+        centerX: centerX * 40 + 20,
+        centerY: centerY * 40 + 20,
+    };
+}
+
 // Get room configuration
 function getRoomConfig() {
     const level = GS.currentLevel;
@@ -177,56 +358,63 @@ export function createGameScene() {
                 Math.max(10, baseBg[2] - roomDarken)
             ];
 
-            // Base background
-            add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100)]);
+            // Base background (dark void)
+            add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(5, 5, 10), z(-100)]);
             
-            // Tiled floor
-            for (let x = CONFIG.WALL_THICKNESS; x < CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS; x += 40) {
-                for (let y = CONFIG.WALL_THICKNESS; y < CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS; y += 40) {
-                    const tileShade = rand(0.85, 1.1);
-                    add([
-                        rect(40, 40), pos(x, y),
-                        color(bg[0] * tileShade, bg[1] * tileShade, bg[2] * tileShade),
-                        z(-99)
-                    ]);
-                    add([rect(40, 1), pos(x, y), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
-                    add([rect(1, 40), pos(x, y), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
+            // Generate room shape (irregular)
+            const roomShape = generateRoomShape(currentRoom.id + GS.currentLevel);
+            const wc = [60 + lv * 10, 60, 100];
+            
+            // Create floor tiles only where walkable
+            for (let gx = 0; gx < roomShape.width; gx++) {
+                for (let gy = 0; gy < roomShape.height; gy++) {
+                    const tileX = roomShape.offsetX + gx * 40;
+                    const tileY = roomShape.offsetY + gy * 40;
                     
-                    if (rand() < 0.08) {
-                        add([sprite("crack"), pos(x, y), opacity(0.4), z(-97)]);
-                    }
-                    if (rand() < 0.03 + roomNum * 0.01) {
-                        add([sprite("blood"), pos(x + rand(5, 30), y + rand(5, 30)), opacity(0.3 + lv * 0.1), z(-96), anchor("center")]);
+                    if (roomShape.grid[gy][gx] === 1) {
+                        // Walkable floor
+                        const tileShade = rand(0.85, 1.1);
+                        add([
+                            rect(40, 40), pos(tileX, tileY),
+                            color(bg[0] * tileShade, bg[1] * tileShade, bg[2] * tileShade),
+                            z(-99)
+                        ]);
+                        add([rect(40, 1), pos(tileX, tileY), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
+                        add([rect(1, 40), pos(tileX, tileY), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
+                        
+                        if (rand() < 0.08) {
+                            add([sprite("crack"), pos(tileX, tileY), opacity(0.4), z(-97)]);
+                        }
+                        if (rand() < 0.03 + roomNum * 0.01) {
+                            add([sprite("blood"), pos(tileX + rand(5, 30), tileY + rand(5, 30)), opacity(0.3 + lv * 0.1), z(-96), anchor("center")]);
+                        }
+                    } else {
+                        // Wall tile
+                        add([sprite("wall"), pos(tileX, tileY), z(-50)]);
+                        add([
+                            rect(40, 40), pos(tileX, tileY),
+                            color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"
+                        ]);
                     }
                 }
             }
-
-            // Walls
-            const wc = [60 + lv * 10, 60, 100];
-            for (let x = 0; x < CONFIG.MAP_WIDTH; x += 40) {
-                add([sprite("wall"), pos(x, 0), z(-50)]);
-                add([sprite("wall"), pos(x, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS), z(-50)]);
-            }
-            for (let y = 0; y < CONFIG.MAP_HEIGHT; y += 40) {
-                add([sprite("wall"), pos(0, y), z(-50)]);
-                add([sprite("wall"), pos(CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS, y), z(-50)]);
-            }
             
-            // Invisible wall colliders
-            add([rect(CONFIG.MAP_WIDTH, CONFIG.WALL_THICKNESS), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(CONFIG.MAP_WIDTH, CONFIG.WALL_THICKNESS), pos(0, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(CONFIG.WALL_THICKNESS, CONFIG.MAP_HEIGHT), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(CONFIG.WALL_THICKNESS, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            // Outer boundary walls (invisible)
+            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
 
-            // Torches (more in later rooms)
+            // Torches around room center
             const torchPositions = [
-                [CONFIG.WALL_THICKNESS + 5, 60],
-                [CONFIG.WALL_THICKNESS + 5, CONFIG.MAP_HEIGHT - 80],
-                [CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20, 60],
-                [CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20, CONFIG.MAP_HEIGHT - 80],
-                [CONFIG.MAP_WIDTH / 2, 5],
+                [roomShape.centerX - 200, roomShape.centerY - 150],
+                [roomShape.centerX + 200, roomShape.centerY - 150],
+                [roomShape.centerX - 200, roomShape.centerY + 150],
+                [roomShape.centerX + 200, roomShape.centerY + 150],
+                [roomShape.centerX, roomShape.centerY - 200],
             ];
             torchPositions.forEach(([tx, ty]) => {
+                if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) return;
                 const torch = add([sprite("torch"), pos(tx, ty), z(1), scale(1)]);
                 torch.onUpdate(() => {
                     torch.scale = vec2(1 + Math.sin(time() * 15) * 0.1, 1 + Math.cos(time() * 12) * 0.15);
@@ -238,9 +426,9 @@ export function createGameScene() {
                 });
             });
 
-            // Cobwebs
-            add([sprite("cobweb"), pos(CONFIG.WALL_THICKNESS, CONFIG.WALL_THICKNESS), z(1), opacity(0.6)]);
-            add([sprite("cobweb"), pos(CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS, CONFIG.WALL_THICKNESS), z(1), opacity(0.6), scale(-1, 1)]);
+            // Cobwebs in corners
+            add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.6)]);
+            add([sprite("cobweb"), pos(CONFIG.MAP_WIDTH - 120, 120), z(1), opacity(0.6), scale(-1, 1)]);
 
             // Wall decorations
             for (let i = 0; i < 4 + lv; i++) {
@@ -353,9 +541,9 @@ export function createGameScene() {
             const isBossRoom = currentRoom.type === ROOM_TYPES.BOSS;
             roomIndicator = null;
 
-            // Create player (spawn in center of map)
+            // Create player (spawn in room center)
             const p = createPlayer();
-            p.pos = vec2(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2);
+            p.pos = vec2(roomShape.centerX, roomShape.centerY);
             setupPlayerMovement(p);
             
             // Initialize camera to player position

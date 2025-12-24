@@ -8,6 +8,10 @@ import { HEROES } from './data/heroes.js';
 import { getLevel } from './data/levels.js';
 
 export function createHUD() {
+    // Use viewport dimensions for UI positioning
+    const VW = CONFIG.VIEWPORT_WIDTH;
+    const VH = CONFIG.VIEWPORT_HEIGHT;
+    
     // ==================== COMPACT UI ====================
     
     // HP bar frame - compact
@@ -46,39 +50,39 @@ export function createHUD() {
     const bulletTxt = add([text("x1", { size: 10 }), pos(50, 98), anchor("left"), color(150, 200, 220), fixed(), z(103)]);
     
     // Level & Room indicator (top center) - compact
-    add([rect(140, 40), pos(CONFIG.MAP_WIDTH / 2, 8), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(136, 36), pos(CONFIG.MAP_WIDTH / 2, 10), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
-    add([text(`LEVEL ${GS.currentLevel}`, { size: 14 }), pos(CONFIG.MAP_WIDTH / 2, 14), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
+    add([rect(140, 40), pos(VW / 2, 8), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(136, 36), pos(VW / 2, 10), anchor("top"), color(25, 20, 15), fixed(), z(100)]);
+    add([text(`LEVEL ${GS.currentLevel}`, { size: 14 }), pos(VW / 2, 14), anchor("top"), color(200, 170, 120), fixed(), z(101)]);
     
     // Room indicator
     const isBossRoom = GS.isBossRoom ? GS.isBossRoom() : false;
     const roomLabel = isBossRoom ? "🔥 BOSS" : `Room ${GS.currentRoom + 1}/${GS.totalRooms}`;
-    const roomTxt = add([text(roomLabel, { size: 10 }), pos(CONFIG.MAP_WIDTH / 2, 30), anchor("top"), color(150, 150, 180), fixed(), z(101)]);
+    const roomTxt = add([text(roomLabel, { size: 10 }), pos(VW / 2, 30), anchor("top"), color(150, 150, 180), fixed(), z(101)]);
     
-    const enemyTxt = add([text("0/6", { size: 11 }), pos(CONFIG.MAP_WIDTH / 2, 50), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
-    const keyTxt = add([text("", { size: 12 }), pos(CONFIG.MAP_WIDTH / 2, 65), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
+    const enemyTxt = add([text("0/6", { size: 11 }), pos(VW / 2, 50), anchor("top"), color(180, 170, 160), fixed(), z(100)]);
+    const keyTxt = add([text("", { size: 12 }), pos(VW / 2, 65), anchor("top"), color(255, 220, 100), fixed(), z(100)]);
     
     // Score & Gold (top right) - compact
-    add([rect(100, 45), pos(CONFIG.MAP_WIDTH - 10, 8), anchor("topright"), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(96, 41), pos(CONFIG.MAP_WIDTH - 12, 10), anchor("topright"), color(25, 20, 15), fixed(), z(100)]);
-    const scoreTxt = add([text("0", { size: 12 }), pos(CONFIG.MAP_WIDTH - 18, 18), anchor("topright"), color(200, 200, 200), fixed(), z(101)]);
-    const goldTxt = add([text("💰 0", { size: 14 }), pos(CONFIG.MAP_WIDTH - 18, 36), anchor("topright"), color(255, 220, 100), fixed(), z(101)]);
+    add([rect(100, 45), pos(VW - 10, 8), anchor("topright"), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(96, 41), pos(VW - 12, 10), anchor("topright"), color(25, 20, 15), fixed(), z(100)]);
+    const scoreTxt = add([text("0", { size: 12 }), pos(VW - 18, 18), anchor("topright"), color(200, 200, 200), fixed(), z(101)]);
+    const goldTxt = add([text("💰 0", { size: 14 }), pos(VW - 18, 36), anchor("topright"), color(255, 220, 100), fixed(), z(101)]);
     
     // Passive skills (bottom right) - compact
-    const skillsTxt = add([text("", { size: 12 }), pos(CONFIG.MAP_WIDTH - 10, CONFIG.MAP_HEIGHT - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
+    const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
 
     // Hero indicator (bottom left) - compact
     const hero = HEROES[GS.selectedHero];
     if (hero) {
-        add([rect(90, 24), pos(10, CONFIG.MAP_HEIGHT - 34), color(40, 30, 25), fixed(), z(99)]);
-        add([rect(86, 20), pos(12, CONFIG.MAP_HEIGHT - 32), color(25, 20, 15), fixed(), z(100)]);
-        add([text(`${hero.icon} ${hero.name}`, { size: 12 }), pos(14, CONFIG.MAP_HEIGHT - 22), color(...hero.color), fixed(), z(101)]);
+        add([rect(90, 24), pos(10, VH - 34), color(40, 30, 25), fixed(), z(99)]);
+        add([rect(86, 20), pos(12, VH - 32), color(25, 20, 15), fixed(), z(100)]);
+        add([text(`${hero.icon} ${hero.name}`, { size: 12 }), pos(14, VH - 22), color(...hero.color), fixed(), z(101)]);
     }
     
     // ==================== DUNGEON MINIMAP ====================
     const minimapSize = 90;
     const minimapX = 10;
-    const minimapY = CONFIG.MAP_HEIGHT - 140;
+    const minimapY = VH - 140;
     const roomSize = 14;
     const roomGap = 4;
     
