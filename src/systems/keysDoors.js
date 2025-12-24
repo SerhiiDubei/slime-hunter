@@ -6,6 +6,7 @@ import { GS } from '../state.js';
 import { ROOM_TYPES } from '../data/rooms.js';
 import { Logger } from '../logger.js';
 import { playSound } from '../audio.js';
+import { isWalkable } from '../utils.js';
 
 // ==================== KEY SYSTEM ====================
 
