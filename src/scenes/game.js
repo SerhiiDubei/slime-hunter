@@ -458,7 +458,14 @@ function onRoomCleared() {
     });
     // #endregion
     
-    if (currentRoom.type !== ROOM_TYPES.BOSS && currentRoom.type !== ROOM_TYPES.START) {
+    // For BOSS rooms: just mark as cleared, no key spawn
+    if (currentRoom.type === ROOM_TYPES.BOSS) {
+        Logger.info('🔑 BOSS ROOM CLEARED - Level progression ready', { 
+            roomId: currentRoom.id,
+            currentLevel: GS.currentLevel,
+            maxLevels: CONFIG.MAX_LEVELS
+        });
+    } else if (currentRoom.type !== ROOM_TYPES.START) {
         // #region agent log
         Logger.debug('🔑 onRoomCleared:KEY_CHECK', { 
             roomId: currentRoom.id,
@@ -491,7 +498,7 @@ function onRoomCleared() {
                         roomId: currentRoom.id 
                     });
                     // #endregion
-                } else {
+        } else {
                     // #region agent log
                     Logger.info('🔑 onRoomCleared:SPAWN_SCHEDULED', { 
                         roomId, 
@@ -709,7 +716,7 @@ export function createGameScene() {
                 Math.max(10, baseBg[1] - roomDarken),
                 Math.max(10, baseBg[2] - roomDarken)
             ];
-            
+
             Logger.debug('Background color calculated', { bg, baseBg, roomDarken, roomNum });
 
             // ========== PERFORMANCE PROFILING ==========
@@ -1283,7 +1290,7 @@ export function createGameScene() {
                         } else {
                             // Regular door - need to clear room first
                             const msg = add([
-                                text("Clear room first!", { size: 20 }),
+                                text("Clear the room first!", { size: 20 }),
                                 pos(width() / 2, height() / 2 - 50),
                                 anchor("center"),
                                 color(255, 100, 100),
@@ -1306,15 +1313,23 @@ export function createGameScene() {
                     dungeon.enterRoom(targetRoomId);
                     GS.currentRoom = targetRoomId;
                     
-                    // Check if entering boss room and boss is defeated
+                    // Check if LEAVING boss room after boss is defeated (level complete)
                     // #region agent log
                     Logger.debug('🔑 doorCollision:BOSS_CHECK', { 
+                        currentRoomType: currentRoom?.type,
+                        currentRoomCleared: currentRoom?.cleared,
                         targetRoomType: targetRoom.type,
                         targetRoomCleared: targetRoom.cleared,
                         currentLevel: GS.currentLevel
                     });
                     // #endregion
-                    if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
+                    
+                    // If we're LEAVING a cleared boss room, level is complete!
+                    if (currentRoom && currentRoom.type === ROOM_TYPES.BOSS && currentRoom.cleared) {
+                        Logger.info('🔑 Level complete! Leaving boss room', { 
+                            currentLevel: GS.currentLevel,
+                            maxLevels: CONFIG.MAX_LEVELS
+                        });
                         // Level complete!
                         if (GS.currentLevel >= CONFIG.MAX_LEVELS) {
                             Logger.info('Victory! All levels complete');
@@ -1329,6 +1344,11 @@ export function createGameScene() {
                             go("shop");
                         }
                         return;
+                    }
+                    
+                    // Check if entering boss room and boss is already defeated (shouldn't happen, but handle it)
+                    if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
+                        Logger.warn('Entering already-cleared boss room - this should not happen');
                     }
                     
                     // Go to the target room through loading screen
