@@ -319,6 +319,16 @@ function checkAllKeysCollected(dungeon) {
 // Distribute enemy weight across enemy types (d20 system)
 // Returns object: { "slime": 10, "ranged_slime": 2, "tank_slime": 1 }
 function distributeEnemyWeight(totalWeight, level) {
+    if (!totalWeight || totalWeight <= 0) {
+        Logger.warn('Invalid totalWeight', { totalWeight, level });
+        return { "slime": 1 }; // Fallback
+    }
+    
+    if (!level || level < 1) {
+        Logger.warn('Invalid level', { level, totalWeight });
+        level = 1; // Fallback
+    }
+    
     const distribution = {};
     let remainingWeight = totalWeight;
     
@@ -327,6 +337,11 @@ function distributeEnemyWeight(totalWeight, level) {
     if (level >= 1) availableTypes.push("slime", "fast_slime", "ranged_slime");
     if (level >= 2) availableTypes.push("tank_slime");
     if (level >= 3) availableTypes.push("bomber_slime");
+    
+    if (availableTypes.length === 0) {
+        Logger.warn('No available enemy types!', { level });
+        availableTypes.push("slime"); // Fallback
+    }
     
     // Weight distribution strategy:
     // - Common enemies (weight 1): 50-70% of weight
@@ -340,24 +355,32 @@ function distributeEnemyWeight(totalWeight, level) {
     Logger.debug('Weight distribution', { commonWeight, mediumWeight, heavyWeight, totalWeight });
     
     // Spawn common enemies (weight 1)
-    const commonTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight === 1);
+    const commonTypes = availableTypes.filter(t => {
+        const enemyType = ENEMY_TYPES[t];
+        return enemyType && enemyType.weight === 1;
+    });
     if (commonTypes.length > 0 && commonWeight > 0) {
         const commonCount = commonWeight; // Each is 1 weight
         const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
-        distribution[type] = (distribution[type] || 0) + commonCount;
-        remainingWeight -= commonCount;
+        if (type && ENEMY_TYPES[type]) {
+            distribution[type] = (distribution[type] || 0) + commonCount;
+            remainingWeight -= commonCount;
+        }
     }
     
     // Spawn medium enemies (weight 2-3)
     const mediumTypes = availableTypes.filter(t => {
-        const w = ENEMY_TYPES[t]?.weight;
+        const enemyType = ENEMY_TYPES[t];
+        const w = enemyType?.weight;
         return w && w >= 2 && w <= 3;
     });
     if (mediumTypes.length > 0 && mediumWeight > 0) {
         let mediumRemaining = mediumWeight;
         while (mediumRemaining > 0 && mediumTypes.length > 0) {
             const type = mediumTypes[Math.floor(Math.random() * mediumTypes.length)];
-            const weight = ENEMY_TYPES[type].weight;
+            const enemyType = ENEMY_TYPES[type];
+            if (!enemyType) break;
+            const weight = enemyType.weight;
             if (mediumRemaining >= weight) {
                 distribution[type] = (distribution[type] || 0) + 1;
                 mediumRemaining -= weight;
@@ -369,12 +392,17 @@ function distributeEnemyWeight(totalWeight, level) {
     }
     
     // Spawn heavy enemies (weight 4+)
-    const heavyTypes = availableTypes.filter(t => ENEMY_TYPES[t]?.weight >= 4);
+    const heavyTypes = availableTypes.filter(t => {
+        const enemyType = ENEMY_TYPES[t];
+        return enemyType && enemyType.weight >= 4;
+    });
     if (heavyTypes.length > 0 && heavyWeight > 0) {
         let heavyRemaining = heavyWeight;
         while (heavyRemaining > 0 && heavyTypes.length > 0) {
             const type = heavyTypes[Math.floor(Math.random() * heavyTypes.length)];
-            const weight = ENEMY_TYPES[type].weight;
+            const enemyType = ENEMY_TYPES[type];
+            if (!enemyType) break;
+            const weight = enemyType.weight;
             if (heavyRemaining >= weight) {
                 distribution[type] = (distribution[type] || 0) + 1;
                 heavyRemaining -= weight;
@@ -388,7 +416,9 @@ function distributeEnemyWeight(totalWeight, level) {
     // Use remaining weight for more common enemies
     if (remainingWeight > 0 && commonTypes.length > 0) {
         const type = commonTypes[Math.floor(Math.random() * commonTypes.length)];
-        distribution[type] = (distribution[type] || 0) + remainingWeight;
+        if (type && ENEMY_TYPES[type]) {
+            distribution[type] = (distribution[type] || 0) + remainingWeight;
+        }
     }
     
     // Calculate actual total weight
