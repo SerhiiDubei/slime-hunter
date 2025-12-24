@@ -114,52 +114,28 @@ export function spawnKey(position, roomId, keyColor = null) {
         
         Logger.debug('🔑 spawnKey:COLOR_VALUES', { r, g, b, roomId });
         
-        // Get color function - try window.color, globalThis.color, or use rgb() to create Color object
-        let colorComponent;
-        try {
-            // Try to get color function from global scope
-            const colorFn = typeof window !== 'undefined' && typeof window.color === 'function' ? window.color :
-                          typeof globalThis !== 'undefined' && typeof globalThis.color === 'function' ? globalThis.color :
-                          typeof color === 'function' ? color : null;
-            
-            if (colorFn && typeof colorFn === 'function') {
-                // Use color() component directly
-                colorComponent = colorFn(r, g, b);
-                Logger.debug('🔑 spawnKey:USING_COLOR_FN', { colorFnName: colorFn.name });
-            } else if (typeof rgb === 'function') {
-                // Use rgb() to create Color object, then pass to color component
-                const colorObj = rgb(r, g, b);
-                // Try to get color component function
-                const colorCompFn = typeof window !== 'undefined' && typeof window.color === 'function' ? window.color :
-                                   typeof globalThis !== 'undefined' && typeof globalThis.color === 'function' ? globalThis.color :
-                                   null;
-                if (colorCompFn) {
-                    colorComponent = colorCompFn(colorObj);
-                } else {
-                    // Fallback: use rgb() result directly (may work as component)
-                    colorComponent = colorObj;
-                }
-                Logger.debug('🔑 spawnKey:USING_RGB', { colorObjType: typeof colorObj });
-            } else {
-                throw new Error('No color function available');
-            }
-        } catch (colorError) {
-            Logger.error('🔑 spawnKey:COLOR_CREATION_ERROR', { 
-                error: colorError.message,
-                r, g, b,
+        // Get color function from global scope - color() is a component function, not rgb()
+        // In ES modules, we need to access it via window or globalThis
+        const colorFn = (typeof window !== 'undefined' && typeof window.color === 'function') ? window.color :
+                       (typeof globalThis !== 'undefined' && typeof globalThis.color === 'function') ? globalThis.color :
+                       (typeof color === 'function') ? color : null;
+        
+        if (!colorFn || typeof colorFn !== 'function') {
+            Logger.error('🔑 spawnKey:COLOR_NOT_AVAILABLE', { 
                 rgbType: typeof rgb,
                 colorType: typeof color,
-                windowColor: typeof window !== 'undefined' ? typeof window.color : 'no window'
+                windowColor: typeof window !== 'undefined' ? typeof window.color : 'no window',
+                globalThisColor: typeof globalThis !== 'undefined' ? typeof globalThis.color : 'no globalThis'
             });
-            // Fallback: use default orange color
-            colorComponent = typeof window !== 'undefined' && typeof window.color === 'function' ? 
-                           window.color(255, 200, 100) : rgb(255, 200, 100);
+            throw new Error('color() function is not available. Is Kaboom initialized with global: true?');
         }
         
-        // Create key sprite with color
+        Logger.debug('🔑 spawnKey:COLOR_FN_FOUND', { colorFnName: colorFn.name, r, g, b });
+        
+        // Create key sprite with color - color() is a component, call it with r, g, b
         let k;
         try {
-            Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b, colorComponentType: typeof colorComponent });
+            Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b });
             k = add([
                 sprite("key"), 
                 pos(pos), 
@@ -167,7 +143,7 @@ export function spawnKey(position, roomId, keyColor = null) {
                 area(), 
                 z(5), 
                 scale(1), 
-                colorComponent, 
+                colorFn(r, g, b),  // color() component with r, g, b values
                 "key",
                 { roomId, keyColor: keyColorArray } // Store room ID and color
             ]);
@@ -177,7 +153,7 @@ export function spawnKey(position, roomId, keyColor = null) {
                 error: spriteError.message,
                 stack: spriteError.stack,
                 r, g, b, pos,
-                colorComponentType: typeof colorComponent
+                colorFnName: colorFn ? colorFn.name : 'null'
             });
             throw spriteError;
         }
@@ -201,24 +177,10 @@ export function spawnKey(position, roomId, keyColor = null) {
         // OPTIMIZED: Colored glow matching key color
         try {
             Logger.debug('🔑 spawnKey:CREATING_GLOW', { r, g, b, pos: { x: pos.x, y: pos.y } });
-            // Reuse the same color component creation logic
-            let glowColorComponent;
-            const colorFn = typeof window !== 'undefined' && typeof window.color === 'function' ? window.color :
-                          typeof globalThis !== 'undefined' && typeof globalThis.color === 'function' ? globalThis.color :
-                          typeof color === 'function' ? color : null;
-            
-            if (colorFn && typeof colorFn === 'function') {
-                glowColorComponent = colorFn(r, g, b);
-            } else if (typeof rgb === 'function') {
-                glowColorComponent = rgb(r, g, b);
-            } else {
-                glowColorComponent = rgb(255, 200, 100); // Fallback
-            }
-            
             add([
                 circle(25), 
                 pos(pos), 
-                glowColorComponent, 
+                colorFn(r, g, b),  // Use same colorFn
                 opacity(0.3), 
                 anchor("center"), 
                 z(4), 
