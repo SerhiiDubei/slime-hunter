@@ -433,6 +433,7 @@ export function createGameScene() {
             // Generate room shape (irregular)
             let perfStep = performance.now();
             const roomShape = generateRoomShape(currentRoom.id + GS.currentLevel);
+            GS.roomShape = roomShape; // Export to global state for walkable checks
             perf.roomShape = performance.now() - perfStep;
             
             const wc = [60 + lv * 10, 60, 100];

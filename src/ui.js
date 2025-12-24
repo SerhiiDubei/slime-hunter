@@ -175,12 +175,15 @@ export function createHUD() {
         const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
         const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
         
-        // Convert world position to minimap position
-        const px = GS.player.pos.x / CONFIG.MAP_WIDTH * gridW * tileSize + offsetX;
-        const py = GS.player.pos.y / CONFIG.MAP_HEIGHT * gridH * tileSize + offsetY;
+        // Convert world position to grid position, then to minimap position
+        const gx = GS.player.pos.x / 40; // 40px per tile
+        const gy = GS.player.pos.y / 40;
+        const px = offsetX + gx * tileSize;
+        const py = offsetY + gy * tileSize;
         
-        minimapPlayer.pos.x = px;
-        minimapPlayer.pos.y = py;
+        // Clamp to minimap bounds
+        minimapPlayer.pos.x = Math.max(offsetX, Math.min(offsetX + gridW * tileSize, px));
+        minimapPlayer.pos.y = Math.max(offsetY, Math.min(offsetY + gridH * tileSize, py));
         
         // Pulse effect
         minimapPlayer.radius = 3 + Math.sin(time() * 6) * 0.5;
@@ -204,8 +207,15 @@ export function createHUD() {
         GS.enemies.forEach(enemy => {
             if (!enemy || !enemy.exists()) return;
             
-            const ex = enemy.pos.x / CONFIG.MAP_WIDTH * gridW * tileSize + offsetX;
-            const ey = enemy.pos.y / CONFIG.MAP_HEIGHT * gridH * tileSize + offsetY;
+            // Convert world position to grid position, then to minimap position
+            const egx = enemy.pos.x / 40; // 40px per tile
+            const egy = enemy.pos.y / 40;
+            const ex = offsetX + egx * tileSize;
+            const ey = offsetY + egy * tileSize;
+            
+            // Clamp to minimap bounds
+            const clampedX = Math.max(offsetX, Math.min(offsetX + gridW * tileSize, ex));
+            const clampedY = Math.max(offsetY, Math.min(offsetY + gridH * tileSize, ey));
             
             const enemyColor = enemy.isBoss ? [255, 80, 80] : 
                                enemy.tier >= 3 ? [200, 100, 255] : 
@@ -213,7 +223,7 @@ export function createHUD() {
             
             const dot = add([
                 circle(enemy.isBoss ? 4 : 2),
-                pos(ex, ey),
+                pos(clampedX, clampedY),
                 color(...enemyColor),
                 fixed(), z(102),
                 opacity(0.9)
