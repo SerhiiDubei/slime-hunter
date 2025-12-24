@@ -122,6 +122,23 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
         
         // CRITICAL: Movement and contact damage every frame (smooth + responsive)
         const distToPlayer = e.pos.dist(GS.player.pos);
+        
+        // OPTIMIZATION: Throttle updates for enemies far from player
+        const isFar = distToPlayer > 500;
+        e.aiUpdateTimer += dt_;
+        if (isFar && e.aiUpdateTimer < 0.1) {
+            // Far enemies: update only 10 times/sec (skip movement this frame)
+            // But still update HP bar position for smoothness
+            if (e.hpBg) { e.hpBg.pos.x = e.pos.x; e.hpBg.pos.y = e.pos.y - 22; }
+            if (e.hpBar) {
+                const hpBarWidth = CONFIG.ENEMY_SIZE + 10 + ((e.tier || 1) - 1) * 8;
+                e.hpBar.pos.x = e.pos.x - hpBarWidth / 2;
+                e.hpBar.pos.y = e.pos.y - 22;
+            }
+            return;
+        }
+        if (isFar) e.aiUpdateTimer = 0;
+        
         const dirToPlayer = GS.player.pos.sub(e.pos).unit();
         
         // Contact damage (always check)

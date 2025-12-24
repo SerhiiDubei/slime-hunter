@@ -275,10 +275,16 @@ function spawnKey(p) {
         sprite("key"), pos(p), anchor("center"), area(), z(5), scale(1), "key"
     ]);
     
+    // OPTIMIZED: Key animation with throttle (10/sec instead of 60)
     const startY = p.y;
+    let keyAnimTimer = 0;
     k.onUpdate(() => {
-        k.pos.y = startY + Math.sin(time() * 4) * 5;
-        k.angle = Math.sin(time() * 2) * 10;
+        keyAnimTimer += dt();
+        if (keyAnimTimer >= 0.1) {
+            keyAnimTimer = 0;
+            k.pos.y = startY + Math.sin(time() * 4) * 5;
+            k.angle = Math.sin(time() * 2) * 10;
+        }
     });
     
     // OPTIMIZED: Static glow instead of animated
@@ -674,6 +680,7 @@ export function createGameScene() {
             onKeyPress("j", doMeleeAttack);
             
             let keyStates = {};
+            let camUpdateTimer = 0;
             onUpdate(() => {
                 const rangedPressed = isKeyDown(rangedKey);
                 if (rangedPressed && !keyStates.ranged) doRangedAttack();
@@ -688,6 +695,19 @@ export function createGameScene() {
                 keyStates.ult = ultPressed;
                 
                 updateUltimate();
+                
+                // OPTIMIZED: Camera update (30/sec instead of 60 for smoother performance)
+                camUpdateTimer += dt();
+                if (camUpdateTimer >= 0.033) {
+                    camUpdateTimer = 0;
+                    if (p && p.exists()) {
+                        const halfViewW = CONFIG.VIEWPORT_WIDTH / 2;
+                        const halfViewH = CONFIG.VIEWPORT_HEIGHT / 2;
+                        const camX = Math.max(halfViewW, Math.min(p.pos.x, CONFIG.MAP_WIDTH - halfViewW));
+                        const camY = Math.max(halfViewH, Math.min(p.pos.y, CONFIG.MAP_HEIGHT - halfViewH));
+                        camPos(camX, camY);
+                    }
+                }
                 
                 // Check if room is cleared (all enemies killed)
                 if (!GS.roomCleared && !isBossRoom) {
@@ -846,9 +866,15 @@ export function createGameScene() {
                         { goldValue: goldAmount, t: rand(0, 6.28) },
                         "goldPickup"
                     ]);
+                    // OPTIMIZED: Gold animation throttled (10/sec)
+                    let goldAnimTimer = 0;
                     goldPickup.onUpdate(() => {
-                        goldPickup.t += dt() * 3;
-                        goldPickup.pos.y += Math.sin(goldPickup.t) * 0.3;
+                        goldAnimTimer += dt();
+                        if (goldAnimTimer >= 0.1) {
+                            goldAnimTimer = 0;
+                            goldPickup.t += 0.3;
+                            goldPickup.pos.y += Math.sin(goldPickup.t) * 0.3;
+                        }
                     });
                 }
             } else if (roomType === ROOM_TYPES.START && currentRoom.cleared) {
@@ -877,6 +903,7 @@ export function createGameScene() {
                     pos(gold.pos.x, gold.pos.y - 10),
                     anchor("center"), color(255, 220, 100), z(100), { t: 0 }
                 ]);
+                // OPTIMIZED: Use lifespan instead of onUpdate
                 fx.onUpdate(() => {
                     fx.t += dt();
                     fx.pos.y -= 40 * dt();
