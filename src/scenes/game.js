@@ -1267,11 +1267,19 @@ export function createGameScene() {
                             go("victory");
                         } else {
                             // Go to shop, then next level
-                            GS.currentLevel++;
-                            GS.currentRoom = 0;
-                            GS.dungeon = null; // Generate new dungeon for next level
+                            const newLevel = (GS.currentLevel || 1) + 1;
+                            Logger.info('Level complete, going to shop', { 
+                                oldLevel: GS.currentLevel, 
+                                newLevel,
+                                maxLevels: CONFIG.MAX_LEVELS
+                            });
+                            
+                            // Reset state BEFORE changing level
                             GS.resetLevel();
-                            Logger.info('Level complete, going to shop', { newLevel: GS.currentLevel });
+                            GS.currentLevel = newLevel;
+                            GS.currentRoom = 0;
+                            GS.dungeon = null; // Will create new dungeon for next level
+                            
                             go("shop");
                         }
                         return;
