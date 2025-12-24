@@ -512,49 +512,50 @@ export function createGameScene() {
             add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
             Logger.info('Collisions loaded', { roomId: currentRoom.id });
 
-            // ========== CHUNKED: Decorations added with delay (non-blocking) ==========
-            wait(0.2, () => {
-                // Torches (reduced to 2 max, static only)
+            // ========== Decorations (synchronous - fast enough) ==========
+            // Torches (reduced to 2 max, static only)
             const torchPositions = [
-                    [roomShape.centerX - 200, roomShape.centerY - 150],
-                    [roomShape.centerX + 200, roomShape.centerY + 150],
-                ];
-                const torchCount = Math.min(2, 1 + Math.floor(lv / 4));
-                for (let i = 0; i < torchCount; i++) {
-                    const [tx, ty] = torchPositions[i];
-                    if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) continue;
-                    add([sprite("torch"), pos(tx, ty), z(1), scale(1)]);
-                    add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
-                }
-            });
+                [roomShape.centerX - 200, roomShape.centerY - 150],
+                [roomShape.centerX + 200, roomShape.centerY + 150],
+            ];
+            const torchCount = Math.min(2, 1 + Math.floor(lv / 4));
+            for (let i = 0; i < torchCount; i++) {
+                const [tx, ty] = torchPositions[i];
+                if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) continue;
+                add([sprite("torch"), pos(tx, ty), z(1), scale(1), "torch"]);
+                add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
+            }
             
-            wait(0.3, () => {
-                // Wall decorations (FURTHER REDUCED)
-                const decorCount = Math.min(2, 1 + Math.floor(lv / 3));
-                for (let i = 0; i < decorCount; i++) {
-                    const side = i % 4;
+            // Wall decorations (FURTHER REDUCED)
+            const decorCount = Math.min(2, 1 + Math.floor(lv / 3));
+            for (let i = 0; i < decorCount; i++) {
+                const side = i % 4;
                 let dx, dy;
-                    if (side === 0) { dx = 150 + i * 200; dy = 90; }
-                    else if (side === 1) { dx = 150 + i * 200; dy = CONFIG.MAP_HEIGHT - 90; }
-                    else if (side === 2) { dx = 90; dy = 150 + i * 200; }
-                    else { dx = CONFIG.MAP_WIDTH - 90; dy = 150 + i * 200; }
-                    
-                    add([sprite("skull"), pos(dx, dy), z(1), opacity(0.6)]);
-                }
-            });
+                if (side === 0) { dx = 150 + i * 200; dy = 90; }
+                else if (side === 1) { dx = 150 + i * 200; dy = CONFIG.MAP_HEIGHT - 90; }
+                else if (side === 2) { dx = 90; dy = 150 + i * 200; }
+                else { dx = CONFIG.MAP_WIDTH - 90; dy = 150 + i * 200; }
+                
+                add([sprite("skull"), pos(dx, dy), z(1), opacity(0.6), "decoration"]);
+            }
             
-            wait(0.4, () => {
-                // Obstacles (FURTHER REDUCED - only 2-3 max)
-                const obstacleCount = Math.min(3, 1 + Math.floor(roomNum / 2));
-                for (let i = 0; i < obstacleCount; i++) {
-                    const ox = 150 + (i % 3) * 300 + rand(-50, 50);
-                    const oy = 200 + Math.floor(i / 3) * 300 + rand(-50, 50);
+            // Obstacles (FURTHER REDUCED - only 2-3 max)
+            const obstacleCount = Math.min(3, 1 + Math.floor(roomNum / 2));
+            for (let i = 0; i < obstacleCount; i++) {
+                const ox = 150 + (i % 3) * 300 + rand(-50, 50);
+                const oy = 200 + Math.floor(i / 3) * 300 + rand(-50, 50);
                 add([
-                        sprite("crate"), pos(ox, oy),
+                    sprite("crate"), pos(ox, oy),
                     area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
                     body({ isStatic: true }), anchor("center"), z(3), "obstacle"
                 ]);
             }
+            
+            Logger.info('Room objects created', { 
+                torches: torchCount, 
+                decorations: decorCount, 
+                obstacles: obstacleCount,
+                roomId: currentRoom.id 
             });
 
             // Create doors based on dungeon connections
