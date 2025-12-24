@@ -283,10 +283,20 @@ export function createHUD() {
 
     // Regen timer
     let regenTimer = 0;
+    
+    // OPTIMIZATION: Throttle UI updates
+    let uiUpdateTimer = 0;
+    const UI_UPDATE_RATE = 0.1; // Update 10 times per second instead of 60
 
     // Update loop
     onUpdate(() => {
         if (!GS.player) return;
+        
+        // Throttle UI updates
+        uiUpdateTimer += dt();
+        if (uiUpdateTimer < UI_UPDATE_RATE) return;
+        uiUpdateTimer = 0;
+        
         const pl = GS.player;
         const stats = GS.getStats();
         
@@ -396,13 +406,9 @@ export function createHUD() {
         }
         
         // ==================== ROOM MINIMAP UPDATE ====================
-        // Update player position on minimap
+        // Update player/enemy positions on minimap (already throttled by uiUpdateTimer)
         updateMinimapPlayer();
-        
-        // Update enemy positions (throttled)
-        if (Math.floor(time() * 5) % 1 === 0) {
-            updateMinimapEnemies();
-        }
+        updateMinimapEnemies();
         
         // Passive skills
         const owned = [];

@@ -234,16 +234,12 @@ function rangedBehavior(e, distToPlayer, dirToPlayer) {
 function shootProjectile(e, dir) {
     playSound('ranged');
     
-    const charge = add([
-        circle(15), pos(e.pos), color(168, 85, 247), opacity(0.6),
-        anchor("center"), z(10), scale(0.3), { t: 0 }
+    // OPTIMIZED: Using lifespan instead of onUpdate
+    add([
+        circle(15), pos(e.pos), color(168, 85, 247), opacity(0.5),
+        anchor("center"), z(10), scale(0.5),
+        lifespan(0.2, { fade: 0.15 })
     ]);
-    charge.onUpdate(() => {
-        charge.t += dt();
-        charge.scale = vec2(0.3 + charge.t * 3);
-        charge.opacity = 0.6 - charge.t * 2;
-        if (charge.t > 0.2) destroy(charge);
-    });
     
     wait(0.15, () => {
         if (!e.exists()) return;
@@ -939,17 +935,12 @@ function bossUpdateIceStorm(b, dirToPlayer) {
         playSound('boss');
         shake(6);
         
-        // Ice charging effect
-        const charge = add([
-            circle(40), pos(b.pos), color(100, 200, 255), opacity(0.5),
-            anchor("center"), z(10), scale(0.3), { t: 0 }
+        // Ice charging effect - OPTIMIZED
+        add([
+            circle(40), pos(b.pos), color(100, 200, 255), opacity(0.4),
+            anchor("center"), z(10), scale(0.5),
+            lifespan(0.3, { fade: 0.2 })
         ]);
-        charge.onUpdate(() => {
-            charge.t += dt();
-            charge.scale = vec2(0.3 + charge.t * 2);
-            charge.opacity = 0.5 - charge.t;
-            if (charge.t > 0.3) destroy(charge);
-        });
         
         wait(0.2, () => {
             if (!b.exists()) return;
@@ -972,17 +963,13 @@ function bossUpdateIceStorm(b, dirToPlayer) {
 function bossUpdateFireAura(b, dirToPlayer, distToPlayer) {
     // Fire aura visual
     if (Math.random() < 0.3) {
-        const flame = add([
-            circle(rand(8, 15)), pos(b.pos.x + rand(-30, 30), b.pos.y + rand(-30, 30)),
-            color(255, rand(100, 200), 50), opacity(0.7), anchor("center"), z(4),
-            { t: 0 }
+        // OPTIMIZED: Using move and lifespan
+        add([
+            circle(rand(6, 10)), pos(b.pos.x + rand(-25, 25), b.pos.y + rand(-25, 25)),
+            color(255, rand(100, 200), 50), opacity(0.5), anchor("center"), z(4),
+            move(270, 40), // Move up
+            lifespan(0.25, { fade: 0.2 })
         ]);
-        flame.onUpdate(() => {
-            flame.t += dt();
-            flame.pos.y -= 40 * dt();
-            flame.opacity = 0.7 - flame.t * 2;
-            if (flame.t > 0.3) destroy(flame);
-        });
     }
     
     // Damage player if too close
@@ -997,17 +984,12 @@ function bossUpdateFireAura(b, dirToPlayer, distToPlayer) {
         playSound('boss');
         shake(10);
         
-        // Explosion effect
-        const explosion = add([
-            circle(20), pos(b.pos), color(255, 100, 50), opacity(0.8),
-            anchor("center"), z(15), scale(0.5), { t: 0 }
+        // Explosion effect - OPTIMIZED
+        add([
+            circle(30), pos(b.pos), color(255, 100, 50), opacity(0.6),
+            anchor("center"), z(15), scale(1.5),
+            lifespan(0.35, { fade: 0.3 })
         ]);
-        explosion.onUpdate(() => {
-            explosion.t += dt();
-            explosion.scale = vec2(0.5 + explosion.t * 8);
-            explosion.opacity = 0.8 - explosion.t * 2;
-            if (explosion.t > 0.4) destroy(explosion);
-        });
         
         // Damage in radius
         if (GS.player && GS.player.exists() && GS.player.invuln <= 0) {
@@ -1194,14 +1176,12 @@ function bossAbilityFreezeZone(b, distToPlayer) {
             const dist = rand(30, b.freezeRadius);
             const spikePos = vec2(b.pos.x + Math.cos(angle) * dist, b.pos.y + Math.sin(angle) * dist);
             
-            const spike = add([
-                rect(8, 25), pos(spikePos), color(180, 230, 255), opacity(0.9),
-                anchor("bot"), rotate(rand(-20, 20)), z(5), { t: 0 }
+            // OPTIMIZED: Static spike with lifespan
+            add([
+                rect(8, 25), pos(spikePos), color(180, 230, 255), opacity(0.8),
+                anchor("bot"), rotate(rand(-20, 20)), z(5),
+                lifespan(1.2, { fade: 0.4 })
             ]);
-            spike.onUpdate(() => { 
-                spike.t += dt(); 
-                if (spike.t > 1.5) { spike.opacity -= 2 * dt(); if (spike.opacity <= 0) destroy(spike); }
-            });
         });
     }
 }
@@ -1235,17 +1215,12 @@ function bossAbilityMeteor(b) {
                 shake(12);
                 playSound('hit');
                 
-                // Explosion
-                const explosion = add([
-                    circle(15), pos(targetX, targetY), color(255, 100, 50), opacity(0.9),
-                    anchor("center"), z(10), { r: 15 }
+                // Explosion - OPTIMIZED
+                add([
+                    circle(40), pos(targetX, targetY), color(255, 100, 50), opacity(0.7),
+                    anchor("center"), z(10),
+                    lifespan(0.4, { fade: 0.3 })
                 ]);
-                explosion.onUpdate(() => {
-                    explosion.r += 200 * dt();
-                    explosion.radius = explosion.r;
-                    explosion.opacity -= 2 * dt();
-                    if (explosion.opacity <= 0) destroy(explosion);
-                });
                 
                 // Damage player if close
                 if (GS.player && GS.player.exists() && GS.player.invuln <= 0) {

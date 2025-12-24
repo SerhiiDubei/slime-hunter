@@ -166,22 +166,17 @@ export function setupPlayerMovement(p) {
         // Move player
         p.move(mx, my);
         
-        // Sprint FX
+        // Sprint FX - OPTIMIZED: reduced frequency, no onUpdate
         if (p.sprinting && moving) {
             sprintTimer += dt();
-            if (sprintTimer > 0.05) {
+            if (sprintTimer > 0.15) { // Every 0.15s instead of 0.05s
                 sprintTimer = 0;
-                const fx = add([
-                    circle(rand(3, 6)),
+                add([
+                    circle(rand(3, 5)),
                     pos(p.pos.x - GS.lastMoveDir.x * 15, p.pos.y - GS.lastMoveDir.y * 15),
-                    color(100, 200, 255), opacity(0.7), anchor("center"), z(-1),
-                    { life: 0.3 }
+                    color(100, 200, 255), opacity(0.5), anchor("center"), z(-1),
+                    lifespan(0.2, { fade: 0.15 })
                 ]);
-                fx.onUpdate(() => {
-                    fx.life -= dt();
-                    fx.opacity = fx.life / 0.3 * 0.7;
-                    if (fx.life <= 0) destroy(fx);
-                });
             }
         }
         

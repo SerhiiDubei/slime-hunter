@@ -281,15 +281,10 @@ function spawnKey(p) {
         k.angle = Math.sin(time() * 2) * 10;
     });
     
-    const glow = add([
-        circle(20), pos(p), color(255, 220, 100), opacity(0.3), anchor("center"), z(4), scale(1), "keyPart"
+    // OPTIMIZED: Static glow instead of animated
+    add([
+        circle(25), pos(p), color(255, 220, 100), opacity(0.25), anchor("center"), z(4), "keyPart"
     ]);
-    glow.onUpdate(() => {
-        if (!k.exists()) { destroy(glow); return; }
-        glow.pos = k.pos;
-        glow.opacity = 0.2 + Math.sin(time() * 5) * 0.15;
-        glow.scale = vec2(1.5 + Math.sin(time() * 3) * 0.3);
-    });
 }
 
 // Called when all room enemies are killed
@@ -517,21 +512,8 @@ export function createGameScene() {
                 torches.push({ torch, glow });
             });
             
-            // Single batched update for all torches (instead of individual onUpdate per torch)
-            let torchTimer = 0;
-            onUpdate(() => {
-                torchTimer += dt();
-                if (torchTimer < 0.1) return; // Update 10 times/sec instead of 60
-                torchTimer = 0;
-                const t = time();
-                torches.forEach(({ torch, glow }) => {
-                    if (torch.exists()) torch.scale = vec2(1 + Math.sin(t * 15) * 0.1, 1 + Math.cos(t * 12) * 0.15);
-                    if (glow.exists()) {
-                        glow.opacity = 0.1 + Math.sin(t * 8) * 0.05;
-                        glow.scale = vec2(1 + Math.sin(t * 6) * 0.2);
-                    }
-                });
-            });
+            // OPTIMIZATION: No torch animation - static torches
+            // (removed onUpdate to reduce CPU load)
 
             // Cobwebs (static, no updates)
             add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.5)]);
