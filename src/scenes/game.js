@@ -362,14 +362,28 @@ export function createGameScene() {
                 Math.max(10, baseBg[2] - roomDarken)
             ];
 
-            // Base background (dark void)
-            add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(5, 5, 10), z(-100)]);
-            
             // Generate room shape (irregular)
             const roomShape = generateRoomShape(currentRoom.id + GS.currentLevel);
             const wc = [60 + lv * 10, 60, 100];
             
-            // Create floor tiles only where walkable
+            // ========== OPTIMIZATION: Batch render floor as single canvas ==========
+            const floorCanvas = document.createElement('canvas');
+            floorCanvas.width = CONFIG.MAP_WIDTH;
+            floorCanvas.height = CONFIG.MAP_HEIGHT;
+            const fctx = floorCanvas.getContext('2d');
+            
+            // Dark void background
+            fctx.fillStyle = `rgb(5, 5, 10)`;
+            fctx.fillRect(0, 0, CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT);
+            
+            // Seeded random for consistent floor patterns
+            let floorSeed = currentRoom.id * 1000 + GS.currentLevel;
+            const floorRng = () => {
+                floorSeed = (floorSeed * 1103515245 + 12345) & 0x7fffffff;
+                return floorSeed / 0x7fffffff;
+            };
+            
+            // Draw all tiles to canvas at once
             for (let gx = 0; gx < roomShape.width; gx++) {
                 for (let gy = 0; gy < roomShape.height; gy++) {
                     const tileX = roomShape.offsetX + gx * 40;
@@ -377,111 +391,136 @@ export function createGameScene() {
                     const tileType = roomShape.grid[gy][gx];
                     
                     if (tileType === 1) {
-                        // Walkable floor
-                        const tileShade = rand(0.85, 1.1);
-                        add([
-                            rect(40, 40), pos(tileX, tileY),
-                            color(bg[0] * tileShade, bg[1] * tileShade, bg[2] * tileShade),
-                            z(-99)
-                        ]);
-                        add([rect(40, 1), pos(tileX, tileY), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
-                        add([rect(1, 40), pos(tileX, tileY), color(bg[0] + 20, bg[1] + 20, bg[2] + 30), opacity(0.2), z(-98)]);
+                        // Walkable floor tile
+                        const tileShade = 0.85 + floorRng() * 0.25;
+                        const r = Math.floor(bg[0] * tileShade);
+                        const g = Math.floor(bg[1] * tileShade);
+                        const b = Math.floor(bg[2] * tileShade);
+                        fctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        fctx.fillRect(tileX, tileY, 40, 40);
                         
-                        if (rand() < 0.08) {
-                            add([sprite("crack"), pos(tileX, tileY), opacity(0.4), z(-97)]);
-                        }
-                        if (rand() < 0.03 + roomNum * 0.01) {
-                            add([sprite("blood"), pos(tileX + rand(5, 30), tileY + rand(5, 30)), opacity(0.3 + lv * 0.1), z(-96), anchor("center")]);
+                        // Grid lines (subtle)
+                        fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
+                        fctx.lineWidth = 1;
+                        fctx.strokeRect(tileX, tileY, 40, 40);
+                        
+                        // Random cracks (reduced frequency)
+                        if (floorRng() < 0.04) {
+                            fctx.strokeStyle = `rgba(0, 0, 0, 0.3)`;
+                            fctx.beginPath();
+                            fctx.moveTo(tileX + 5, tileY + 10);
+                            fctx.lineTo(tileX + 20, tileY + 25);
+                            fctx.lineTo(tileX + 35, tileY + 20);
+                            fctx.stroke();
                         }
                     } else if (tileType === 2) {
-                        // Pillar/obstacle - larger blocking element
-                        // Stone base
-                        add([
-                            rect(40, 40), pos(tileX, tileY),
-                            color(50 + lv * 5, 45 + lv * 3, 60 + lv * 4),
-                            z(-40)
-                        ]);
-                        // Pillar top highlight
-                        add([
-                            rect(36, 36), pos(tileX + 2, tileY + 2),
-                            color(70 + lv * 5, 65 + lv * 3, 85 + lv * 4),
-                            z(-39)
-                        ]);
+                        // Pillar - draw visually
+                        fctx.fillStyle = `rgb(${50 + lv * 5}, ${45 + lv * 3}, ${60 + lv * 4})`;
+                        fctx.fillRect(tileX, tileY, 40, 40);
+                        fctx.fillStyle = `rgb(${70 + lv * 5}, ${65 + lv * 3}, ${85 + lv * 4})`;
+                        fctx.fillRect(tileX + 2, tileY + 2, 36, 36);
                         // Shadow
-                        add([
-                            rect(40, 8), pos(tileX, tileY + 32),
-                            color(20, 20, 30), opacity(0.4),
-                            z(-38)
-                        ]);
-                        // Collision
-                        add([
-                            rect(40, 40), pos(tileX, tileY),
-                            color(...wc), area(), body({ isStatic: true }), opacity(0), "wall", "pillar"
-                        ]);
+                        fctx.fillStyle = `rgba(20, 20, 30, 0.4)`;
+                        fctx.fillRect(tileX, tileY + 32, 40, 8);
                     } else {
                         // Wall tile
-                        add([sprite("wall"), pos(tileX, tileY), z(-50)]);
+                        const grad = fctx.createLinearGradient(tileX, tileY, tileX, tileY + 40);
+                        grad.addColorStop(0, '#4a4a6a');
+                        grad.addColorStop(1, '#3a3a5a');
+                        fctx.fillStyle = grad;
+                        fctx.fillRect(tileX, tileY, 40, 40);
+                        fctx.strokeStyle = '#2a2a4a';
+                        fctx.lineWidth = 2;
+                        fctx.strokeRect(tileX, tileY, 40, 20);
+                        fctx.strokeRect(tileX, tileY + 20, 40, 20);
+                    }
+                }
+            }
+            
+            // Load the batched floor as a single sprite
+            const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
+            loadSprite(floorSpriteName, floorCanvas.toDataURL());
+            
+            // Add floor as single object (instead of 1000+ individual tiles)
+            add([sprite(floorSpriteName), pos(0, 0), z(-100)]);
+            
+            // Add collision for walls and pillars only (required for physics)
+            for (let gx = 0; gx < roomShape.width; gx++) {
+                for (let gy = 0; gy < roomShape.height; gy++) {
+                    const tileX = roomShape.offsetX + gx * 40;
+                    const tileY = roomShape.offsetY + gy * 40;
+                    const tileType = roomShape.grid[gy][gx];
+                    
+                    if (tileType === 0 || tileType === 2) {
+                        // Wall or pillar - add collision only
                         add([
                             rect(40, 40), pos(tileX, tileY),
-                            color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"
+                            area(), body({ isStatic: true }), opacity(0), 
+                            tileType === 2 ? "pillar" : "wall"
                         ]);
                     }
                 }
             }
             
-            // Outer boundary walls (invisible)
-            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), color(...wc), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            // Outer boundary walls (invisible collision)
+            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
 
-            // Torches around room center
+            // ========== OPTIMIZATION: Reduced decorations, batched torch updates ==========
+            // Torches (reduced to 4, shared update timer)
+            const torches = [];
             const torchPositions = [
                 [roomShape.centerX - 200, roomShape.centerY - 150],
-                [roomShape.centerX + 200, roomShape.centerY - 150],
-                [roomShape.centerX - 200, roomShape.centerY + 150],
                 [roomShape.centerX + 200, roomShape.centerY + 150],
-                [roomShape.centerX, roomShape.centerY - 200],
             ];
             torchPositions.forEach(([tx, ty]) => {
                 if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) return;
                 const torch = add([sprite("torch"), pos(tx, ty), z(1), scale(1)]);
-                torch.onUpdate(() => {
-                    torch.scale = vec2(1 + Math.sin(time() * 15) * 0.1, 1 + Math.cos(time() * 12) * 0.15);
-                });
-                const glow = add([circle(30), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.15), anchor("center"), z(0)]);
-                glow.onUpdate(() => {
-                    glow.opacity = 0.1 + Math.sin(time() * 8) * 0.05;
-                    glow.scale = vec2(1 + Math.sin(time() * 6) * 0.2);
+                const glow = add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
+                torches.push({ torch, glow });
+            });
+            
+            // Single batched update for all torches (instead of individual onUpdate per torch)
+            let torchTimer = 0;
+            onUpdate(() => {
+                torchTimer += dt();
+                if (torchTimer < 0.1) return; // Update 10 times/sec instead of 60
+                torchTimer = 0;
+                const t = time();
+                torches.forEach(({ torch, glow }) => {
+                    if (torch.exists()) torch.scale = vec2(1 + Math.sin(t * 15) * 0.1, 1 + Math.cos(t * 12) * 0.15);
+                    if (glow.exists()) {
+                        glow.opacity = 0.1 + Math.sin(t * 8) * 0.05;
+                        glow.scale = vec2(1 + Math.sin(t * 6) * 0.2);
+                    }
                 });
             });
 
-            // Cobwebs in corners
-            add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.6)]);
-            add([sprite("cobweb"), pos(CONFIG.MAP_WIDTH - 120, 120), z(1), opacity(0.6), scale(-1, 1)]);
+            // Cobwebs (static, no updates)
+            add([sprite("cobweb"), pos(120, 120), z(1), opacity(0.5)]);
 
-            // Wall decorations
-            for (let i = 0; i < 4 + lv; i++) {
-                const side = Math.floor(rand(0, 4));
+            // Wall decorations (reduced count)
+            const decorCount = Math.min(3, 2 + Math.floor(lv / 2));
+            for (let i = 0; i < decorCount; i++) {
+                const side = i % 4;
                 let dx, dy;
-                if (side === 0) { dx = rand(60, CONFIG.MAP_WIDTH - 60); dy = CONFIG.WALL_THICKNESS + 5; }
-                else if (side === 1) { dx = rand(60, CONFIG.MAP_WIDTH - 60); dy = CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 25; }
-                else if (side === 2) { dx = CONFIG.WALL_THICKNESS + 5; dy = rand(60, CONFIG.MAP_HEIGHT - 60); }
-                else { dx = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 25; dy = rand(60, CONFIG.MAP_HEIGHT - 60); }
+                if (side === 0) { dx = 150 + i * 200; dy = 90; }
+                else if (side === 1) { dx = 150 + i * 200; dy = CONFIG.MAP_HEIGHT - 90; }
+                else if (side === 2) { dx = 90; dy = 150 + i * 200; }
+                else { dx = CONFIG.MAP_WIDTH - 90; dy = 150 + i * 200; }
                 
-                const decor = choose(["skull", "bones", "moss"]);
-                add([sprite(decor), pos(dx, dy), z(1), opacity(0.7 + rand(0, 0.3))]);
+                add([sprite("skull"), pos(dx, dy), z(1), opacity(0.6)]);
             }
 
-            // Obstacles (more obstacles in later rooms)
-            for (let i = 0; i < 3 + lv + roomNum; i++) {
-                const ox = rand(100, CONFIG.MAP_WIDTH - 100);
-                const oy = rand(100, CONFIG.MAP_HEIGHT - 150);
-                const obstacleType = choose(["barrel", "crate", "crate"]);
-                
-                add([circle(15), pos(ox, oy + 12), color(0, 0, 0), opacity(0.3), anchor("center"), z(0)]);
+            // Obstacles (reduced count, no shadows)
+            const obstacleCount = Math.min(4, 2 + roomNum);
+            for (let i = 0; i < obstacleCount; i++) {
+                const ox = 150 + (i % 3) * 300 + rand(-50, 50);
+                const oy = 200 + Math.floor(i / 3) * 300 + rand(-50, 50);
                 add([
-                    sprite(obstacleType), pos(ox, oy),
+                    sprite("crate"), pos(ox, oy),
                     area({ shape: new Rect(vec2(-12, -12), 24, 24) }),
                     body({ isStatic: true }), anchor("center"), z(3), "obstacle"
                 ]);

@@ -109,98 +109,101 @@ export function spawnEnemy(enemyType = null, forceTier = null) {
 
     GS.enemies.push(e);
 
-    // Contact damage timer
+    // OPTIMIZATION: Throttle timers
     e.contactDamageTimer = 0;
+    e.aiUpdateTimer = Math.random() * 0.1; // Stagger AI updates
+    e.visualUpdateTimer = 0;
     
     e.onUpdate(() => {
         if (!GS.player || !e.exists()) return;
-        // Freeze during pause/boss dialogue
         if (GS.gamePaused || GS.gameFrozen) return;
         
+        const dt_ = dt();
+        
+        // CRITICAL: Movement and contact damage every frame (smooth + responsive)
         const distToPlayer = e.pos.dist(GS.player.pos);
         const dirToPlayer = GS.player.pos.sub(e.pos).unit();
         
-        // CONTACT DAMAGE CHECK - fixes bug where overlapping entities don't trigger collision
-        const contactRadius = (e.isBoss ? CONFIG.BOSS_SIZE : CONFIG.ENEMY_SIZE) / 2 + 12;
+        // Contact damage (always check)
+        const contactRadius = CONFIG.ENEMY_SIZE / 2 + 12;
         if (distToPlayer < contactRadius && GS.player.invuln <= 0) {
-            e.contactDamageTimer -= dt();
+            e.contactDamageTimer -= dt_;
             if (e.contactDamageTimer <= 0) {
-                // Deal contact damage
                 GS.player.hp -= e.damage;
-                GS.player.invuln = 0.5; // Shorter invuln for contact damage
+                GS.player.invuln = 0.5;
                 playSound('hit');
-                shake(e.isBoss ? 12 : 6);
-                
-                // Push player away
+                shake(6);
                 const pushDir = GS.player.pos.sub(e.pos).unit();
                 GS.player.pos = GS.player.pos.add(pushDir.scale(30));
-                
-                e.contactDamageTimer = 0.3; // Can damage again in 0.3 sec
-                
+                e.contactDamageTimer = 0.3;
                 if (GS.player.hp <= 0) {
                     playSound('gameover');
                     wait(0.5, () => go("gameover"));
                 }
             }
         } else {
-            e.contactDamageTimer = 0; // Reset timer when not in contact
+            e.contactDamageTimer = 0;
         }
         
+        // Movement every frame (smooth)
         if (e.behavior === "ranged") {
             rangedBehavior(e, distToPlayer, dirToPlayer);
         } else {
-            e.pos = e.pos.add(dirToPlayer.scale(e.speed * dt()));
+            e.pos = e.pos.add(dirToPlayer.scale(e.speed * dt_));
         }
         
-        const bounce = 1 + Math.sin(time() * 8) * 0.1;
-        e.scale = vec2(bounce, 1 / bounce);
-        
-        if (dirToPlayer.x < 0) e.flipX = true;
-        else if (dirToPlayer.x > 0) e.flipX = false;
-
+        // Clamp position
         e.pos.x = clamp(e.pos.x, CONFIG.WALL_THICKNESS + 20, CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20);
         e.pos.y = clamp(e.pos.y, CONFIG.WALL_THICKNESS + 20, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 20);
-
-        // HP bar width based on tier
-        const hpBarWidth = CONFIG.ENEMY_SIZE + 10 + ((e.tier || 1) - 1) * 8;
         
-        if (e.hpBg) {
-            e.hpBg.pos.x = e.pos.x;
-            e.hpBg.pos.y = e.pos.y - 22;
-        }
+        // HP bar position (every frame for smoothness)
+        const hpBarWidth = CONFIG.ENEMY_SIZE + 10 + ((e.tier || 1) - 1) * 8;
+        if (e.hpBg) { e.hpBg.pos.x = e.pos.x; e.hpBg.pos.y = e.pos.y - 22; }
         if (e.hpBar) {
-            const pct = Math.max(0, e.hp / e.maxHp);
             e.hpBar.pos.x = e.pos.x - hpBarWidth / 2;
             e.hpBar.pos.y = e.pos.y - 22;
-            e.hpBar.width = pct * hpBarWidth;
+        }
+        
+        // THROTTLED: Visual updates (10/sec instead of 60)
+        e.visualUpdateTimer += dt_;
+        if (e.visualUpdateTimer >= 0.1) {
+            e.visualUpdateTimer = 0;
             
-            // Color based on tier
-            if (e.tierColor) {
-                const tc = e.tierColor;
-                if (pct > 0.5) {
-                    e.hpBar.color = rgb(tc[0], tc[1], tc[2]);
-                } else if (pct > 0.25) {
-                    e.hpBar.color = rgb(Math.min(255, tc[0] + 50), Math.min(255, tc[1] + 50), tc[2]);
+            // Bounce animation
+            const bounce = 1 + Math.sin(time() * 8) * 0.1;
+            e.scale = vec2(bounce, 1 / bounce);
+            
+            // Flip direction
+            if (dirToPlayer.x < 0) e.flipX = true;
+            else if (dirToPlayer.x > 0) e.flipX = false;
+            
+            // HP bar color/width update
+            if (e.hpBar) {
+                const pct = Math.max(0, e.hp / e.maxHp);
+                e.hpBar.width = pct * hpBarWidth;
+                if (e.tierColor) {
+                    const tc = e.tierColor;
+                    e.hpBar.color = pct > 0.5 ? rgb(tc[0], tc[1], tc[2]) : 
+                                    pct > 0.25 ? rgb(Math.min(255, tc[0] + 50), Math.min(255, tc[1] + 50), tc[2]) : 
+                                    rgb(200, 100, 100);
+                } else if (e.behavior === "ranged") {
+                    e.hpBar.color = pct > 0.5 ? rgb(168, 85, 247) : pct > 0.25 ? rgb(200, 150, 200) : rgb(200, 100, 100);
                 } else {
-                    e.hpBar.color = rgb(200, 100, 100);
+                    e.hpBar.color = pct > 0.5 ? rgb(100, 200, 100) : pct > 0.25 ? rgb(200, 200, 100) : rgb(200, 100, 100);
                 }
-            } else if (e.behavior === "ranged") {
-                e.hpBar.color = pct > 0.5 ? rgb(168, 85, 247) : pct > 0.25 ? rgb(200, 150, 200) : rgb(200, 100, 100);
-            } else {
-                e.hpBar.color = pct > 0.5 ? rgb(100, 200, 100) : pct > 0.25 ? rgb(200, 200, 100) : rgb(200, 100, 100);
             }
-        }
-        
-        // Update tier glow position
-        if (e.tierGlow && e.tierGlow.exists()) {
-            e.tierGlow.pos = e.pos;
-            e.tierGlow.opacity = 0.2 + Math.sin(time() * 4) * 0.1;
-        }
-        
-        // Update name tag position
-        if (e.nameTag && e.nameTag.exists()) {
-            e.nameTag.pos.x = e.pos.x;
-            e.nameTag.pos.y = e.pos.y - 32;
+            
+            // Tier glow update
+            if (e.tierGlow && e.tierGlow.exists()) {
+                e.tierGlow.pos = e.pos;
+                e.tierGlow.opacity = 0.2 + Math.sin(time() * 4) * 0.1;
+            }
+            
+            // Name tag update
+            if (e.nameTag && e.nameTag.exists()) {
+                e.nameTag.pos.x = e.pos.x;
+                e.nameTag.pos.y = e.pos.y - 32;
+            }
         }
     });
 }

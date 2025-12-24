@@ -1,53 +1,58 @@
 // ==================== VISUAL EFFECTS ====================
-// Particle effects and visual feedback
+// Particle effects - OPTIMIZED: reduced particle counts
 
 export function createHitFX(p) {
-    for (let i = 0; i < 5; i++) {
+    // OPTIMIZED: 3 particles instead of 5
+    for (let i = 0; i < 3; i++) {
         const pt = add([
-            circle(rand(3, 6)), pos(p.x, p.y), color(255, 255, 100),
+            circle(rand(4, 7)), pos(p.x, p.y), color(255, 255, 100),
             opacity(1), anchor("center"), z(20),
-            { vx: rand(-150, 150), vy: rand(-150, 150) }
+            { vx: rand(-120, 120), vy: rand(-120, 120), life: 0.3 }
         ]);
         pt.onUpdate(() => {
             pt.pos.x += pt.vx * dt();
             pt.pos.y += pt.vy * dt();
-            pt.opacity -= dt() * 3;
-            if (pt.opacity <= 0) destroy(pt);
+            pt.life -= dt();
+            pt.opacity = pt.life / 0.3;
+            if (pt.life <= 0) destroy(pt);
         });
     }
 }
 
 export function createDeathFX(p, isBoss) {
-    const n = isBoss ? 20 : 12;
+    // OPTIMIZED: 10/6 particles instead of 20/12
+    const n = isBoss ? 10 : 6;
     for (let i = 0; i < n; i++) {
         const pt = add([
-            rect(rand(4, isBoss ? 15 : 10), rand(4, isBoss ? 15 : 10)),
+            rect(rand(5, isBoss ? 14 : 9), rand(5, isBoss ? 14 : 9)),
             pos(p.x, p.y), color(rand(200, 255), rand(50, 100), rand(80, 120)),
             opacity(1), anchor("center"), rotate(rand(0, 360)), z(20),
-            { vx: rand(-200, 200), vy: rand(-200, 200), rs: rand(-300, 300) }
+            { vx: rand(-180, 180), vy: rand(-180, 180), rs: rand(-250, 250), life: isBoss ? 0.6 : 0.4 }
         ]);
         pt.onUpdate(() => {
             pt.pos.x += pt.vx * dt();
             pt.pos.y += pt.vy * dt() + 100 * dt();
-            pt.opacity -= dt() * (isBoss ? 1.5 : 2);
             pt.angle += pt.rs * dt();
-            if (pt.opacity <= 0) destroy(pt);
+            pt.life -= dt();
+            pt.opacity = pt.life / (isBoss ? 0.6 : 0.4);
+            if (pt.life <= 0) destroy(pt);
         });
     }
 }
 
 export function createXPFX(p) {
-    for (let i = 0; i < 5; i++) {
+    // OPTIMIZED: 3 particles instead of 5
+    for (let i = 0; i < 3; i++) {
         const pt = add([
-            circle(rand(4, 8)), pos(p.x + rand(-20, 20), p.y + rand(-20, 20)),
+            circle(rand(5, 9)), pos(p.x + rand(-15, 15), p.y + rand(-15, 15)),
             color(255, 220, 100), opacity(1), anchor("center"), z(25),
-            { vy: -80, life: 0.6 }
+            { vy: -70, life: 0.5 }
         ]);
         pt.onUpdate(() => {
             pt.pos.y += pt.vy * dt();
-            pt.vy += 150 * dt();
+            pt.vy += 140 * dt();
             pt.life -= dt();
-            pt.opacity = pt.life / 0.6;
+            pt.opacity = pt.life / 0.5;
             if (pt.life <= 0) destroy(pt);
         });
     }
@@ -69,17 +74,19 @@ export function createLevelUpFX(playerPos) {
 }
 
 export function createProjectileFX(p) {
-    for (let i = 0; i < 8; i++) {
+    // OPTIMIZED: 4 particles instead of 8
+    for (let i = 0; i < 4; i++) {
         const pt = add([
-            circle(rand(3, 7)), pos(p.x, p.y), color(100, 200, 255),
+            circle(rand(4, 8)), pos(p.x, p.y), color(100, 200, 255),
             opacity(1), anchor("center"), z(20),
-            { vx: rand(-150, 150), vy: rand(-150, 150) }
+            { vx: rand(-120, 120), vy: rand(-120, 120), life: 0.25 }
         ]);
         pt.onUpdate(() => {
             pt.pos.x += pt.vx * dt();
             pt.pos.y += pt.vy * dt();
-            pt.opacity -= dt() * 4;
-            if (pt.opacity <= 0) destroy(pt);
+            pt.life -= dt();
+            pt.opacity = pt.life / 0.25;
+            if (pt.life <= 0) destroy(pt);
         });
     }
 }
