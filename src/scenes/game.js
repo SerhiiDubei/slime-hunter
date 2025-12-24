@@ -282,8 +282,8 @@ function spawnKey(p) {
         keyAnimTimer += dt();
         if (keyAnimTimer >= 0.1) {
             keyAnimTimer = 0;
-            k.pos.y = startY + Math.sin(time() * 4) * 5;
-            k.angle = Math.sin(time() * 2) * 10;
+        k.pos.y = startY + Math.sin(time() * 4) * 5;
+        k.angle = Math.sin(time() * 2) * 10;
         }
     });
     
@@ -307,9 +307,9 @@ function onRoomCleared() {
     
     // Update all doors visuals
     doors.forEach(door => {
-        if (door && door.exists()) {
-            door.use(sprite("doorOpen"));
-        }
+    if (door && door.exists()) {
+        door.use(sprite("doorOpen"));
+    }
     });
     
     // Update door texts
@@ -328,7 +328,7 @@ function onRoomCleared() {
                     } else if (targetRoom.cleared) {
                         dt.text = "✓";
                         dt.color = rgb(100, 200, 100);
-                    } else {
+        } else {
                         dt.text = "→";
                         dt.color = rgb(100, 255, 150);
                     }
@@ -402,7 +402,7 @@ export function createGameScene() {
             const roomShape = generateRoomShape(currentRoom.id + GS.currentLevel);
             const wc = [60 + lv * 10, 60, 100];
             
-            // ========== OPTIMIZATION: Batch render floor as single canvas ==========
+            // ========== CRITICAL: CHUNKED FLOOR GENERATION (non-blocking) ==========
             const floorCanvas = document.createElement('canvas');
             floorCanvas.width = CONFIG.MAP_WIDTH;
             floorCanvas.height = CONFIG.MAP_HEIGHT;
@@ -419,92 +419,141 @@ export function createGameScene() {
                 return floorSeed / 0x7fffffff;
             };
             
-            // Draw all tiles to canvas at once (OPTIMIZED: fewer cracks)
-            for (let gx = 0; gx < roomShape.width; gx++) {
-                for (let gy = 0; gy < roomShape.height; gy++) {
-                    const tileX = roomShape.offsetX + gx * 40;
-                    const tileY = roomShape.offsetY + gy * 40;
-                    const tileType = roomShape.grid[gy][gx];
-                    
-                    if (tileType === 1) {
-                        // Walkable floor tile
-                        const tileShade = 0.85 + floorRng() * 0.25;
-                        const r = Math.floor(bg[0] * tileShade);
-                        const g = Math.floor(bg[1] * tileShade);
-                        const b = Math.floor(bg[2] * tileShade);
-                        fctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                        fctx.fillRect(tileX, tileY, 40, 40);
+            // CHUNKED GENERATION: Draw tiles in small batches with pauses
+            let gx = 0, gy = 0;
+            const CHUNK_SIZE = 5; // Process 5x5 tiles per frame
+            const totalTiles = roomShape.width * roomShape.height;
+            let processedTiles = 0;
+            
+            const drawChunk = () => {
+                const startGx = gx;
+                const startGy = gy;
+                
+                // Draw a chunk of tiles
+                for (let cy = 0; cy < CHUNK_SIZE && gy < roomShape.height; cy++) {
+                    for (let cx = 0; cx < CHUNK_SIZE && gx < roomShape.width; cx++) {
+                        const tileX = roomShape.offsetX + gx * 40;
+                        const tileY = roomShape.offsetY + gy * 40;
+                        const tileType = roomShape.grid[gy][gx];
                         
-                        // Grid lines (subtle) - only every 2nd tile for performance
-                        if (gx % 2 === 0 && gy % 2 === 0) {
-                            fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
-                            fctx.lineWidth = 1;
-                            fctx.strokeRect(tileX, tileY, 40, 40);
+                        if (tileType === 1) {
+                            // Walkable floor tile
+                            const tileShade = 0.85 + floorRng() * 0.25;
+                            const r = Math.floor(bg[0] * tileShade);
+                            const g = Math.floor(bg[1] * tileShade);
+                            const b = Math.floor(bg[2] * tileShade);
+                            fctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                            fctx.fillRect(tileX, tileY, 40, 40);
+                            
+                            // Grid lines - only every 2nd tile
+                            if (gx % 2 === 0 && gy % 2 === 0) {
+                                fctx.strokeStyle = `rgba(${bg[0] + 20}, ${bg[1] + 20}, ${bg[2] + 30}, 0.15)`;
+                                fctx.lineWidth = 1;
+                                fctx.strokeRect(tileX, tileY, 40, 40);
+                            }
+                            
+                            // Random cracks (reduced)
+                            if (floorRng() < 0.02) {
+                                fctx.strokeStyle = `rgba(0, 0, 0, 0.3)`;
+                                fctx.beginPath();
+                                fctx.moveTo(tileX + 5, tileY + 10);
+                                fctx.lineTo(tileX + 20, tileY + 25);
+                                fctx.lineTo(tileX + 35, tileY + 20);
+                                fctx.stroke();
+                            }
+                        } else if (tileType === 2) {
+                            // Pillar
+                            fctx.fillStyle = `rgb(${50 + lv * 5}, ${45 + lv * 3}, ${60 + lv * 4})`;
+                            fctx.fillRect(tileX, tileY, 40, 40);
+                            fctx.fillStyle = `rgb(${70 + lv * 5}, ${65 + lv * 3}, ${85 + lv * 4})`;
+                            fctx.fillRect(tileX + 2, tileY + 2, 36, 36);
+                            fctx.fillStyle = `rgba(20, 20, 30, 0.4)`;
+                            fctx.fillRect(tileX, tileY + 32, 40, 8);
+                        } else {
+                            // Wall tile
+                            const grad = fctx.createLinearGradient(tileX, tileY, tileX, tileY + 40);
+                            grad.addColorStop(0, '#4a4a6a');
+                            grad.addColorStop(1, '#3a3a5a');
+                            fctx.fillStyle = grad;
+                            fctx.fillRect(tileX, tileY, 40, 40);
+                            fctx.strokeStyle = '#2a2a4a';
+                            fctx.lineWidth = 2;
+                            fctx.strokeRect(tileX, tileY, 40, 20);
+                            fctx.strokeRect(tileX, tileY + 20, 40, 20);
                         }
                         
-                        // Random cracks (FURTHER REDUCED: 0.02 instead of 0.04)
-                        if (floorRng() < 0.02) {
-                            fctx.strokeStyle = `rgba(0, 0, 0, 0.3)`;
-                            fctx.beginPath();
-                            fctx.moveTo(tileX + 5, tileY + 10);
-                            fctx.lineTo(tileX + 20, tileY + 25);
-                            fctx.lineTo(tileX + 35, tileY + 20);
-                            fctx.stroke();
+                        processedTiles++;
+                        gx++;
+                    }
+                    gx = startGx;
+                    gy++;
+                }
+                gx = startGx + CHUNK_SIZE;
+                if (gx >= roomShape.width) {
+                    gx = 0;
+                    gy += CHUNK_SIZE;
+                }
+                
+                // Continue if not done
+                if (gy < roomShape.height || (gy === roomShape.height && gx < roomShape.width)) {
+                    // Use setTimeout for non-blocking (allows browser to render)
+                    setTimeout(drawChunk, 0);
+                } else {
+                    // Done! Load sprite and add to scene
+                    const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
+                    loadSprite(floorSpriteName, floorCanvas.toDataURL());
+                    add([sprite(floorSpriteName), pos(0, 0), z(-100)]);
+                }
+            };
+            
+            // Start chunked generation
+            drawChunk();
+            
+            // CHUNKED: Add collision for walls and pillars (non-blocking)
+            let colGx = 0, colGy = 0;
+            const addCollisionChunk = () => {
+                const startColGx = colGx;
+                const startColGy = colGy;
+                
+                for (let cy = 0; cy < CHUNK_SIZE && colGy < roomShape.height; cy++) {
+                    for (let cx = 0; cx < CHUNK_SIZE && colGx < roomShape.width; cx++) {
+                        const tileX = roomShape.offsetX + colGx * 40;
+                        const tileY = roomShape.offsetY + colGy * 40;
+                        const tileType = roomShape.grid[colGy][colGx];
+                        
+                        if (tileType === 0 || tileType === 2) {
+                            // Wall or pillar - add collision only
+                            add([
+                                rect(40, 40), pos(tileX, tileY),
+                                area(), body({ isStatic: true }), opacity(0), 
+                                tileType === 2 ? "pillar" : "wall"
+                            ]);
                         }
-                    } else if (tileType === 2) {
-                        // Pillar - draw visually
-                        fctx.fillStyle = `rgb(${50 + lv * 5}, ${45 + lv * 3}, ${60 + lv * 4})`;
-                        fctx.fillRect(tileX, tileY, 40, 40);
-                        fctx.fillStyle = `rgb(${70 + lv * 5}, ${65 + lv * 3}, ${85 + lv * 4})`;
-                        fctx.fillRect(tileX + 2, tileY + 2, 36, 36);
-                        // Shadow
-                        fctx.fillStyle = `rgba(20, 20, 30, 0.4)`;
-                        fctx.fillRect(tileX, tileY + 32, 40, 8);
-                    } else {
-                        // Wall tile
-                        const grad = fctx.createLinearGradient(tileX, tileY, tileX, tileY + 40);
-                        grad.addColorStop(0, '#4a4a6a');
-                        grad.addColorStop(1, '#3a3a5a');
-                        fctx.fillStyle = grad;
-                        fctx.fillRect(tileX, tileY, 40, 40);
-                        fctx.strokeStyle = '#2a2a4a';
-                        fctx.lineWidth = 2;
-                        fctx.strokeRect(tileX, tileY, 40, 20);
-                        fctx.strokeRect(tileX, tileY + 20, 40, 20);
+                        
+                        colGx++;
                     }
+                    colGx = startColGx;
+                    colGy++;
                 }
-            }
-            
-            // Load the batched floor as a single sprite
-            const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
-            loadSprite(floorSpriteName, floorCanvas.toDataURL());
-            
-            // Add floor as single object (instead of 1000+ individual tiles)
-            add([sprite(floorSpriteName), pos(0, 0), z(-100)]);
-            
-            // Add collision for walls and pillars only (required for physics)
-            for (let gx = 0; gx < roomShape.width; gx++) {
-                for (let gy = 0; gy < roomShape.height; gy++) {
-                    const tileX = roomShape.offsetX + gx * 40;
-                    const tileY = roomShape.offsetY + gy * 40;
-                    const tileType = roomShape.grid[gy][gx];
-                    
-                    if (tileType === 0 || tileType === 2) {
-                        // Wall or pillar - add collision only
-                        add([
-                            rect(40, 40), pos(tileX, tileY),
-                            area(), body({ isStatic: true }), opacity(0), 
-                            tileType === 2 ? "pillar" : "wall"
-                        ]);
-                    }
+                colGx = startColGx + CHUNK_SIZE;
+                if (colGx >= roomShape.width) {
+                    colGx = 0;
+                    colGy += CHUNK_SIZE;
                 }
-            }
+                
+                if (colGy < roomShape.height || (colGy === roomShape.height && colGx < roomShape.width)) {
+                    setTimeout(addCollisionChunk, 0);
+                } else {
+                    // Done with collisions - add boundary walls
+                    add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+                    add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), area(), body({ isStatic: true }), opacity(0), "wall"]);
+                    add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+                    add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+                }
+            };
             
-            // Outer boundary walls (invisible collision)
-            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(CONFIG.MAP_WIDTH, 40), pos(0, CONFIG.MAP_HEIGHT - 40), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(40, CONFIG.MAP_HEIGHT), pos(0, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
-            add([rect(40, CONFIG.MAP_HEIGHT), pos(CONFIG.MAP_WIDTH - 40, 0), area(), body({ isStatic: true }), opacity(0), "wall"]);
+            // Start collision generation after a small delay
+            wait(0.1, () => addCollisionChunk());
 
             // ========== OPTIMIZATION: FURTHER REDUCED decorations ==========
             // Torches (reduced to 2 max, static only)
