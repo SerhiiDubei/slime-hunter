@@ -115,12 +115,13 @@ export function spawnKey(position, roomId, keyColor = null) {
         Logger.debug('🔑 spawnKey:COLOR_VALUES', { r, g, b, roomId });
         
         // Get Kaboom functions from window/globalThis (ES module context)
+        // NOTE: Do NOT check 'typeof pos' - pos is a Vec2, not a function!
         const addFn = (typeof window !== 'undefined' && typeof window.add === 'function') ? window.add :
                      (typeof globalThis !== 'undefined' && typeof globalThis.add === 'function') ? globalThis.add :
                      (typeof add === 'function') ? add : null;
         const posFn = (typeof window !== 'undefined' && typeof window.pos === 'function') ? window.pos :
                      (typeof globalThis !== 'undefined' && typeof globalThis.pos === 'function') ? globalThis.pos :
-                     (typeof pos === 'function') ? pos : null;
+                     null; // Don't check 'typeof pos' - pos is Vec2, not function!
         const spriteFn = (typeof window !== 'undefined' && typeof window.sprite === 'function') ? window.sprite :
                         (typeof globalThis !== 'undefined' && typeof globalThis.sprite === 'function') ? globalThis.sprite :
                         (typeof sprite === 'function') ? sprite : null;
