@@ -439,8 +439,8 @@ function spawnKey(p, roomId, keyColor = null) {
         keyAnimTimer += dt();
         if (keyAnimTimer >= 0.1) {
             keyAnimTimer = 0;
-            k.pos.y = startY + Math.sin(time() * 4) * 5;
-            k.angle = Math.sin(time() * 2) * 10;
+        k.pos.y = startY + Math.sin(time() * 4) * 5;
+        k.angle = Math.sin(time() * 2) * 10;
         }
     });
     
@@ -481,12 +481,12 @@ function onRoomCleared() {
     
     // Update door visuals
     doors.forEach(door => {
-        if (door && door.exists()) {
+    if (door && door.exists()) {
             const isBossDoor = door.targetRoomType === ROOM_TYPES.BOSS;
             const canOpen = isBossDoor ? allKeysCollected : GS.roomCleared;
             if (canOpen) {
-                door.use(sprite("doorOpen"));
-            }
+        door.use(sprite("doorOpen"));
+    }
         }
     });
     
@@ -509,11 +509,11 @@ function onRoomCleared() {
                     } else if (targetRoom.cleared) {
                         dt.text = "✓";
                         dt.color = rgb(100, 200, 100);
-                    } else {
+        } else {
                         dt.text = canOpen ? "→" : "🔒";
                         dt.color = canOpen ? rgb(100, 255, 150) : rgb(150, 150, 150);
-                    }
-                }
+        }
+    }
             }
         }
     });
@@ -717,7 +717,7 @@ export function createGameScene() {
                 perf.floorLoad = performance.now() - perfStep;
                 Logger.error('Failed to load floor sprite, using fallback', { error: error.message });
                 // Fallback: add simple background
-                add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
+                add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(bg[0], bg[1], bg[2]), z(-100), "floor"]);
             }
             
             // OPTIMIZED: Group collision objects - merge adjacent walls/pillars
@@ -839,7 +839,7 @@ export function createGameScene() {
                     body({ isStatic: true }), anchor("center"), z(3), "obstacle"
                 ]);
             }
-            
+
             perf.decorations = performance.now() - perfStep;
             
             perf.total = performance.now() - perfStart;
