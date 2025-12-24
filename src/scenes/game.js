@@ -180,9 +180,9 @@ function generateRoomShape(seed) {
             break;
     }
     
-    // Ensure center is always walkable (player spawn)
-    for (let dx = -3; dx <= 3; dx++) {
-        for (let dy = -3; dy <= 3; dy++) {
+    // Ensure center is always walkable (player spawn) - larger safe area
+    for (let dx = -5; dx <= 5; dx++) {
+        for (let dy = -5; dy <= 5; dy++) {
             const nx = centerX + dx;
             const ny = centerY + dy;
             if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH) {
@@ -191,12 +191,62 @@ function generateRoomShape(seed) {
         }
     }
     
+    // Ensure door areas are walkable (edges of map)
+    // Right edge
+    for (let y = centerY - 4; y <= centerY + 4; y++) {
+        for (let x = gridW - 5; x < gridW; x++) {
+            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
+        }
+    }
+    // Left edge
+    for (let y = centerY - 4; y <= centerY + 4; y++) {
+        for (let x = 0; x < 5; x++) {
+            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
+        }
+    }
+    // Top edge
+    for (let x = centerX - 4; x <= centerX + 4; x++) {
+        for (let y = 0; y < 5; y++) {
+            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
+        }
+    }
+    // Bottom edge
+    for (let x = centerX - 4; x <= centerX + 4; x++) {
+        for (let y = gridH - 5; y < gridH; y++) {
+            if (x >= 0 && x < gridW && y >= 0 && y < gridH) grid[y][x] = 1;
+        }
+    }
+    
+    // Add interior obstacles/pillars for more interesting combat (larger elements)
+    const numPillars = 2 + Math.floor(rng() * 3);
+    const pillars = [];
+    for (let i = 0; i < numPillars; i++) {
+        const px = margin + 5 + Math.floor(rng() * (gridW - margin * 2 - 10));
+        const py = margin + 5 + Math.floor(rng() * (gridH - margin * 2 - 10));
+        // Avoid center spawn area
+        if (Math.abs(px - centerX) < 6 && Math.abs(py - centerY) < 6) continue;
+        
+        // Larger pillar size (2x2 to 4x4)
+        const pillarSize = 2 + Math.floor(rng() * 3);
+        for (let dx = 0; dx < pillarSize; dx++) {
+            for (let dy = 0; dy < pillarSize; dy++) {
+                const nx = px + dx;
+                const ny = py + dy;
+                if (nx >= margin && nx < gridW - margin && ny >= margin && ny < gridH - margin) {
+                    grid[ny][nx] = 2; // 2 = pillar/obstacle
+                }
+            }
+        }
+        pillars.push({ x: px, y: py, size: pillarSize });
+    }
+    
     return {
         grid,
         width: gridW,
         height: gridH,
         offsetX: 0,
         offsetY: 0,
+        pillars,
         centerX: centerX * 40 + 20,
         centerY: centerY * 40 + 20,
     };
@@ -370,8 +420,9 @@ export function createGameScene() {
                 for (let gy = 0; gy < roomShape.height; gy++) {
                     const tileX = roomShape.offsetX + gx * 40;
                     const tileY = roomShape.offsetY + gy * 40;
+                    const tileType = roomShape.grid[gy][gx];
                     
-                    if (roomShape.grid[gy][gx] === 1) {
+                    if (tileType === 1) {
                         // Walkable floor
                         const tileShade = rand(0.85, 1.1);
                         add([
@@ -388,6 +439,31 @@ export function createGameScene() {
                         if (rand() < 0.03 + roomNum * 0.01) {
                             add([sprite("blood"), pos(tileX + rand(5, 30), tileY + rand(5, 30)), opacity(0.3 + lv * 0.1), z(-96), anchor("center")]);
                         }
+                    } else if (tileType === 2) {
+                        // Pillar/obstacle - larger blocking element
+                        // Stone base
+                        add([
+                            rect(40, 40), pos(tileX, tileY),
+                            color(50 + lv * 5, 45 + lv * 3, 60 + lv * 4),
+                            z(-40)
+                        ]);
+                        // Pillar top highlight
+                        add([
+                            rect(36, 36), pos(tileX + 2, tileY + 2),
+                            color(70 + lv * 5, 65 + lv * 3, 85 + lv * 4),
+                            z(-39)
+                        ]);
+                        // Shadow
+                        add([
+                            rect(40, 8), pos(tileX, tileY + 32),
+                            color(20, 20, 30), opacity(0.4),
+                            z(-38)
+                        ]);
+                        // Collision
+                        add([
+                            rect(40, 40), pos(tileX, tileY),
+                            color(...wc), area(), body({ isStatic: true }), opacity(0), "wall", "pillar"
+                        ]);
                     } else {
                         // Wall tile
                         add([sprite("wall"), pos(tileX, tileY), z(-50)]);
@@ -463,54 +539,71 @@ export function createGameScene() {
             const adjacentRooms = dungeon.getAdjacentRooms();
             
             adjacentRooms.forEach(({ room: targetRoom, direction, canEnter }) => {
-                let doorX, doorY, textOffsetX = 0, textOffsetY = -25;
+                let doorX, doorY, textOffsetX = 0, textOffsetY = -40;
                 
-                // Position door based on direction
+                // Check if boss room requires all other rooms cleared
+                const isBossDoor = targetRoom.type === ROOM_TYPES.BOSS;
+                const allRoomsCleared = dungeon.map.rooms
+                    .filter(r => r.type !== ROOM_TYPES.BOSS)
+                    .every(r => r.cleared);
+                const bossAccessible = !isBossDoor || allRoomsCleared;
+                
+                // Position door based on direction (with larger offset for visibility)
                 switch (direction) {
                     case 'right':
-                        doorX = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20;
+                        doorX = CONFIG.MAP_WIDTH - 80;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                         break;
                     case 'left':
-                        doorX = CONFIG.WALL_THICKNESS + 20;
+                        doorX = 80;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                         break;
                     case 'up':
                         doorX = CONFIG.MAP_WIDTH / 2;
-                        doorY = CONFIG.WALL_THICKNESS + 20;
-                        textOffsetY = 25;
+                        doorY = 80;
+                        textOffsetY = 45;
                         break;
                     case 'down':
                         doorX = CONFIG.MAP_WIDTH / 2;
-                        doorY = CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 20;
-                        textOffsetY = -25;
+                        doorY = CONFIG.MAP_HEIGHT - 80;
+                        textOffsetY = -40;
                         break;
                     default:
-                        doorX = CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 20;
+                        doorX = CONFIG.MAP_WIDTH - 80;
                         doorY = CONFIG.MAP_HEIGHT / 2;
                 }
                 
-                // Door sprite
-                const doorSprite = currentRoom.cleared ? "doorOpen" : "doorClosed";
+                // Door sprite - only open if room is cleared and (not boss or all rooms cleared)
+                const canOpenDoor = currentRoom.cleared && bossAccessible;
+                const doorSprite = canOpenDoor ? "doorOpen" : "doorClosed";
                 const door = add([
                     sprite(doorSprite), 
                     pos(doorX, doorY), 
                     anchor("center"), 
-                    area({ shape: new Rect(vec2(-15, -20), 30, 40) }), 
+                    area({ shape: new Rect(vec2(-24, -36), 48, 72) }), // Larger hitbox
                     z(2), 
-                    { targetRoomId: targetRoom.id, direction },
+                    scale(1.2), // Slightly larger door
+                    { targetRoomId: targetRoom.id, direction, isBossDoor, bossAccessible },
                     "door"
                 ]);
                 doors.push(door);
                 
-                // Door label - show room type
+                // Door label - show room type with larger text
                 let label = "🔒";
                 let labelColor = rgb(255, 100, 100);
                 
                 if (currentRoom.cleared) {
-                    if (targetRoom.type === ROOM_TYPES.BOSS) {
-                        label = "💀";
-                        labelColor = rgb(255, 50, 50);
+                    if (isBossDoor) {
+                        if (allRoomsCleared) {
+                            label = "💀 BOSS";
+                            labelColor = rgb(255, 50, 50);
+                        } else {
+                            // Show how many rooms left
+                            const roomsLeft = dungeon.map.rooms
+                                .filter(r => r.type !== ROOM_TYPES.BOSS && !r.cleared).length;
+                            label = `🔒 ${roomsLeft}`;
+                            labelColor = rgb(255, 100, 100);
+                        }
                     } else if (targetRoom.type === ROOM_TYPES.TREASURE) {
                         label = "💎";
                         labelColor = rgb(255, 220, 100);
@@ -527,7 +620,7 @@ export function createGameScene() {
                 }
                 
                 const doorTxt = add([
-                    text(label, { size: 16 }), 
+                    text(label, { size: 18, font: "sink" }), 
                     pos(doorX + textOffsetX, doorY + textOffsetY), 
                     anchor("center"), 
                     color(labelColor), 
@@ -646,6 +739,27 @@ export function createGameScene() {
                     
                     const targetRoom = dungeon.getRoom(targetRoomId);
                     if (!targetRoom) return;
+                    
+                    // Check boss door access - need to clear all other rooms first
+                    if (doorObj.isBossDoor && !doorObj.bossAccessible) {
+                        const roomsLeft = dungeon.map.rooms
+                            .filter(r => r.type !== ROOM_TYPES.BOSS && !r.cleared).length;
+                        // Show message
+                        const msg = add([
+                            text(`Clear ${roomsLeft} more room${roomsLeft > 1 ? 's' : ''} first!`, { size: 20 }),
+                            pos(width() / 2, height() / 2 - 50),
+                            anchor("center"),
+                            color(255, 100, 100),
+                            fixed(),
+                            z(1000),
+                            lifespan(2),
+                            opacity(1),
+                        ]);
+                        msg.onUpdate(() => {
+                            msg.opacity = Math.max(0, msg.opacity - dt() * 0.5);
+                        });
+                        return;
+                    }
                     
                     Logger.debug('Going through door', { 
                         from: currentRoom.id, 

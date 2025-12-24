@@ -550,24 +550,106 @@ function makeKey() {
     return canvas.toDataURL();
 }
 
-// Door
+// Door - Gothic style with arch
 function makeDoor(open) {
-    const { canvas, ctx } = createCanvas(40, 60);
-    ctx.fillStyle = '#5d4e37';
-    ctx.fillRect(0, 0, 40, 60);
-    ctx.fillStyle = open ? '#27ae60' : '#8b4513';
-    ctx.fillRect(4, 4, 32, 52);
-    ctx.fillStyle = open ? '#2ecc71' : '#6d3610';
-    ctx.fillRect(8, 8, 24, 20);
-    ctx.fillRect(8, 32, 24, 20);
-    ctx.fillStyle = open ? '#f1c40f' : '#7f8c8d';
+    const { canvas, ctx } = createCanvas(48, 72);
+    
+    // Stone frame
+    ctx.fillStyle = '#3d3d3d';
+    ctx.fillRect(0, 0, 48, 72);
+    
+    // Inner stone
+    ctx.fillStyle = '#555555';
+    ctx.fillRect(3, 3, 42, 66);
+    
+    // Gothic arch shape
+    ctx.fillStyle = open ? '#1a4731' : '#2a1a0a';
     ctx.beginPath();
-    ctx.arc(28, 30, 3, 0, Math.PI * 2);
+    ctx.moveTo(6, 68);
+    ctx.lineTo(6, 28);
+    ctx.quadraticCurveTo(6, 8, 24, 6);
+    ctx.quadraticCurveTo(42, 8, 42, 28);
+    ctx.lineTo(42, 68);
+    ctx.closePath();
     ctx.fill();
+    
+    // Door panels
+    ctx.fillStyle = open ? '#27ae60' : '#4a3520';
+    ctx.beginPath();
+    ctx.moveTo(10, 66);
+    ctx.lineTo(10, 30);
+    ctx.quadraticCurveTo(10, 14, 24, 12);
+    ctx.quadraticCurveTo(38, 14, 38, 30);
+    ctx.lineTo(38, 66);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Wood grain / panel lines
+    ctx.strokeStyle = open ? '#2ecc71' : '#3d2815';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(24, 12);
+    ctx.lineTo(24, 66);
+    ctx.moveTo(10, 35);
+    ctx.lineTo(38, 35);
+    ctx.stroke();
+    
+    // Metal studs
+    ctx.fillStyle = open ? '#f1c40f' : '#666666';
+    [[14, 22], [34, 22], [14, 50], [34, 50]].forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // Door handle/ring
+    ctx.strokeStyle = open ? '#f39c12' : '#888888';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(30, 42, 5, 0, Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = open ? '#f39c12' : '#888888';
+    ctx.beginPath();
+    ctx.arc(30, 37, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Glow effect for open door
     if (open) {
-        ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
-        ctx.fillRect(0, 0, 40, 60);
+        const glow = ctx.createRadialGradient(24, 36, 5, 24, 36, 40);
+        glow.addColorStop(0, 'rgba(46, 204, 113, 0.4)');
+        glow.addColorStop(1, 'rgba(46, 204, 113, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, 48, 72);
+        
+        // Portal effect inside
+        ctx.fillStyle = 'rgba(46, 204, 113, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(12, 64);
+        ctx.lineTo(12, 32);
+        ctx.quadraticCurveTo(12, 16, 24, 14);
+        ctx.quadraticCurveTo(36, 16, 36, 32);
+        ctx.lineTo(36, 64);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        // Lock/chains for closed door
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(18, 38);
+        ctx.lineTo(30, 38);
+        ctx.stroke();
+        
+        // Padlock
+        ctx.fillStyle = '#666';
+        ctx.fillRect(21, 36, 6, 8);
+        ctx.strokeStyle = '#777';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(24, 36, 3, Math.PI, 0);
+        ctx.stroke();
     }
+    
     return canvas.toDataURL();
 }
 

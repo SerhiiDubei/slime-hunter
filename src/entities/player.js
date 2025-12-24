@@ -97,7 +97,7 @@ export function setupPlayerMovement(p) {
             // Check if stamina just ran out - apply exhaustion penalty
             if (p.stamina <= 0) {
                 p.staminaExhausted = true;
-                p.exhaustedTimer = 2.0; // 2 seconds of reduced speed
+                p.exhaustedTimer = 1.0; // 1 second of reduced speed
             }
         } else {
             p.sprinting = false;
