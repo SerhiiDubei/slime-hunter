@@ -50,7 +50,11 @@ function getKeyColor(roomId) {
  */
 export function spawnKey(position, roomId, keyColor = null) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:ENTRY',message:'spawnKey called',data:{position:position?{x:position.x,y:position.y}:null,roomId,keyColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    Logger.info('🔑 spawnKey:ENTRY', { 
+        position: position ? { x: position.x, y: position.y } : null,
+        roomId,
+        keyColor
+    });
     // #endregion
     
     try {
@@ -58,7 +62,7 @@ export function spawnKey(position, roomId, keyColor = null) {
         if (!position || (position.x === undefined && position.pos === undefined)) {
             Logger.error('CRITICAL: Invalid position for spawnKey', { position, roomId, keyColor });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:ERROR',message:'Invalid position',data:{position,roomId,keyColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            Logger.error('🔑 spawnKey:ERROR - Invalid position', { position, roomId, keyColor });
             // #endregion
             return;
         }
@@ -69,7 +73,7 @@ export function spawnKey(position, roomId, keyColor = null) {
         if (roomId === undefined || roomId === null) {
             Logger.error('CRITICAL: Invalid roomId for spawnKey', { position: pos, roomId, keyColor });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:ERROR',message:'Invalid roomId',data:{pos,roomId,keyColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            Logger.error('🔑 spawnKey:ERROR - Invalid roomId', { pos, roomId, keyColor });
             // #endregion
             return;
         }
@@ -85,7 +89,11 @@ export function spawnKey(position, roomId, keyColor = null) {
         }
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:COLOR',message:'Key color determined',data:{keyColorArray,roomId,keyColorProvided:!!keyColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        Logger.debug('🔑 spawnKey:COLOR', { 
+            keyColorArray, 
+            roomId, 
+            keyColorProvided: !!keyColor 
+        });
         // #endregion
         
         if (!keyColorArray || !Array.isArray(keyColorArray) || keyColorArray.length < 3) {
@@ -128,7 +136,11 @@ export function spawnKey(position, roomId, keyColor = null) {
         ]);
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:SUCCESS',message:'Key spawned successfully',data:{roomId,keyColorArray,position:{x:pos.x,y:pos.y}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        Logger.info('🔑 spawnKey:SUCCESS', { 
+            roomId, 
+            keyColorArray, 
+            position: { x: pos.x, y: pos.y } 
+        });
         // #endregion
     } catch (error) {
         Logger.error('CRITICAL: spawnKey failed', {
@@ -139,7 +151,13 @@ export function spawnKey(position, roomId, keyColor = null) {
             keyColor
         });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:spawnKey:EXCEPTION',message:'Exception in spawnKey',data:{error:error.message,stack:error.stack,position,roomId,keyColor},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        Logger.error('🔑 spawnKey:EXCEPTION', { 
+            error: error.message,
+            stack: error.stack,
+            position,
+            roomId,
+            keyColor
+        });
         // #endregion
     }
 }
@@ -165,7 +183,12 @@ export function checkAllKeysCollected(dungeon) {
     );
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:checkAllKeysCollected:ROOMS',message:'Required rooms calculated',data:{totalRooms:allRooms.length,requiredRooms:requiredRooms.length,requiredRoomIds:requiredRooms.map(r=>r.id),collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    Logger.debug('🔑 checkAllKeysCollected:ROOMS', { 
+        totalRooms: allRooms.length,
+        requiredRooms: requiredRooms.length,
+        requiredRoomIds: requiredRooms.map(r => r.id),
+        collectedKeys: GS.collectedKeys
+    });
     // #endregion
     
     // Check if all required rooms have their keys collected
@@ -173,14 +196,22 @@ export function checkAllKeysCollected(dungeon) {
         const hasKey = GS.collectedKeys.includes(room.id);
         // #region agent log
         if (!hasKey) {
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:checkAllKeysCollected:MISSING',message:'Missing key for room',data:{roomId:room.id,roomType:room.type,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            Logger.debug('🔑 checkAllKeysCollected:MISSING', { 
+                roomId: room.id,
+                roomType: room.type,
+                collectedKeys: GS.collectedKeys
+            });
         }
         // #endregion
         return hasKey;
     });
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:checkAllKeysCollected:RESULT',message:'All keys check result',data:{allCollected,requiredCount:requiredRooms.length,collectedCount:GS.collectedKeys.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    Logger.debug('🔑 checkAllKeysCollected:RESULT', { 
+        allCollected,
+        requiredCount: requiredRooms.length,
+        collectedCount: GS.collectedKeys.length
+    });
     // #endregion
     
     return allCollected;
@@ -203,7 +234,7 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
         if (roomId === undefined || roomId === null) {
             Logger.warn('Key without roomId!', { key: keyObj });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:ERROR',message:'Key missing roomId',data:{keyObj},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            Logger.warn('🔑 collectKey:ERROR - Key missing roomId', { keyObj });
             // #endregion
             return;
         }
@@ -212,7 +243,7 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
         if (GS.collectedKeys.includes(roomId)) {
             Logger.debug('Key already collected', { roomId });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:DUPLICATE',message:'Key already collected',data:{roomId,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            Logger.debug('🔑 collectKey:DUPLICATE', { roomId, collectedKeys: GS.collectedKeys });
             // #endregion
             return;
         }
@@ -222,7 +253,10 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
         GS.hasKey = true; // Legacy compatibility
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:ADDED',message:'Key added to collection',data:{roomId,newCollectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        Logger.info('🔑 collectKey:ADDED', { 
+            roomId, 
+            newCollectedKeys: GS.collectedKeys 
+        });
         // #endregion
         
         playSound('key');
@@ -241,7 +275,11 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
         }
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:SUCCESS',message:'Key collection complete',data:{roomId,allKeysCollected,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        Logger.info('🔑 collectKey:SUCCESS', { 
+            roomId, 
+            allKeysCollected, 
+            collectedKeys: GS.collectedKeys 
+        });
         // #endregion
     } catch (error) {
         Logger.error('Key collection error', { 
@@ -250,7 +288,11 @@ export function collectKey(keyObj, dungeon, doors, doorTexts) {
             keyObj
         });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:collectKey:EXCEPTION',message:'Exception in collectKey',data:{error:error.message,stack:error.stack,keyObj},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        Logger.error('🔑 collectKey:EXCEPTION', { 
+            error: error.message,
+            stack: error.stack,
+            keyObj
+        });
         // #endregion
     }
 }
@@ -280,7 +322,7 @@ export function updateBossDoorVisuals(doors, doorTexts, allKeysCollected) {
     });
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:updateBossDoorVisuals:SUCCESS',message:'Boss door visuals updated',data:{allKeysCollected},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    Logger.debug('🔑 updateBossDoorVisuals:SUCCESS', { allKeysCollected });
     // #endregion
 }
 
@@ -293,7 +335,12 @@ export function updateBossDoorVisuals(doors, doorTexts, allKeysCollected) {
  */
 export function canEnterDoor(targetRoom, currentRoom, dungeon) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:canEnterDoor:ENTRY',message:'Checking door access',data:{targetRoomId:targetRoom?.id,targetRoomType:targetRoom?.type,currentRoomId:currentRoom?.id,currentRoomCleared:currentRoom?.cleared},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+    Logger.debug('🔑 canEnterDoor:ENTRY', { 
+        targetRoomId: targetRoom?.id,
+        targetRoomType: targetRoom?.type,
+        currentRoomId: currentRoom?.id,
+        currentRoomCleared: currentRoom?.cleared
+    });
     // #endregion
     
     if (!targetRoom || !currentRoom) {
@@ -305,7 +352,12 @@ export function canEnterDoor(targetRoom, currentRoom, dungeon) {
     const canEnter = isBossDoor ? allKeysCollected : currentRoom.cleared;
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'keysDoors.js:canEnterDoor:RESULT',message:'Door access check result',data:{canEnter,isBossDoor,allKeysCollected,currentRoomCleared:currentRoom.cleared},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+    Logger.debug('🔑 canEnterDoor:RESULT', { 
+        canEnter,
+        isBossDoor,
+        allKeysCollected,
+        currentRoomCleared: currentRoom.cleared
+    });
     // #endregion
     
     return {

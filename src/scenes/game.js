@@ -403,7 +403,11 @@ function distributeEnemyWeight(totalWeight, level) {
 // Called when all room enemies are killed
 function onRoomCleared() {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:ENTRY',message:'onRoomCleared called',data:{currentRoom:GS.currentRoom,level:GS.currentLevel,roomCleared:GS.roomCleared},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+    Logger.debug('🔑 onRoomCleared:ENTRY', { 
+        currentRoom: GS.currentRoom, 
+        level: GS.currentLevel, 
+        roomCleared: GS.roomCleared 
+    });
     // #endregion
     
     Logger.info('Room cleared!', { room: GS.currentRoom, level: GS.currentLevel });
@@ -413,7 +417,10 @@ function onRoomCleared() {
     // Mark room as cleared in dungeon
     const dungeon = GS.dungeon;
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:DUNGEON',message:'Dungeon state',data:{dungeon:!!dungeon,currentRoomId:dungeon?.currentRoomId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+    Logger.debug('🔑 onRoomCleared:DUNGEON', { 
+        dungeon: !!dungeon, 
+        currentRoomId: dungeon?.currentRoomId 
+    });
     // #endregion
     
     if (dungeon) {
@@ -423,31 +430,52 @@ function onRoomCleared() {
     const currentRoom = dungeon ? dungeon.getCurrentRoom() : null;
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:CURRENT_ROOM',message:'Current room data',data:{currentRoom:currentRoom?{id:currentRoom.id,type:currentRoom.type,cleared:currentRoom.cleared}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+    Logger.debug('🔑 onRoomCleared:CURRENT_ROOM', { 
+        currentRoom: currentRoom ? {
+            id: currentRoom.id,
+            type: currentRoom.type,
+            cleared: currentRoom.cleared
+        } : null 
+    });
     // #endregion
     
     // Spawn key in non-boss, non-start rooms (if not already collected)
     if (!currentRoom) {
         Logger.error('CRITICAL: currentRoom is null in onRoomCleared', { dungeon: !!dungeon });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:ERROR',message:'currentRoom is null',data:{dungeon:!!dungeon},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+        Logger.error('🔑 onRoomCleared:ERROR - currentRoom is null', { dungeon: !!dungeon });
         // #endregion
         return;
     }
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:ROOM_TYPE_CHECK',message:'Checking room type for key spawn',data:{roomType:currentRoom.type,isBoss:currentRoom.type===ROOM_TYPES.BOSS,isStart:currentRoom.type===ROOM_TYPES.START,roomId:currentRoom.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+    Logger.debug('🔑 onRoomCleared:ROOM_TYPE_CHECK', { 
+        roomType: currentRoom.type,
+        isBoss: currentRoom.type === ROOM_TYPES.BOSS,
+        isStart: currentRoom.type === ROOM_TYPES.START,
+        roomId: currentRoom.id,
+        allRoomTypes: Object.values(ROOM_TYPES)
+    });
     // #endregion
     
     if (currentRoom.type !== ROOM_TYPES.BOSS && currentRoom.type !== ROOM_TYPES.START) {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:KEY_CHECK',message:'Checking if key already collected',data:{roomId:currentRoom.id,collectedKeys:GS.collectedKeys,alreadyCollected:GS.collectedKeys.includes(currentRoom.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+        Logger.debug('🔑 onRoomCleared:KEY_CHECK', { 
+            roomId: currentRoom.id,
+            collectedKeys: GS.collectedKeys,
+            alreadyCollected: GS.collectedKeys.includes(currentRoom.id)
+        });
         // #endregion
         
         if (!GS.collectedKeys.includes(currentRoom.id)) {
             const p = GS.player;
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:PLAYER_CHECK',message:'Checking player for key spawn',data:{player:!!p,exists:p?.exists(),hasPos:!!p?.pos,playerPos:p?.pos?{x:p.pos.x,y:p.pos.y}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+            Logger.debug('🔑 onRoomCleared:PLAYER_CHECK', { 
+                player: !!p,
+                exists: p?.exists(),
+                hasPos: !!p?.pos,
+                playerPos: p?.pos ? { x: p.pos.x, y: p.pos.y } : null
+            });
             // #endregion
             
             if (p && p.exists() && p.pos) {
@@ -458,17 +486,27 @@ function onRoomCleared() {
                         roomId: currentRoom.id 
                     });
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:ERROR',message:'Invalid roomId',data:{currentRoom,roomId:currentRoom.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+                    Logger.error('🔑 onRoomCleared:ERROR - Invalid roomId', { 
+                        currentRoom, 
+                        roomId: currentRoom.id 
+                    });
                     // #endregion
                 } else {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:SPAWN_SCHEDULED',message:'Scheduling key spawn',data:{roomId,playerPos:{x:p.pos.x,y:p.pos.y},delay:0.5},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+                    Logger.info('🔑 onRoomCleared:SPAWN_SCHEDULED', { 
+                        roomId, 
+                        playerPos: { x: p.pos.x, y: p.pos.y }, 
+                        delay: 0.5 
+                    });
                     // #endregion
                     
                     wait(0.5, () => {
                         try {
                             // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:SPAWN_KEY',message:'Spawning key after room clear',data:{roomId,playerPos:{x:p.pos.x,y:p.pos.y}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                            Logger.info('🔑 onRoomCleared:SPAWN_KEY - Calling spawnKey', { 
+                                roomId, 
+                                playerPos: { x: p.pos.x, y: p.pos.y } 
+                            });
                             // #endregion
                             spawnKey(vec2(p.pos.x, p.pos.y - 60), roomId);
                         } catch (error) {
@@ -479,7 +517,12 @@ function onRoomCleared() {
                                 playerPos: p.pos
                             });
                             // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:SPAWN_ERROR',message:'Error spawning key',data:{error:error.message,stack:error.stack,roomId,playerPos:p.pos},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                            Logger.error('🔑 onRoomCleared:SPAWN_ERROR', { 
+                                error: error.message,
+                                stack: error.stack,
+                                roomId,
+                                playerPos: p.pos
+                            });
                             // #endregion
                         }
                     });
@@ -489,19 +532,30 @@ function onRoomCleared() {
                     player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
                 });
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:PLAYER_INVALID',message:'Player invalid, cannot spawn key',data:{player:!!p,exists:p?.exists(),hasPos:!!p?.pos},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+                Logger.warn('🔑 onRoomCleared:PLAYER_INVALID', { 
+                    player: !!p,
+                    exists: p?.exists(),
+                    hasPos: !!p?.pos
+                });
                 // #endregion
             }
         } else {
             Logger.info('Key already collected for this room', { roomId: currentRoom.id });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:KEY_ALREADY_COLLECTED',message:'Key already collected, skipping spawn',data:{roomId:currentRoom.id,collectedKeys:GS.collectedKeys},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+            Logger.info('🔑 onRoomCleared:KEY_ALREADY_COLLECTED', { 
+                roomId: currentRoom.id,
+                collectedKeys: GS.collectedKeys
+            });
             // #endregion
         }
     } else {
         Logger.info('Room is BOSS or START, no key spawn', { roomType: currentRoom.type });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:NO_KEY_SPAWN',message:'Room is BOSS or START, skipping key spawn',data:{roomType:currentRoom.type,roomId:currentRoom.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'L'})}).catch(()=>{});
+        Logger.info('🔑 onRoomCleared:NO_KEY_SPAWN', { 
+            roomType: currentRoom.type,
+            roomId: currentRoom.id,
+            reason: currentRoom.type === ROOM_TYPES.BOSS ? 'BOSS room' : 'START room'
+        });
         // #endregion
     }
     
@@ -509,7 +563,11 @@ function onRoomCleared() {
     const allKeysCollected = checkAllKeysCollected(dungeon);
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onRoomCleared:KEYS_CHECK',message:'Checking keys after room clear',data:{allKeysCollected,collectedKeys:GS.collectedKeys,currentRoomId:currentRoom?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+    Logger.debug('🔑 onRoomCleared:KEYS_CHECK', { 
+        allKeysCollected,
+        collectedKeys: GS.collectedKeys,
+        currentRoomId: currentRoom?.id
+    });
     // #endregion
     
     // Update door visuals using centralized function
@@ -1133,35 +1191,28 @@ export function createGameScene() {
                 }
                 
                 // Check if room is cleared (all enemies killed)
-                // #region agent log
-                roomClearCheckTimer += dt();
-                if (roomClearCheckTimer >= 1.0) {
-                    roomClearCheckTimer = 0;
-                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_STATUS',message:'Room clear status check',data:{roomCleared:GS.roomCleared,isBossRoom,roomEnemiesKilled:GS.roomEnemiesKilled,roomEnemyCount:GS.roomEnemyCount,aliveEnemies:GS.enemies.filter(e=>e&&e.exists()).length,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
-                }
-                // #endregion
-                
+                // Check if room is cleared (all enemies killed)
                 if (!GS.roomCleared && !isBossRoom) {
                     const aliveEnemies = GS.enemies.filter(e => e && e.exists());
                     const shouldClear = GS.roomEnemiesKilled >= GS.roomEnemyCount && aliveEnemies.length === 0;
                     
                     // #region agent log
                     if (shouldClear) {
-                        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_CHECK',message:'Room clear conditions met',data:{roomEnemiesKilled:GS.roomEnemiesKilled,roomEnemyCount:GS.roomEnemyCount,aliveEnemies:aliveEnemies.length,isBossRoom,roomCleared:GS.roomCleared,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
+                        Logger.info('🔑 onUpdate:ROOM_CLEAR_CHECK - Conditions met!', { 
+                            roomEnemiesKilled: GS.roomEnemiesKilled,
+                            roomEnemyCount: GS.roomEnemyCount,
+                            aliveEnemies: aliveEnemies.length,
+                            isBossRoom,
+                            roomCleared: GS.roomCleared,
+                            currentRoomId: currentRoom?.id,
+                            currentRoomType: currentRoom?.type
+                        });
                     }
                     // #endregion
                     
                     if (shouldClear) {
                         onRoomCleared();
                     }
-                } else {
-                    // #region agent log
-                    alreadyClearedTimer += dt();
-                    if (alreadyClearedTimer >= 5.0) {
-                        alreadyClearedTimer = 0;
-                        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:onUpdate:ROOM_CLEAR_SKIP',message:'Room clear check skipped',data:{roomCleared:GS.roomCleared,isBossRoom,currentRoomId:currentRoom?.id,currentRoomType:currentRoom?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'M'})}).catch(()=>{});
-                    }
-                    // #endregion
                 }
             });
 
@@ -1257,7 +1308,11 @@ export function createGameScene() {
                     
                     // Check if entering boss room and boss is defeated
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:doorCollision:BOSS_CHECK',message:'Checking boss room entry',data:{targetRoomType:targetRoom.type,targetRoomCleared:targetRoom.cleared,currentLevel:GS.currentLevel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+                    Logger.debug('🔑 doorCollision:BOSS_CHECK', { 
+                        targetRoomType: targetRoom.type,
+                        targetRoomCleared: targetRoom.cleared,
+                        currentLevel: GS.currentLevel
+                    });
                     // #endregion
                     if (targetRoom.type === ROOM_TYPES.BOSS && targetRoom.cleared) {
                         // Level complete!
