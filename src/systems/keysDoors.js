@@ -114,10 +114,20 @@ export function spawnKey(position, roomId, keyColor = null) {
         
         Logger.debug('🔑 spawnKey:COLOR_VALUES', { r, g, b, roomId });
         
+        // Check if color function is available
+        if (typeof color !== 'function') {
+            Logger.error('🔑 spawnKey:COLOR_NOT_FUNCTION', { 
+                colorType: typeof color,
+                colorValue: color,
+                global: typeof window !== 'undefined' ? window.color : 'no window'
+            });
+            throw new Error('color() function is not available. Is Kaboom initialized with global: true?');
+        }
+        
         // Create key sprite with color
         let k;
         try {
-            Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b });
+            Logger.debug('🔑 spawnKey:CREATING_KEY_SPRITE', { pos: { x: pos.x, y: pos.y }, r, g, b, colorIsFunction: typeof color === 'function' });
             k = add([
                 sprite("key"), 
                 pos(pos), 
@@ -134,7 +144,8 @@ export function spawnKey(position, roomId, keyColor = null) {
             Logger.error('🔑 spawnKey:SPRITE_CREATION_ERROR', { 
                 error: spriteError.message,
                 stack: spriteError.stack,
-                r, g, b, pos
+                r, g, b, pos,
+                colorType: typeof color
             });
             throw spriteError;
         }
@@ -157,22 +168,27 @@ export function spawnKey(position, roomId, keyColor = null) {
         
         // OPTIMIZED: Colored glow matching key color
         try {
-            Logger.debug('🔑 spawnKey:CREATING_GLOW', { r, g, b, pos: { x: pos.x, y: pos.y } });
-            add([
-                circle(25), 
-                pos(pos), 
-                color(r, g, b), 
-                opacity(0.3), 
-                anchor("center"), 
-                z(4), 
-                "keyPart"
-            ]);
-            Logger.debug('🔑 spawnKey:GLOW_CREATED');
+            Logger.debug('🔑 spawnKey:CREATING_GLOW', { r, g, b, pos: { x: pos.x, y: pos.y }, colorIsFunction: typeof color === 'function' });
+            if (typeof color !== 'function') {
+                Logger.warn('🔑 spawnKey:GLOW_SKIP - color not available');
+            } else {
+                add([
+                    circle(25), 
+                    pos(pos), 
+                    color(r, g, b), 
+                    opacity(0.3), 
+                    anchor("center"), 
+                    z(4), 
+                    "keyPart"
+                ]);
+                Logger.debug('🔑 spawnKey:GLOW_CREATED');
+            }
         } catch (glowError) {
             Logger.error('🔑 spawnKey:GLOW_CREATION_ERROR', { 
                 error: glowError.message,
                 stack: glowError.stack,
-                r, g, b, pos
+                r, g, b, pos,
+                colorType: typeof color
             });
             // Don't throw - glow is optional
         }
