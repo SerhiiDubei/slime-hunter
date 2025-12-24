@@ -398,15 +398,32 @@ export function createGameScene() {
                 Math.max(10, baseBg[2] - roomDarken)
             ];
 
+            // ========== PERFORMANCE PROFILING ==========
+            const perf = {
+                roomShape: 0,
+                floorCanvas: 0,
+                floorDraw: 0,
+                floorLoad: 0,
+                collisions: 0,
+                decorations: 0,
+                total: 0
+            };
+            const perfStart = performance.now();
+            
             // Generate room shape (irregular)
+            let perfStep = performance.now();
             const roomShape = generateRoomShape(currentRoom.id + GS.currentLevel);
+            perf.roomShape = performance.now() - perfStep;
+            
             const wc = [60 + lv * 10, 60, 100];
             
-            // ========== CRITICAL: CHUNKED FLOOR GENERATION (non-blocking) ==========
+            // ========== FLOOR GENERATION ==========
+            perfStep = performance.now();
             const floorCanvas = document.createElement('canvas');
             floorCanvas.width = CONFIG.MAP_WIDTH;
             floorCanvas.height = CONFIG.MAP_HEIGHT;
             const fctx = floorCanvas.getContext('2d');
+            perf.floorCanvas = performance.now() - perfStep;
             
             // Dark void background
             fctx.fillStyle = `rgb(5, 5, 10)`;
@@ -420,7 +437,9 @@ export function createGameScene() {
             };
             
             // ULTRA-OPTIMIZED: Group tiles by type, use fewer operations
-            // Pre-calculate colors (only 3-4 shades instead of random per tile)
+            perfStep = performance.now();
+            
+            // Pre-calculate colors (only 3 shades instead of random per tile)
             const floorShades = [
                 [bg[0], bg[1], bg[2]],                    // Base
                 [Math.floor(bg[0] * 0.9), Math.floor(bg[1] * 0.9), Math.floor(bg[2] * 0.9)],  // Dark
@@ -431,6 +450,9 @@ export function createGameScene() {
             const wallGrad = fctx.createLinearGradient(0, 0, 0, 40);
             wallGrad.addColorStop(0, '#4a4a6a');
             wallGrad.addColorStop(1, '#3a3a5a');
+            
+            // Count tiles for profiling
+            let floorTileCount = 0, pillarCount = 0, wallCount = 0;
             
             // Draw by type to minimize fillStyle changes
             // 1. Draw all floor tiles first (most common)
@@ -444,6 +466,7 @@ export function createGameScene() {
                         const shadeIdx = (gx + gy * 3) % 3;
                         fctx.fillStyle = `rgb(${floorShades[shadeIdx][0]}, ${floorShades[shadeIdx][1]}, ${floorShades[shadeIdx][2]})`;
                         fctx.fillRect(tileX, tileY, 40, 40);
+                        floorTileCount++;
                     }
                 }
             }
@@ -460,6 +483,7 @@ export function createGameScene() {
                         fctx.fillRect(tileX, tileY, 40, 40);
                         fctx.fillStyle = pillarColor2;
                         fctx.fillRect(tileX + 2, tileY + 2, 36, 36);
+                        pillarCount++;
                     }
                 }
             }
@@ -476,23 +500,35 @@ export function createGameScene() {
                         fctx.fillRect(tileX, tileY, 40, 40);
                         fctx.strokeRect(tileX, tileY, 40, 20);
                         fctx.strokeRect(tileX, tileY + 20, 40, 20);
+                        wallCount++;
                     }
                 }
             }
             
+            perf.floorDraw = performance.now() - perfStep;
+            
             // Load the batched floor as a single sprite
+            perfStep = performance.now();
             const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
             try {
                 loadSprite(floorSpriteName, floorCanvas.toDataURL());
                 const floorObj = add([sprite(floorSpriteName), pos(0, 0), z(-100), "floor"]);
-                Logger.info('Floor loaded', { sprite: floorSpriteName, roomId: currentRoom.id });
+                perf.floorLoad = performance.now() - perfStep;
+                Logger.info('Floor loaded', { 
+                    sprite: floorSpriteName, 
+                    roomId: currentRoom.id,
+                    tiles: { floor: floorTileCount, pillars: pillarCount, walls: wallCount }
+                });
             } catch (error) {
+                perf.floorLoad = performance.now() - perfStep;
                 Logger.error('Failed to load floor sprite', { error: error.message });
                 // Fallback: add simple background
                 add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
             }
             
             // OPTIMIZED: Group collision objects - merge adjacent walls/pillars
+            perfStep = performance.now();
+            
             // This reduces number of physics objects significantly
             const collisionMap = new Map(); // key: "x,y" -> {x, y, w, h, type}
             
@@ -534,10 +570,13 @@ export function createGameScene() {
                 collisionCount++;
             }
             
+            perf.collisions = performance.now() - perfStep;
+            
             Logger.info('Collisions loaded', { 
                 roomId: currentRoom.id, 
                 total: collisionCount,
-                original: collisionMap.size 
+                original: collisionMap.size,
+                time: perf.collisions.toFixed(2) + 'ms'
             });
             
             // Outer boundary walls (invisible collision)
@@ -548,6 +587,8 @@ export function createGameScene() {
             Logger.info('Collisions loaded', { roomId: currentRoom.id });
 
             // ========== Decorations (synchronous - fast enough) ==========
+            perfStep = performance.now();
+            
             // Torches (reduced to 2 max, static only)
             const torchPositions = [
                 [roomShape.centerX - 200, roomShape.centerY - 150],
@@ -585,7 +626,29 @@ export function createGameScene() {
                     body({ isStatic: true }), anchor("center"), z(3), "obstacle"
                 ]);
             }
-
+            
+            perf.decorations = performance.now() - perfStep;
+            
+            perf.total = performance.now() - perfStart;
+            
+            // ========== PERFORMANCE REPORT ==========
+            Logger.warn('=== PERFORMANCE PROFILE ===', {
+                roomId: currentRoom.id,
+                '1. Room Shape Generation': perf.roomShape.toFixed(2) + 'ms',
+                '2. Floor Canvas Creation': perf.floorCanvas.toFixed(2) + 'ms',
+                '3. Floor Drawing (canvas)': perf.floorDraw.toFixed(2) + 'ms',
+                '4. Floor Sprite Load': perf.floorLoad.toFixed(2) + 'ms',
+                '5. Collisions Creation': perf.collisions.toFixed(2) + 'ms',
+                '6. Decorations Creation': perf.decorations.toFixed(2) + 'ms',
+                'TOTAL ROOM LOAD': perf.total.toFixed(2) + 'ms',
+                'BOTTLENECK': Object.entries(perf)
+                    .filter(([k]) => k !== 'total')
+                    .sort((a, b) => b[1] - a[1])[0][0] + ' (' + 
+                    Object.entries(perf)
+                        .filter(([k]) => k !== 'total')
+                        .sort((a, b) => b[1] - a[1])[0][1].toFixed(2) + 'ms)'
+            });
+            
             Logger.info('Room objects created', { 
                 torches: torchCount, 
                 decorations: decorCount, 
