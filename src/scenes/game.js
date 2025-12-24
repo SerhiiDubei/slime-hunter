@@ -21,178 +21,212 @@ let doors = [];  // Multiple doors now
 let doorTexts = [];
 let roomIndicator;
 
-// Generate irregular room shape - SIMPLIFIED for guaranteed door access
+// ==================== ENTER THE GUNGEON STYLE ROOM GENERATION ====================
+// Creates interesting rooms with narrow corridors, cover, and varied layouts
+
 function generateRoomShape(seed) {
-    // Use seed for consistent room shapes
     const rng = () => {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
         return seed / 0x7fffffff;
     };
     
-    // Room grid (1 = walkable, 0 = wall)
     const gridW = Math.floor(CONFIG.MAP_WIDTH / 40);
     const gridH = Math.floor(CONFIG.MAP_HEIGHT / 40);
     const grid = [];
     
     const centerX = Math.floor(gridW / 2);
     const centerY = Math.floor(gridH / 2);
-    const margin = 2; // Outer wall margin
     
-    // Start with ALL walkable floor (safer approach)
+    // Initialize with ALL walls
     for (let y = 0; y < gridH; y++) {
         grid[y] = [];
         for (let x = 0; x < gridW; x++) {
-            // Create walkable area with outer walls
-            if (x < margin || x >= gridW - margin || y < margin || y >= gridH - margin) {
-                grid[y][x] = 0; // Outer walls
-            } else {
-                grid[y][x] = 1; // Walkable floor
-            }
+            grid[y][x] = 0;
         }
     }
     
-    // Choose room shape type - add wall features INSIDE the room
-    const shapeType = Math.floor(rng() * 5);
+    // Room type selection (Enter the Gungeon inspired)
+    const roomType = Math.floor(rng() * 8);
+    const pillars = [];
     
-    // Carve interesting wall shapes into corners (not blocking paths to doors)
-    switch (shapeType) {
-        case 0: // Corner pillars
-            // Top-left corner block
-            for (let x = margin; x < margin + 4; x++) {
-                for (let y = margin; y < margin + 4; y++) {
-                    grid[y][x] = 0;
-                }
+    // Helper: carve rectangular area
+    const carveRect = (x1, y1, x2, y2, type = 1) => {
+        for (let y = Math.max(1, y1); y < Math.min(gridH - 1, y2); y++) {
+            for (let x = Math.max(1, x1); x < Math.min(gridW - 1, x2); x++) {
+                grid[y][x] = type;
             }
-            // Top-right corner block
-            for (let x = gridW - margin - 4; x < gridW - margin; x++) {
-                for (let y = margin; y < margin + 4; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            // Bottom-left corner block
-            for (let x = margin; x < margin + 4; x++) {
-                for (let y = gridH - margin - 4; y < gridH - margin; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            // Bottom-right corner block
-            for (let x = gridW - margin - 4; x < gridW - margin; x++) {
-                for (let y = gridH - margin - 4; y < gridH - margin; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            break;
-            
-        case 1: // Side alcoves (top and bottom)
-            // Top alcoves (left and right of center)
-            for (let x = margin + 2; x < centerX - 4; x++) {
-                for (let y = margin; y < margin + 3; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            for (let x = centerX + 4; x < gridW - margin - 2; x++) {
-                for (let y = margin; y < margin + 3; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            // Bottom alcoves
-            for (let x = margin + 2; x < centerX - 4; x++) {
-                for (let y = gridH - margin - 3; y < gridH - margin; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            for (let x = centerX + 4; x < gridW - margin - 2; x++) {
-                for (let y = gridH - margin - 3; y < gridH - margin; y++) {
-                    grid[y][x] = 0;
-                }
-            }
-            break;
-            
-        case 2: // Side alcoves (left and right)
-            // Left alcoves
-            for (let y = margin + 2; y < centerY - 3; y++) {
-                for (let x = margin; x < margin + 3; x++) {
-                    grid[y][x] = 0;
-                }
-            }
-            for (let y = centerY + 3; y < gridH - margin - 2; y++) {
-                for (let x = margin; x < margin + 3; x++) {
-                    grid[y][x] = 0;
-                }
-            }
-            // Right alcoves
-            for (let y = margin + 2; y < centerY - 3; y++) {
-                for (let x = gridW - margin - 3; x < gridW - margin; x++) {
-                    grid[y][x] = 0;
-                }
-            }
-            for (let y = centerY + 3; y < gridH - margin - 2; y++) {
-                for (let x = gridW - margin - 3; x < gridW - margin; x++) {
-                    grid[y][x] = 0;
-                }
-            }
-            break;
-            
-        case 3: // Central obstacle ring
-            // Create obstacles around center but not blocking center itself
-            const ringDist = 6;
-            for (let angle = 0; angle < 4; angle++) {
-                const ox = centerX + Math.round(Math.cos(angle * Math.PI / 2) * ringDist);
-                const oy = centerY + Math.round(Math.sin(angle * Math.PI / 2) * ringDist);
-                // Small 2x2 obstacle
-                for (let dx = 0; dx < 2; dx++) {
-                    for (let dy = 0; dy < 2; dy++) {
-                        const nx = ox + dx;
-                        const ny = oy + dy;
-                        if (nx > margin + 2 && nx < gridW - margin - 2 && ny > margin + 2 && ny < gridH - margin - 2) {
-                            grid[ny][nx] = 2; // Pillar
-                        }
+        }
+    };
+    
+    // Helper: carve corridor
+    const carveCorridor = (x1, y1, x2, y2, width = 3) => {
+        const hw = Math.floor(width / 2);
+        if (x1 === x2) { // Vertical
+            for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+                for (let dx = -hw; dx <= hw; dx++) {
+                    if (x1 + dx > 0 && x1 + dx < gridW - 1 && y > 0 && y < gridH - 1) {
+                        grid[y][x1 + dx] = 1;
                     }
                 }
             }
-            break;
-            
-        default: // Simple room with scattered pillars
-            break;
-    }
-    
-    // Add a few random pillars (avoiding paths to doors)
-    const corridorWidth = 5; // Keep clear corridor to doors
-    const numPillars = 1 + Math.floor(rng() * 3);
-    const pillars = [];
-    
-    for (let i = 0; i < numPillars; i++) {
-        // Random position away from center and door paths
-        let px, py;
-        let attempts = 0;
-        do {
-            px = margin + 4 + Math.floor(rng() * (gridW - margin * 2 - 8));
-            py = margin + 4 + Math.floor(rng() * (gridH - margin * 2 - 8));
-            attempts++;
-        } while (attempts < 10 && (
-            // Avoid center spawn area
-            (Math.abs(px - centerX) < 5 && Math.abs(py - centerY) < 5) ||
-            // Avoid horizontal corridor (to left/right doors)
-            (Math.abs(py - centerY) < corridorWidth) ||
-            // Avoid vertical corridor (to top/bottom doors)
-            (Math.abs(px - centerX) < corridorWidth)
-        ));
-        
-        if (attempts >= 10) continue;
-        
-        // Pillar size 2x2 or 3x3
-        const pillarSize = 2 + Math.floor(rng() * 2);
-        for (let dx = 0; dx < pillarSize; dx++) {
-            for (let dy = 0; dy < pillarSize; dy++) {
-                const nx = px + dx;
-                const ny = py + dy;
-                if (nx > margin && nx < gridW - margin && ny > margin && ny < gridH - margin) {
-                    grid[ny][nx] = 2; // 2 = pillar
+        } else { // Horizontal
+            for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
+                for (let dy = -hw; dy <= hw; dy++) {
+                    if (y1 + dy > 0 && y1 + dy < gridH - 1 && x > 0 && x < gridW - 1) {
+                        grid[y1 + dy][x] = 1;
+                    }
                 }
             }
         }
-        pillars.push({ x: px, y: py, size: pillarSize });
+    };
+    
+    // Helper: add pillar
+    const addPillar = (px, py, size = 2) => {
+        for (let dy = 0; dy < size; dy++) {
+            for (let dx = 0; dx < size; dx++) {
+                if (py + dy > 1 && py + dy < gridH - 2 && px + dx > 1 && px + dx < gridW - 2) {
+                    grid[py + dy][px + dx] = 2;
+                }
+            }
+        }
+        pillars.push({ x: px, y: py, size });
+    };
+    
+    switch (roomType) {
+        case 0: // Arena with narrow entrances
+            // Central fighting arena
+            carveRect(centerX - 8, centerY - 6, centerX + 8, centerY + 6);
+            // Narrow corridors to doors (width 3)
+            carveCorridor(1, centerY, centerX - 8, centerY, 3); // Left
+            carveCorridor(centerX + 8, centerY, gridW - 2, centerY, 3); // Right
+            carveCorridor(centerX, 1, centerX, centerY - 6, 3); // Top
+            carveCorridor(centerX, centerY + 6, centerX, gridH - 2, 3); // Bottom
+            // Cover pillars
+            addPillar(centerX - 5, centerY - 3, 2);
+            addPillar(centerX + 3, centerY - 3, 2);
+            addPillar(centerX - 5, centerY + 1, 2);
+            addPillar(centerX + 3, centerY + 1, 2);
+            break;
+            
+        case 1: // Cross room with wide halls
+            // Vertical corridor
+            carveRect(centerX - 4, 2, centerX + 4, gridH - 2);
+            // Horizontal corridor
+            carveRect(2, centerY - 3, gridW - 2, centerY + 3);
+            // Corner rooms
+            carveRect(3, 3, centerX - 5, centerY - 4);
+            carveRect(centerX + 5, 3, gridW - 3, centerY - 4);
+            carveRect(3, centerY + 4, centerX - 5, gridH - 3);
+            carveRect(centerX + 5, centerY + 4, gridW - 3, gridH - 3);
+            break;
+            
+        case 2: // L-shaped with cover
+            // Main L shape
+            carveRect(2, 2, centerX + 6, centerY + 4);
+            carveRect(centerX - 4, centerY - 2, gridW - 2, gridH - 2);
+            // Corridors to all doors
+            carveCorridor(1, centerY, gridW - 2, centerY, 3);
+            carveCorridor(centerX, 1, centerX, gridH - 2, 3);
+            // Cover spots
+            addPillar(8, 6, 2);
+            addPillar(gridW - 10, gridH - 8, 2);
+            addPillar(centerX, centerY, 3);
+            break;
+            
+        case 3: // Maze-like with multiple paths
+            // Create base corridors
+            carveRect(2, centerY - 2, gridW - 2, centerY + 2); // Main horizontal
+            carveRect(centerX - 2, 2, centerX + 2, gridH - 2); // Main vertical
+            // Side passages
+            carveRect(6, 3, 10, centerY - 2);
+            carveRect(gridW - 10, centerY + 2, gridW - 6, gridH - 3);
+            carveRect(3, gridH - 8, centerX - 3, gridH - 4);
+            carveRect(centerX + 3, 4, gridW - 3, 8);
+            // Random cover
+            if (rng() > 0.3) addPillar(4, centerY - 1, 2);
+            if (rng() > 0.3) addPillar(gridW - 6, centerY - 1, 2);
+            break;
+            
+        case 4: // Circular arena
+            // Create rough circle
+            const radius = Math.min(gridW, gridH) / 2 - 4;
+            for (let y = 2; y < gridH - 2; y++) {
+                for (let x = 2; x < gridW - 2; x++) {
+                    const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    if (dist < radius) {
+                        grid[y][x] = 1;
+                    }
+                }
+            }
+            // Corridors to edges
+            carveCorridor(1, centerY, centerX - radius, centerY, 3);
+            carveCorridor(centerX + radius, centerY, gridW - 2, centerY, 3);
+            carveCorridor(centerX, 1, centerX, centerY - radius, 3);
+            carveCorridor(centerX, centerY + radius, centerX, gridH - 2, 3);
+            // Center obstacle
+            addPillar(centerX - 1, centerY - 1, 3);
+            break;
+            
+        case 5: // Symmetrical battle arena
+            // Four quadrant rooms connected by corridors
+            carveRect(3, 3, centerX - 3, centerY - 3);
+            carveRect(centerX + 3, 3, gridW - 3, centerY - 3);
+            carveRect(3, centerY + 3, centerX - 3, gridH - 3);
+            carveRect(centerX + 3, centerY + 3, gridW - 3, gridH - 3);
+            // Connecting corridors
+            carveCorridor(centerX - 3, centerY - 6, centerX + 3, centerY - 6, 2);
+            carveCorridor(centerX - 3, centerY + 6, centerX + 3, centerY + 6, 2);
+            carveCorridor(centerX - 6, centerY - 3, centerX - 6, centerY + 3, 2);
+            carveCorridor(centerX + 6, centerY - 3, centerX + 6, centerY + 3, 2);
+            // Door corridors
+            carveCorridor(1, centerY, gridW - 2, centerY, 3);
+            carveCorridor(centerX, 1, centerX, gridH - 2, 3);
+            break;
+            
+        case 6: // Snake/winding path
+            // Start area
+            carveRect(2, centerY - 4, 10, centerY + 4);
+            // End area
+            carveRect(gridW - 10, centerY - 4, gridW - 2, centerY + 4);
+            // Winding corridor
+            carveCorridor(10, centerY - 3, centerX - 4, centerY - 3, 3);
+            carveCorridor(centerX - 4, centerY - 3, centerX - 4, centerY + 3, 3);
+            carveCorridor(centerX - 4, centerY + 3, centerX + 4, centerY + 3, 3);
+            carveCorridor(centerX + 4, centerY + 3, centerX + 4, centerY - 3, 3);
+            carveCorridor(centerX + 4, centerY - 3, gridW - 10, centerY - 3, 3);
+            // Top/bottom door corridors
+            carveCorridor(centerX, 1, centerX, centerY - 3, 3);
+            carveCorridor(centerX, centerY + 3, centerX, gridH - 2, 3);
+            break;
+            
+        default: // Classic room with scattered cover
+            // Large open room
+            carveRect(3, 3, gridW - 3, gridH - 3);
+            // Random cover pillars
+            const numCover = 4 + Math.floor(rng() * 4);
+            for (let i = 0; i < numCover; i++) {
+                const px = 5 + Math.floor(rng() * (gridW - 12));
+                const py = 5 + Math.floor(rng() * (gridH - 12));
+                // Don't block center or corridors
+                if (Math.abs(px - centerX) > 3 && Math.abs(py - centerY) > 3) {
+                    addPillar(px, py, 2);
+                }
+            }
+            break;
     }
+    
+    // ALWAYS ensure corridors to all door positions
+    const corridorW = 4;
+    // Center spawn safe zone
+    carveRect(centerX - 4, centerY - 4, centerX + 4, centerY + 4);
+    // Left door corridor
+    carveCorridor(1, centerY, centerX, centerY, corridorW);
+    // Right door corridor
+    carveCorridor(centerX, centerY, gridW - 2, centerY, corridorW);
+    // Top door corridor
+    carveCorridor(centerX, 1, centerX, centerY, corridorW);
+    // Bottom door corridor
+    carveCorridor(centerX, centerY, centerX, gridH - 2, corridorW);
     
     return {
         grid,
@@ -201,6 +235,7 @@ function generateRoomShape(seed) {
         offsetX: 0,
         offsetY: 0,
         pillars,
+        roomType, // Store for minimap
         centerX: centerX * 40 + 20,
         centerY: centerY * 40 + 20,
     };
@@ -870,6 +905,11 @@ export function createGameScene() {
 
             // Create HUD
             createHUD();
+            
+            // Send room layout to minimap
+            if (GS.setRoomGrid) {
+                GS.setRoomGrid(roomShape);
+            }
 
             // Pause menu
             let pauseOverlay = null;

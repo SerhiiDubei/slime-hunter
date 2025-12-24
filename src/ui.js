@@ -79,140 +79,207 @@ export function createHUD() {
         add([text(`${hero.icon} ${hero.name}`, { size: 12 }), pos(14, VH - 22), color(...hero.color), fixed(), z(101)]);
     }
     
-    // ==================== DUNGEON MINIMAP ====================
-    const minimapSize = 90;
+    // ==================== ROOM LAYOUT MINIMAP (Enter the Gungeon style) ====================
+    const minimapSize = 100;
     const minimapX = 10;
-    const minimapY = VH - 140;
-    const roomSize = 14;
-    const roomGap = 4;
+    const minimapY = VH - 150;
     
-    // Minimap background
-    add([rect(minimapSize + 4, minimapSize + 4), pos(minimapX - 2, minimapY - 2), color(40, 30, 25), fixed(), z(98)]);
-    add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(15, 15, 25), fixed(), z(99)]);
+    // Minimap frame
+    add([rect(minimapSize + 6, minimapSize + 6), pos(minimapX - 3, minimapY - 3), color(60, 50, 40), fixed(), z(97)]);
+    add([rect(minimapSize + 4, minimapSize + 4), pos(minimapX - 2, minimapY - 2), color(30, 25, 20), fixed(), z(98)]);
+    const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(10, 12, 18), fixed(), z(99)]);
     
-    // Minimap label
-    add([text("DUNGEON", { size: 7 }), pos(minimapX + minimapSize / 2, minimapY - 6), anchor("center"), color(100, 100, 120), fixed(), z(100)]);
+    // Room number label
+    const roomLabel = add([
+        text("ROOM 1", { size: 8 }), 
+        pos(minimapX + minimapSize / 2, minimapY - 8), 
+        anchor("center"), color(120, 100, 80), fixed(), z(100)
+    ]);
     
-    // Store room indicators for updates
-    let minimapRooms = [];
-    let minimapConnections = [];
+    // Store minimap elements
+    let minimapTiles = [];
+    let minimapPlayer = null;
+    let minimapEnemies = [];
+    let currentRoomGrid = null;
     
-    // Create dungeon map visualization
-    function createDungeonMinimap() {
-        const dungeon = GS.dungeon;
-        if (!dungeon) return;
+    // Create room layout minimap
+    function createRoomMinimap(roomGrid) {
+        if (!roomGrid) return;
+        currentRoomGrid = roomGrid;
         
-        // Clear old elements
-        minimapRooms.forEach(r => { if (r.exists()) destroy(r); });
-        minimapConnections.forEach(c => { if (c.exists()) destroy(c); });
-        minimapRooms = [];
-        minimapConnections = [];
+        // Clear old tiles
+        minimapTiles.forEach(t => { if (t && t.exists()) destroy(t); });
+        minimapTiles = [];
         
-        const rooms = dungeon.getAllRooms();
+        const gridW = roomGrid.width;
+        const gridH = roomGrid.height;
+        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
+        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
+        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
         
-        // Find bounds
-        let minX = 0, maxX = 0, minY = 0, maxY = 0;
-        rooms.forEach(r => {
-            minX = Math.min(minX, r.x);
-            maxX = Math.max(maxX, r.x);
-            minY = Math.min(minY, r.y);
-            maxY = Math.max(maxY, r.y);
-        });
-        
-        const gridWidth = maxX - minX + 1;
-        const gridHeight = maxY - minY + 1;
-        const offsetX = minimapX + (minimapSize - gridWidth * (roomSize + roomGap)) / 2;
-        const offsetY = minimapY + (minimapSize - gridHeight * (roomSize + roomGap)) / 2;
-        
-        // Draw connections first
-        rooms.forEach(room => {
-            const rx = offsetX + (room.x - minX) * (roomSize + roomGap) + roomSize / 2;
-            const ry = offsetY + (room.y - minY) * (roomSize + roomGap) + roomSize / 2;
-            
-            room.doors.forEach(door => {
-                const targetRoom = rooms.find(r => r.id === door.to);
-                if (!targetRoom || targetRoom.id < room.id) return; // Avoid duplicates
+        // Draw room tiles
+        for (let gy = 0; gy < gridH; gy++) {
+            for (let gx = 0; gx < gridW; gx++) {
+                const tileType = roomGrid.grid[gy] ? roomGrid.grid[gy][gx] : 0;
+                const tx = offsetX + gx * tileSize;
+                const ty = offsetY + gy * tileSize;
                 
-                const tx = offsetX + (targetRoom.x - minX) * (roomSize + roomGap) + roomSize / 2;
-                const ty = offsetY + (targetRoom.y - minY) * (roomSize + roomGap) + roomSize / 2;
-                
-                // Connection line
-                const lineColor = (room.visited || targetRoom.visited) ? [80, 80, 100] : [40, 40, 50];
-                if (rx === tx) {
-                    // Vertical connection
-                    const conn = add([
-                        rect(2, Math.abs(ty - ry)),
-                        pos(rx - 1, Math.min(ry, ty)),
-                        color(...lineColor),
-                        fixed(), z(99.5)
-                    ]);
-                    minimapConnections.push(conn);
+                let tileColor;
+                if (tileType === 1) {
+                    tileColor = [35, 40, 55]; // Floor - dark blue-gray
+                } else if (tileType === 2) {
+                    tileColor = [70, 60, 50]; // Pillar - brown
                 } else {
-                    // Horizontal connection
-                    const conn = add([
-                        rect(Math.abs(tx - rx), 2),
-                        pos(Math.min(rx, tx), ry - 1),
-                        color(...lineColor),
-                        fixed(), z(99.5)
-                    ]);
-                    minimapConnections.push(conn);
+                    tileColor = [15, 18, 25]; // Wall - almost black
                 }
-            });
-        });
+                
+                const tile = add([
+                    rect(tileSize - 0.5, tileSize - 0.5),
+                    pos(tx, ty),
+                    color(...tileColor),
+                    fixed(), z(100)
+                ]);
+                minimapTiles.push(tile);
+            }
+        }
         
-        // Draw rooms
-        rooms.forEach(room => {
-            const rx = offsetX + (room.x - minX) * (roomSize + roomGap);
-            const ry = offsetY + (room.y - minY) * (roomSize + roomGap);
+        // Create player dot
+        if (minimapPlayer) destroy(minimapPlayer);
+        minimapPlayer = add([
+            circle(3),
+            pos(minimapX + minimapSize / 2, minimapY + minimapSize / 2),
+            color(100, 255, 150),
+            fixed(), z(104),
+            outline(1, rgb(255, 255, 255))
+        ]);
+        
+        // Update room label
+        if (GS.dungeon) {
+            const room = GS.dungeon.getCurrentRoom();
+            const progress = GS.dungeon.getProgress();
+            let labelText = `ROOM ${room.id + 1}/${progress.total}`;
+            if (room.type === 'boss') labelText = "⚠ BOSS";
+            else if (room.type === 'treasure') labelText = "💎 TREASURE";
+            else if (room.type === 'elite') labelText = "⭐ ELITE";
+            roomLabel.text = labelText;
+        }
+    }
+    
+    // Update player position on minimap
+    function updateMinimapPlayer() {
+        if (!minimapPlayer || !GS.player || !currentRoomGrid) return;
+        
+        const gridW = currentRoomGrid.width;
+        const gridH = currentRoomGrid.height;
+        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
+        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
+        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
+        
+        // Convert world position to minimap position
+        const px = GS.player.pos.x / CONFIG.MAP_WIDTH * gridW * tileSize + offsetX;
+        const py = GS.player.pos.y / CONFIG.MAP_HEIGHT * gridH * tileSize + offsetY;
+        
+        minimapPlayer.pos.x = px;
+        minimapPlayer.pos.y = py;
+        
+        // Pulse effect
+        minimapPlayer.radius = 3 + Math.sin(time() * 6) * 0.5;
+    }
+    
+    // Update enemy positions on minimap
+    function updateMinimapEnemies() {
+        if (!currentRoomGrid) return;
+        
+        // Clear old enemy dots
+        minimapEnemies.forEach(e => { if (e && e.exists()) destroy(e); });
+        minimapEnemies = [];
+        
+        const gridW = currentRoomGrid.width;
+        const gridH = currentRoomGrid.height;
+        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
+        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
+        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
+        
+        // Draw enemy dots
+        GS.enemies.forEach(enemy => {
+            if (!enemy || !enemy.exists()) return;
             
-            // Room color based on type and state
-            let roomColor = [60, 60, 80];
-            if (room.id === dungeon.currentRoomId) {
-                roomColor = [100, 255, 150]; // Current room - green
-            } else if (room.type === 'boss') {
-                roomColor = room.cleared ? [100, 50, 50] : [255, 50, 50]; // Boss - red
-            } else if (room.type === 'treasure') {
-                roomColor = [255, 220, 100]; // Treasure - gold
-            } else if (room.type === 'elite') {
-                roomColor = room.cleared ? [100, 60, 150] : [180, 80, 255]; // Elite - purple
-            } else if (room.cleared) {
-                roomColor = [60, 100, 60]; // Cleared - dark green
-            } else if (room.visited) {
-                roomColor = [100, 100, 120]; // Visited but not cleared
-            } else {
-                roomColor = [40, 40, 50]; // Unknown
-            }
+            const ex = enemy.pos.x / CONFIG.MAP_WIDTH * gridW * tileSize + offsetX;
+            const ey = enemy.pos.y / CONFIG.MAP_HEIGHT * gridH * tileSize + offsetY;
             
-            const roomRect = add([
-                rect(roomSize, roomSize),
-                pos(rx, ry),
-                color(...roomColor),
-                fixed(), z(100),
-                { roomId: room.id }
+            const enemyColor = enemy.isBoss ? [255, 80, 80] : 
+                               enemy.tier >= 3 ? [200, 100, 255] : 
+                               [255, 100, 100];
+            
+            const dot = add([
+                circle(enemy.isBoss ? 4 : 2),
+                pos(ex, ey),
+                color(...enemyColor),
+                fixed(), z(102),
+                opacity(0.9)
             ]);
-            minimapRooms.push(roomRect);
-            
-            // Current room pulse
-            if (room.id === dungeon.currentRoomId) {
-                roomRect.onUpdate(() => {
-                    const pulse = Math.sin(time() * 5) * 0.3 + 0.7;
-                    roomRect.opacity = pulse;
-                });
-            }
+            minimapEnemies.push(dot);
         });
     }
     
-    // Create initial minimap
-    createDungeonMinimap();
+    // Door indicators on minimap edges
+    function updateMinimapDoors() {
+        if (!GS.dungeon) return;
+        
+        const room = GS.dungeon.getCurrentRoom();
+        const gridW = currentRoomGrid ? currentRoomGrid.width : 40;
+        const gridH = currentRoomGrid ? currentRoomGrid.height : 30;
+        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
+        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
+        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
+        
+        room.doors.forEach(door => {
+            const targetRoom = GS.dungeon.getRoom(door.to);
+            if (!targetRoom) return;
+            
+            let dx, dy;
+            const doorSize = 6;
+            
+            switch (door.side) {
+                case 'left':
+                    dx = offsetX - doorSize;
+                    dy = offsetY + gridH * tileSize / 2 - doorSize / 2;
+                    break;
+                case 'right':
+                    dx = offsetX + gridW * tileSize;
+                    dy = offsetY + gridH * tileSize / 2 - doorSize / 2;
+                    break;
+                case 'up':
+                    dx = offsetX + gridW * tileSize / 2 - doorSize / 2;
+                    dy = offsetY - doorSize;
+                    break;
+                case 'down':
+                    dx = offsetX + gridW * tileSize / 2 - doorSize / 2;
+                    dy = offsetY + gridH * tileSize;
+                    break;
+                default: return;
+            }
+            
+            // Door color based on type
+            let doorColor = GS.roomCleared ? [100, 200, 100] : [100, 80, 60];
+            if (targetRoom.type === 'boss') doorColor = [255, 80, 80];
+            else if (targetRoom.type === 'treasure') doorColor = [255, 220, 100];
+            
+            const doorDot = add([
+                rect(doorSize, doorSize),
+                pos(dx, dy),
+                color(...doorColor),
+                fixed(), z(101)
+            ]);
+            minimapTiles.push(doorDot);
+        });
+    }
     
-    // Minimap player dot (for position within current room)
-    const minimapPlayer = add([
-        circle(2), pos(minimapX + minimapSize / 2, minimapY + minimapSize / 2),
-        color(255, 255, 255), fixed(), z(103), opacity(0) // Hidden, we use room highlight instead
-    ]);
-    
-    // Minimap enemy dots container (for current room enemies)
-    let minimapEnemies = [];
+    // Store grid for updates
+    GS.setRoomGrid = (grid) => {
+        createRoomMinimap(grid);
+        updateMinimapDoors();
+    };
 
     // Regen timer
     let regenTimer = 0;
@@ -328,35 +395,13 @@ export function createHUD() {
             keyTxt.text = "";
         }
         
-        // ==================== DUNGEON MINIMAP UPDATE ====================
-        // Update room colors based on state
-        const dungeon = GS.dungeon;
-        if (dungeon) {
-            minimapRooms.forEach(roomRect => {
-                const room = dungeon.getRoom(roomRect.roomId);
-                if (!room) return;
-                
-                let roomColor = [60, 60, 80];
-                if (room.id === dungeon.currentRoomId) {
-                    roomColor = [100, 255, 150];
-                } else if (room.type === 'boss') {
-                    roomColor = room.cleared ? [100, 50, 50] : [255, 50, 50];
-                } else if (room.type === 'treasure') {
-                    roomColor = [255, 220, 100];
-                } else if (room.type === 'elite') {
-                    roomColor = room.cleared ? [100, 60, 150] : [180, 80, 255];
-                } else if (room.cleared) {
-                    roomColor = [60, 100, 60];
-                } else if (room.visited) {
-                    roomColor = [100, 100, 120];
-                } else {
-                    roomColor = [40, 40, 50];
-                }
-                
-                if (room.id !== dungeon.currentRoomId) {
-                    roomRect.color = rgb(...roomColor);
-                }
-            });
+        // ==================== ROOM MINIMAP UPDATE ====================
+        // Update player position on minimap
+        updateMinimapPlayer();
+        
+        // Update enemy positions (throttled)
+        if (Math.floor(time() * 5) % 1 === 0) {
+            updateMinimapEnemies();
         }
         
         // Passive skills
