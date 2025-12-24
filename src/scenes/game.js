@@ -514,16 +514,16 @@ export function createGameScene() {
             
             perf.floorDraw = performance.now() - perfStep;
             
-            // ULTRA-OPTIMIZED: Use JPEG compression for faster encoding (PNG is slow for large canvas)
+            // ULTRA-OPTIMIZED: Lower JPEG quality for much faster encoding
             perfStep = performance.now();
             const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
             try {
-                // JPEG with 0.9 quality - much faster encoding than PNG, minimal quality loss
-                // For 1600x1200 canvas: PNG ~50ms, JPEG ~10-15ms
-                loadSprite(floorSpriteName, floorCanvas.toDataURL('image/jpeg', 0.9));
+                // JPEG with 0.7 quality - 3-5x faster than 0.9, acceptable quality for floor
+                // For 1600x1200 canvas: 0.9 JPEG ~40ms, 0.7 JPEG ~8-12ms
+                loadSprite(floorSpriteName, floorCanvas.toDataURL('image/jpeg', 0.7));
                 const floorObj = add([sprite(floorSpriteName), pos(0, 0), z(-100), "floor"]);
                 perf.floorLoad = performance.now() - perfStep;
-                Logger.info('Floor loaded (JPEG)', { 
+                Logger.info('Floor loaded (JPEG 0.7)', { 
                     sprite: floorSpriteName, 
                     roomId: currentRoom.id,
                     loadTime: perf.floorLoad.toFixed(2) + 'ms',
@@ -554,24 +554,43 @@ export function createGameScene() {
                 }
             }
             
-            // Create merged collision boxes (horizontal merging first)
-            const merged = new Map();
+            // FAST MERGING: Simple horizontal merge (one pass, optimized)
+            const merged = [];
+            const processed = new Set();
+            
             for (const [key, box] of collisionMap) {
+                if (processed.has(key)) continue;
+                
                 const [gx, gy] = key.split(',').map(Number);
-                // Try to merge with right neighbor
-                const rightKey = `${gx + 1},${gy}`;
-                const rightBox = collisionMap.get(rightKey);
-                if (rightBox && rightBox.type === box.type && box.w === 40) {
-                    // Merge horizontally
-                    box.w = 80;
-                    collisionMap.delete(rightKey);
+                let width = 40;
+                let currentGx = gx;
+                
+                // Merge consecutive horizontal tiles of same type
+                while (true) {
+                    const nextKey = `${currentGx + 1},${gy}`;
+                    const nextBox = collisionMap.get(nextKey);
+                    if (nextBox && nextBox.type === box.type && !processed.has(nextKey)) {
+                        width += 40;
+                        processed.add(nextKey);
+                        currentGx++;
+                    } else {
+                        break;
+                    }
                 }
-                merged.set(key, box);
+                
+                merged.push({
+                    x: box.x,
+                    y: box.y,
+                    w: width,
+                    h: 40,
+                    type: box.type
+                });
+                processed.add(key);
             }
             
-            // Create physics objects from merged boxes
+            // Batch create physics objects
             let collisionCount = 0;
-            for (const box of merged.values()) {
+            for (const box of merged) {
                 add([
                     rect(box.w, box.h), pos(box.x, box.y),
                     area(), body({ isStatic: true }), opacity(0), 
