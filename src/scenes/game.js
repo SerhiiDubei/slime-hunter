@@ -514,21 +514,23 @@ export function createGameScene() {
             
             perf.floorDraw = performance.now() - perfStep;
             
-            // Load the batched floor as a single sprite
+            // OPTIMIZED: Use canvas directly instead of converting to dataURL (much faster!)
             perfStep = performance.now();
             const floorSpriteName = `floor_${GS.currentLevel}_${currentRoom.id}`;
             try {
-                loadSprite(floorSpriteName, floorCanvas.toDataURL());
+                // Direct canvas loading (faster than toDataURL)
+                loadSprite(floorSpriteName, floorCanvas);
                 const floorObj = add([sprite(floorSpriteName), pos(0, 0), z(-100), "floor"]);
                 perf.floorLoad = performance.now() - perfStep;
                 Logger.info('Floor loaded', { 
                     sprite: floorSpriteName, 
                     roomId: currentRoom.id,
-                    tiles: { floor: floorTileCount, pillars: pillarCount, walls: wallCount }
+                    tiles: { floor: floorTileCount, pillars: pillarCount, walls: wallCount },
+                    loadTime: perf.floorLoad.toFixed(2) + 'ms'
                 });
             } catch (error) {
                 perf.floorLoad = performance.now() - perfStep;
-                Logger.error('Failed to load floor sprite', { error: error.message });
+                Logger.error('Failed to load floor sprite, using fallback', { error: error.message });
                 // Fallback: add simple background
                 add([rect(CONFIG.MAP_WIDTH, CONFIG.MAP_HEIGHT), pos(0, 0), color(...bg), z(-100), "floor"]);
             }
