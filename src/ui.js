@@ -393,8 +393,8 @@ export function createHUD() {
         
         // Create/update player dot
         if (minimapPlayerDot) destroy(minimapPlayerDot);
-        const currentRoomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * scale * 1.5;
-        const currentRoomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * scale * 1.5;
+        const currentRoomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
+        const currentRoomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
         minimapPlayerDot = add([
             circle(4),
             pos(currentRoomX, currentRoomY),
@@ -431,7 +431,7 @@ export function createHUD() {
                 
                 const rangeX = maxX - minX + 1;
                 const rangeY = maxY - minY + 1;
-                const scale = Math.min(
+                const mapScale = Math.min(
                     (minimapSize - 20) / (rangeX * 1.5),
                     (minimapSize - 20) / (rangeY * 1.5)
                 );
