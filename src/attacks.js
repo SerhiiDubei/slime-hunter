@@ -210,7 +210,8 @@ export function rangedAttack(spawnKeyFn) {
                     color: projColor, size: projSize, speed: projSpeed,
                     damage: baseDamage, piercing, shape: projShape,
                     hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
-                    trailColor, maxPierceCount, spawnKeyFn
+                    trailColor, maxPierceCount, spawnKeyFn,
+                    isHoming, homingStrength
                 });
             });
         }
@@ -229,7 +230,8 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
         color: projColor, size: projSize, speed: projSpeed,
         damage, piercing, shape: projShape,
         hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
-        trailColor, maxPierceCount, spawnKeyFn
+        trailColor, maxPierceCount, spawnKeyFn,
+        isHoming = false, homingStrength = 0.15
     } = options;
     
     // Calculate direction with angle offset
@@ -331,6 +333,39 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
     
     proj.onUpdate(() => {
         if (!proj.exists()) return;
+        
+        // HOMING LOGIC (Ranger arrows)
+        if (isHoming && GS.enemies && GS.enemies.length > 0) {
+            // Find nearest enemy
+            let nearestEnemy = null;
+            let nearestDist = Infinity;
+            for (const e of GS.enemies) {
+                if (!e || !e.exists()) continue;
+                const dist = proj.pos.dist(e.pos);
+                if (dist < nearestDist && dist < 400) { // Only home if within 400px
+                    nearestDist = dist;
+                    nearestEnemy = e;
+                }
+            }
+            
+            // Curve towards nearest enemy
+            if (nearestEnemy) {
+                const toEnemy = nearestEnemy.pos.sub(proj.pos).unit();
+                // Lerp direction towards enemy
+                proj.dir.x = proj.dir.x * (1 - homingStrength) + toEnemy.x * homingStrength;
+                proj.dir.y = proj.dir.y * (1 - homingStrength) + toEnemy.y * homingStrength;
+                // Normalize
+                const len = Math.sqrt(proj.dir.x * proj.dir.x + proj.dir.y * proj.dir.y);
+                if (len > 0) {
+                    proj.dir.x /= len;
+                    proj.dir.y /= len;
+                }
+                // Update angle for arrow rotation
+                if (projShape === "arrow") {
+                    proj.angle = Math.atan2(proj.dir.y, proj.dir.x) * (180 / Math.PI);
+                }
+            }
+        }
         
         const mv = projSpeed * dt();
         proj.pos.x += proj.dir.x * mv;
