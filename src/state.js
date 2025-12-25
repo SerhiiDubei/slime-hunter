@@ -192,9 +192,17 @@ export const GS = {
         return this.currentRoom >= this.totalRooms - 1;
     },
     
-    // Set hero (updates ultimate charge needed)
+    // Set hero (updates ultimate charge needed and initializes passive skill)
     setHero(heroId) {
         this.selectedHero = heroId;
+        
+        // Initialize passive skill for this hero (if not already set)
+        if (!this.heroSkills.passive) {
+            const passive = getHeroPassive(heroId);
+            if (passive) {
+                this.heroSkills.passive = passive.id;
+            }
+        }
     },
     
     // Add ultimate charge (from kills)
