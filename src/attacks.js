@@ -42,46 +42,50 @@ export function meleeAttack(spawnKeyFn) {
         attackStart.y + Math.sin(slashAngle) * meleeRange
     );
     
-    // Visual: Directional slash rectangle (not circle!) with hero-specific effects
+    // Visual: Directional slash with hero-specific sprite effects
     const slashColor = GS.selectedHero === 'warrior' ? [255, 150, 50] : 
                       GS.selectedHero === 'assassin' ? [200, 255, 200] : 
                       [200, 200, 200];
     
-    const slashRect = add([
-        rect(meleeRange, meleeWidth),
-        pos(attackStart.x + Math.cos(slashAngle) * meleeRange / 2, 
-            attackStart.y + Math.sin(slashAngle) * meleeRange / 2),
-        color(...slashColor),
-        opacity(0.6),
-        anchor("center"),
-        rotate(angleDeg),
-        z(20),
-        { t: 0 }
-    ]);
-    
-    slashRect.onUpdate(() => {
-        slashRect.t += dt();
-        slashRect.opacity = 0.6 - slashRect.t * 3;
-        if (slashRect.t > 0.2) destroy(slashRect);
-    });
-    
-    // Hero-specific melee icon overlay
+    // Use sprite for melee specialists, rect for others
     if (isMeleeSpecialist) {
-        const meleeIcon = GS.selectedHero === 'warrior' ? '⚔️' : '🗡️';
-        const icon = add([
-            text(meleeIcon, { size: 24 }),
-            pos(attackStart.x + Math.cos(slashAngle) * meleeRange * 0.3, 
-                attackStart.y + Math.sin(slashAngle) * meleeRange * 0.3),
+        const slashSprite = GS.selectedHero === 'warrior' ? 'swordSlash' : 'daggerSwipe';
+        const slashEffect = add([
+            sprite(slashSprite),
+            pos(attackStart.x + Math.cos(slashAngle) * meleeRange / 2, 
+                attackStart.y + Math.sin(slashAngle) * meleeRange / 2),
             anchor("center"),
             rotate(angleDeg),
-            z(21),
-            opacity(0.8),
+            scale(meleeRange / 80), // Scale to match range
+            z(20),
+            opacity(0.9),
             { t: 0 }
         ]);
-        icon.onUpdate(() => {
-            icon.t += dt();
-            icon.opacity = 0.8 - icon.t * 4;
-            if (icon.t > 0.2) destroy(icon);
+        
+        slashEffect.onUpdate(() => {
+            slashEffect.t += dt();
+            slashEffect.opacity = 0.9 - slashEffect.t * 4;
+            slashEffect.scale = vec2((meleeRange / 80) * (1 + slashEffect.t * 2));
+            if (slashEffect.t > 0.2) destroy(slashEffect);
+        });
+    } else {
+        // Weak melee - simple rect
+        const slashRect = add([
+            rect(meleeRange, meleeWidth),
+            pos(attackStart.x + Math.cos(slashAngle) * meleeRange / 2, 
+                attackStart.y + Math.sin(slashAngle) * meleeRange / 2),
+            color(...slashColor),
+            opacity(0.4),
+            anchor("center"),
+            rotate(angleDeg),
+            z(20),
+            { t: 0 }
+        ]);
+        
+        slashRect.onUpdate(() => {
+            slashRect.t += dt();
+            slashRect.opacity = 0.4 - slashRect.t * 3;
+            if (slashRect.t > 0.2) destroy(slashRect);
         });
     }
     
@@ -289,12 +293,12 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
     // Create projectile based on shape
     let proj;
     if (projShape === "axe") {
-        // WARRIOR AXE - big, spinning
+        // WARRIOR AXE - use sprite
         proj = add([
-            rect(projSize, projSize * 0.6),
+            sprite("axeProjectile"),
             pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
-            color(...projColor), opacity(0.95),
             anchor("center"), z(15), rotate(angle),
+            scale(projSize / 32), // Scale sprite to match size
             { 
                 dir: d, dist: 0, dmg: damage, piercing, spin: 0, 
                 hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
@@ -302,31 +306,13 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
-        // Axe head detail with emoji overlay
-        const axeHead = add([
-            rect(projSize * 0.4, projSize * 0.8),
-            pos(proj.pos), color(projColor[0] - 30, projColor[1] - 20, projColor[2] - 20),
-            opacity(0.9), anchor("center"), z(16), rotate(angle)
-        ]);
-        const axeIcon = add([
-            text('🪓', { size: Math.floor(projSize * 0.8) }),
-            pos(proj.pos), anchor("center"), z(17), rotate(angle)
-        ]);
-        axeHead.onUpdate(() => {
-            if (!proj.exists()) { destroy(axeHead); destroy(axeIcon); return; }
-            axeHead.pos = proj.pos;
-            axeHead.angle = proj.angle;
-            axeIcon.pos = proj.pos;
-            axeIcon.angle = proj.angle;
-        });
-        
     } else if (projShape === "dagger") {
-        // ASSASSIN DAGGER - small, sleek, fast
+        // ASSASSIN DAGGER - use sprite
         proj = add([
-            rect(projSize * 2, projSize * 0.5),
+            sprite("daggerProjectile"),
             pos(startPos.x + d.x * 20, startPos.y + d.y * 20),
-            color(...projColor), opacity(0.95),
             anchor("center"), z(15), rotate(angle),
+            scale(projSize / 12), // Scale sprite
             { 
                 dir: d, dist: 0, dmg: damage, piercing,
                 hasPoison, poisonDmg, poisonDur, knockback,
@@ -334,49 +320,20 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
-        // Dagger point with emoji overlay
-        const point = add([
-            rect(projSize * 0.8, projSize * 0.3),
-            pos(proj.pos), color(200, 255, 200), opacity(0.8),
-            anchor("left"), z(16), rotate(angle)
-        ]);
-        const daggerIcon = add([
-            text('🗡️', { size: Math.floor(projSize * 1.2) }),
-            pos(proj.pos), anchor("center"), z(17), rotate(angle)
-        ]);
-        point.onUpdate(() => {
-            if (!proj.exists()) { destroy(point); destroy(daggerIcon); return; }
-            point.pos = vec2(proj.pos.x + d.x * projSize, proj.pos.y + d.y * projSize);
-            point.angle = angle;
-            daggerIcon.pos = proj.pos;
-            daggerIcon.angle = angle;
-        });
-        
     } else if (projShape === "arrow") {
-        // RANGER ARROW - homing arrow with emoji
+        // RANGER ARROW - use sprite
         const arrowAngle = Math.atan2(d.y, d.x) * (180 / Math.PI);
         proj = add([
-            rect(projSize * 1.5, projSize * 0.4),
+            sprite("arrowProjectile"),
             pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
-            color(...projColor), opacity(0.95),
             anchor("center"), z(15), rotate(arrowAngle),
+            scale(projSize / 8), // Scale sprite
             { 
                 dir: d, dist: 0, dmg: damage, piercing,
                 hasPoison, poisonDmg, poisonDur, knockback,
                 pierceCount: 0, maxPierceCount, angle: arrowAngle
             }
         ]);
-        
-        // Arrow emoji overlay
-        const arrowIcon = add([
-            text('🏹', { size: Math.floor(projSize * 1.0) }),
-            pos(proj.pos), anchor("center"), z(17), rotate(arrowAngle)
-        ]);
-        arrowIcon.onUpdate(() => {
-            if (!proj.exists()) { destroy(arrowIcon); return; }
-            arrowIcon.pos = proj.pos;
-            arrowIcon.angle = proj.angle || arrowAngle;
-        });
         
     } else {
         // MAGE ORB - glowing magic sphere
