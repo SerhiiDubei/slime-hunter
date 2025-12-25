@@ -990,7 +990,10 @@ export function createGameScene() {
             const adjacentRooms = dungeon.getAdjacentRooms();
             
             let doorCount = 0;
-            adjacentRooms.forEach(({ room: targetRoom, direction, canEnter }) => {
+            adjacentRooms.forEach((adjRoom) => {
+                const targetRoom = adjRoom.room;
+                const direction = adjRoom.direction;
+                const canEnter = adjRoom.canEnter;
                 doorCount++;
                 let doorX, doorY, textOffsetX = 0, textOffsetY = -40;
                 
