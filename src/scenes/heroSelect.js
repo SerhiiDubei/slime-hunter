@@ -121,10 +121,10 @@ export function createHeroSelectScene() {
         ];
         
         let selectedHero = 'warrior';
-        const cardWidth = 220;
+        const cardWidth = 180;  // Зменшено з 220 до 180 для 4 карток
         const cardHeight = 380;
-        const cardGap = 25;
-        const startX = (W - (cardWidth * 3 + cardGap * 2)) / 2;
+        const cardGap = 15;     // Зменшено з 25 до 15
+        const startX = (W - (cardWidth * 4 + cardGap * 3)) / 2;  // Змінено для 4 карток
         const cardY = H / 2 + 20;
         
         const cards = [];
