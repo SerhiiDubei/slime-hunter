@@ -176,17 +176,14 @@ export function createLevelIntroScene() {
             typeInterval.cancel();
             playSound('start');
             
-            // If level 1 and no skills learned yet, show skill selection first
+            // If level 1 and no skills learned yet, give first skill point
             if (GS.currentLevel === 1 && GS.playerLevel === 1 && 
-                GS.heroSkills.passive === 0 && GS.heroSkills.skillE === 0 && 
-                GS.heroSkills.skillR === 0 && GS.heroSkills.skillQ === 0) {
-                // Give 1 skill point for first skill
+                GS.heroSkills.skillQ === 0 && GS.heroSkills.skillR === 0 && 
+                GS.heroSkills.skillT === 0 && GS.heroSkills.skillY === 0) {
+                // Give 1 skill point for first skill - UI will show in game
                 GS.skillPoints = 1;
-                GS.gameFrozen = true;
-                go("skillSelect");
-            } else {
-                go("game");
             }
+            go("game");
         };
         
         onClick("btn", startLevel);
