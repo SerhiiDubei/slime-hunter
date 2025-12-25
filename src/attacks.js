@@ -352,6 +352,32 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             daggerIcon.angle = angle;
         });
         
+    } else if (projShape === "arrow") {
+        // RANGER ARROW - homing arrow with emoji
+        const arrowAngle = Math.atan2(d.y, d.x) * (180 / Math.PI);
+        proj = add([
+            rect(projSize * 1.5, projSize * 0.4),
+            pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
+            color(...projColor), opacity(0.95),
+            anchor("center"), z(15), rotate(arrowAngle),
+            { 
+                dir: d, dist: 0, dmg: damage, piercing,
+                hasPoison, poisonDmg, poisonDur, knockback,
+                pierceCount: 0, maxPierceCount, angle: arrowAngle
+            }
+        ]);
+        
+        // Arrow emoji overlay
+        const arrowIcon = add([
+            text('🏹', { size: Math.floor(projSize * 1.0) }),
+            pos(proj.pos), anchor("center"), z(17), rotate(arrowAngle)
+        ]);
+        arrowIcon.onUpdate(() => {
+            if (!proj.exists()) { destroy(arrowIcon); return; }
+            arrowIcon.pos = proj.pos;
+            arrowIcon.angle = proj.angle || arrowAngle;
+        });
+        
     } else {
         // MAGE ORB - glowing magic sphere
         proj = add([
