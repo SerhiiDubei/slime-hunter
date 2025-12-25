@@ -308,7 +308,7 @@ export function createHUD() {
                     if (lvl.cooldown) stats.push(`Cooldown: ${lvl.cooldown}s`);
                     if (lvl.manaCost) stats.push(`Mana: ${lvl.manaCost}`);
                     if (lvl.duration) stats.push(`Duration: ${lvl.duration}s`);
-                    if (lvl.speedBoost && stats.push(`Speed: +${Math.floor((lvl.speedBoost - 1) * 100)}%`));
+                    if (lvl.speedBoost) stats.push(`Speed: +${Math.floor((lvl.speedBoost - 1) * 100)}%`);
                     if (lvl.radius) stats.push(`Radius: ${lvl.radius}px`);
                     if (lvl.poisonDamage) stats.push(`Poison: ${lvl.poisonDamage}/tick`);
                     if (lvl.poisonDuration) stats.push(`Poison Duration: ${lvl.poisonDuration}s`);
