@@ -520,12 +520,7 @@ function onRoomCleared() {
     }
     
     // Check if all keys collected for boss door
-    const allKeysCollected = checkAllKeysCollected(dungeon); 
-        allKeysCollected,
-        collectedKeys: GS.collectedKeys,
-        currentRoomId: currentRoom?.id
-    });
-    // #endregion
+    const allKeysCollected = checkAllKeysCollected(dungeon);
     
     // Update door visuals using centralized function
     updateBossDoorVisuals(doors, doorTexts, allKeysCollected);
