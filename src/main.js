@@ -89,6 +89,7 @@ try {
     createLevelIntroScene();
     createOptionsScene();
     createLoadingScene();
+    createSkillSelectScene(); // Skill selection scene
     Logger.info('All scenes created');
 } catch (error) {
     Logger.error('Failed to create scenes', { error: error.message, stack: error.stack });

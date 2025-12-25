@@ -99,7 +99,7 @@ export const GS = {
         sta: 1,  // Stamina
     },
     
-    // Passive skills (perks) - permanent upgrades
+    // Passive skills (perks) - permanent upgrades (shop)
     passiveSkills: {
         poison: 0,       // Level 0 = not owned
         vampirism: 0,
@@ -107,6 +107,15 @@ export const GS = {
         critical: 0,
         goldMagnet: 0,
         regeneration: 0,
+    },
+    
+    // Hero-specific skills (chosen on level up)
+    heroSkills: {
+        // Passive skill (always active for selected hero)
+        passive: null,  // e.g. "warrior_armor"
+        
+        // Active skills (chosen when leveling up, max 3)
+        active: [],     // e.g. ["warrior_melee_damage", "warrior_health", "warrior_axe_damage"]
     },
     
     // Full reset (new game)
