@@ -8,10 +8,12 @@ import { HEROES } from './data/heroes.js';
 import { getLevel } from './data/levels.js';
 import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
 import { getSkillCooldown } from './abilities.js';
+import { Logger } from './logger.js';
 
 export function createHUD() {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ui.js:12',message:'createHUD entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    Logger.debug('[DBG$] createHUD entry');
     // #endregion
     
     // Use viewport dimensions for UI positioning
@@ -117,6 +119,8 @@ export function createHUD() {
     // Get hero skills
     const heroSkills = getHeroSkills(GS.selectedHero);
     
+    Logger.debug('[DBG$] before skill icons loop', { slots: skillPositions.length, hero: GS.selectedHero });
+
     for (let i = 0; i < 4; i++) {
         const pos = skillPositions[i];
         const skillX = startX + pos.index * (skillIconSize + skillIconGap);

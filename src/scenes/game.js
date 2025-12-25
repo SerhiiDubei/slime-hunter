@@ -577,6 +577,7 @@ export function createGameScene() {
     scene("game", () => {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:577',message:'Game scene entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        Logger.debug('[DBG$] game scene entry', { level: GS.currentLevel, room: GS.currentRoom });
         // #endregion
         
         // Initialize dungeon manager if not exists
@@ -991,10 +992,18 @@ export function createGameScene() {
             perfStep = performance.now();
             doors = [];
             doorTexts = [];
-            const adjacentRooms = dungeon.getAdjacentRooms();
+            let adjacentRooms = [];
+            try {
+                adjacentRooms = dungeon.getAdjacentRooms();
+                Logger.debug('[DBG$] adjacentRooms fetched', { count: adjacentRooms.length });
+            } catch (err) {
+                Logger.error('[DBG$] adjacentRooms failed', { message: err.message, stack: err.stack });
+                throw err;
+            }
             
             let doorCount = 0;
-            adjacentRooms.forEach((adjRoom) => {
+            try {
+                adjacentRooms.forEach((adjRoom) => {
                 const targetRoom = adjRoom.room;
                 const direction = adjRoom.direction;
                 const canEnter = adjRoom.canEnter;
@@ -1089,7 +1098,11 @@ export function createGameScene() {
                     { targetRoomId: targetRoom.id, targetRoomType: targetRoom.type }
                 ]);
                 doorTexts.push(doorTxt);
-            });
+                });
+            } catch (err) {
+                Logger.error('[DBG$] adjacentRooms forEach failed', { message: err.message, stack: err.stack });
+                throw err;
+            }
             
             const perfDoors = performance.now() - perfStep;
             perf.doors = perfDoors;
@@ -1561,12 +1574,14 @@ export function createGameScene() {
             // Create HUD
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:1628',message:'Before createHUD call',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            Logger.debug('[DBG$] before createHUD');
             // #endregion
             
             createHUD();
             
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:1633',message:'After createHUD call',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            Logger.debug('[DBG$] after createHUD');
             // #endregion
             
             // Send room layout to minimap
