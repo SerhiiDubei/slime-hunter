@@ -924,7 +924,9 @@ function makeDoor(open) {
     
     // Metal studs (bronze/silver instead of yellow)
     ctx.fillStyle = open ? '#cd7f32' : '#666666'; // Bronze color instead of yellow
-    [[14, 22], [34, 22], [14, 50], [34, 50]].forEach(([x, y]) => {
+    [[14, 22], [34, 22], [14, 50], [34, 50]].forEach((pos) => {
+        const x = pos[0];
+        const y = pos[1];
         ctx.beginPath();
         ctx.arc(x, y, 2.5, 0, Math.PI * 2);
         ctx.fill();

@@ -384,7 +384,9 @@ function distributeEnemyWeight(totalWeight, level) {
     
     // Calculate actual total weight
     let actualWeight = 0;
-    for (const [type, count] of Object.entries(distribution)) {
+    for (const entry of Object.entries(distribution)) {
+        const type = entry[0];
+        const count = entry[1];
         const weight = ENEMY_TYPES[type]?.weight || 1;
         actualWeight += weight * count;
     }
