@@ -96,67 +96,89 @@ export function createHUD() {
         z(99)
     ]);
     
-    // Skill icons container (4 slots: 1 passive + 3 active) - 2x2 grid
+    // Skill icons container (4 slots: Q, R, T, Y) - 1x4 row
     const skillIcons = [];
-    const startX = VW / 2 - (skillIconSize * 2 + skillIconGap) / 2;
-    const startY = skillsBarY - (skillIconSize * 2 + skillIconGap) / 2;
+    const totalWidth = skillIconSize * 4 + skillIconGap * 3;
+    const startX = VW / 2 - totalWidth / 2;
+    const startY = skillsBarY - skillIconSize / 2 - 10; // Move up for dots
     
-    // Layout: [Q] [R]
-    //         [T] [Y]
+    // Layout: [Q] [R] [T] [Y] - all in one row
     const skillPositions = [
-        { key: 'Q', x: 0, y: 0 },        // Top left
-        { key: 'R', x: 1, y: 0 },        // Top right
-        { key: 'T', x: 0, y: 1 },        // Bottom left
-        { key: 'Y', x: 1, y: 1 },        // Bottom right (ultimate)
+        { key: 'Q', index: 0 },
+        { key: 'R', index: 1 },
+        { key: 'T', index: 2 },
+        { key: 'Y', index: 3 },
     ];
     
+    // Get hero skills
+    const heroSkills = getHeroSkills(GS.selectedHero);
+    
     for (let i = 0; i < 4; i++) {
-        const skillPos = skillPositions[i];
-        const skillX = startX + skillPos.x * (skillIconSize + skillIconGap);
-        const skillY = startY + skillPos.y * (skillIconSize + skillIconGap);
+        const pos = skillPositions[i];
+        const skillX = startX + pos.index * (skillIconSize + skillIconGap);
+        const skillY = startY;
         
-        // Skill slot background (square)
+        // Get skill data
+        let skill = null;
+        if (pos.key === 'Q') skill = heroSkills.skillQ;
+        else if (pos.key === 'R') skill = heroSkills.skillR;
+        else if (pos.key === 'T') skill = heroSkills.skillT;
+        else if (pos.key === 'Y') skill = heroSkills.skillY;
+        
+        // Skill slot background (square) - always visible
         const skillBg = add([
             rect(skillIconSize, skillIconSize),
             pos(skillX, skillY),
             color(30, 25, 20),
+            area(),
             fixed(),
             z(99),
-            `skillIcon${i}`
+            `skillIcon${i}`,
+            { skillKey: pos.key, skill: skill }
         ]);
         
-        // Skill icon
+        // Skill icon - always show (gray if not learned, colored if learned)
         const skillIcon = add([
-            text("", { size: 28 }),
+            text(skill ? skill.icon : "?", { size: 28 }),
             pos(skillX + skillIconSize / 2, skillY + skillIconSize / 2 - 6),
             anchor("center"),
-            color(200, 200, 200),
+            color(150, 150, 150), // Gray by default, will be updated in onUpdate
             fixed(),
             z(100),
             `skillIconText${i}`
         ]);
         
-        // Key label (E, R, Q, or passive icon)
+        // Key label (Q, R, T, Y) - always visible
         const keyLabel = add([
-            text("", { size: 12 }),
+            text(skill ? skill.key : pos.key, { size: 12 }),
             pos(skillX + skillIconSize / 2, skillY + skillIconSize - 12),
             anchor("center"),
-            color(150, 150, 150),
+            color(150, 150, 150), // Will be updated in onUpdate
             fixed(),
             z(101),
             `skillKey${i}`
         ]);
         
-        // Skill level indicator
-        const skillLevel = add([
-            text("", { size: 10 }),
-            pos(skillX + skillIconSize - 6, skillY + 6),
-            anchor("center"),
-            color(255, 220, 100),
-            fixed(),
-            z(101),
-            `skillLevel${i}`
-        ]);
+        // Skill level indicator (4 dots below icon)
+        const levelDots = [];
+        const dotSize = 4;
+        const dotGap = 2;
+        const dotsY = skillY + skillIconSize + 4;
+        const dotsTotalWidth = dotSize * 4 + dotGap * 3;
+        const dotsStartX = skillX + (skillIconSize - dotsTotalWidth) / 2;
+        
+        for (let dotIndex = 0; dotIndex < 4; dotIndex++) {
+            const dotX = dotsStartX + dotIndex * (dotSize + dotGap);
+            const dot = add([
+                rect(dotSize, dotSize),
+                pos(dotX, dotsY),
+                color(60, 60, 60), // Gray by default
+                fixed(),
+                z(101),
+                `skillLevelDot${i}_${dotIndex}`
+            ]);
+            levelDots.push(dot);
+        }
         
         // Cooldown overlay (circular animation)
         const cooldownOverlay = add([
@@ -589,83 +611,120 @@ export function createHUD() {
                 level = GS.heroSkills.skillY;
             }
             
-            if (skill && level > 0) {
-                // Skill is learned
+            // Always show skill icon (gray if not learned, colored if learned)
+            if (skill) {
                 slot.icon.text = skill.icon;
-                slot.bg.color = rgb(80, 70, 60); // Brighter for learned
-                slot.level.text = level > 0 ? `${level}` : "";
-                slot.keyLabel.text = skill.key || "";
+                slot.keyLabel.text = skill.key || skillKey;
                 
-                // Check cooldown and mana
-                let cooldown = 0;
-                let maxCooldown = 0;
-                let manaCost = 0;
-                let hasMana = true;
+                // Check if skill is passive (no cooldown/manaCost) or active
+                const isPassive = !skill.levels || !skill.levels[0] || (!skill.levels[0].cooldown && !skill.levels[0].manaCost);
                 
-                // Check cooldown and mana for active skills (Q, R, T, Y)
-                if (skillKey === 'Q' || skillKey === 'R' || skillKey === 'T' || skillKey === 'Y') {
-                    cooldown = getSkillCooldown(skillKey);
-                    if (level > 0 && skill.levels[level - 1]) {
-                        maxCooldown = skill.levels[level - 1].cooldown || 0;
-                        manaCost = skill.levels[level - 1].manaCost || 0;
-                        hasMana = pl.mana >= manaCost;
+                if (level > 0) {
+                    // Skill is learned - show colored
+                    slot.icon.color = rgb(255, 255, 255);
+                    slot.bg.color = isPassive ? rgb(60, 80, 60) : rgb(80, 70, 60); // Green tint for passive, brown for active
+                    slot.keyLabel.color = rgb(200, 200, 200);
+                    
+                    // Update level dots - gold for learned, gray for not learned
+                    slot.levelDots.forEach((dot, dotIndex) => {
+                        if (dotIndex < level) {
+                            dot.color = rgb(255, 220, 100); // Gold for learned levels
+                        } else {
+                            dot.color = rgb(60, 60, 60); // Gray for not learned
+                        }
+                    });
+                    
+                    // Show mana cost if active skill
+                    if (!isPassive && skill.levels[level - 1] && skill.levels[level - 1].manaCost) {
+                        slot.cooldownManaText.text = `${skill.levels[level - 1].manaCost}`;
+                        slot.cooldownManaText.color = rgb(200, 200, 255);
+                    } else {
+                        slot.cooldownManaText.text = "";
+                    }
+                    
+                    // Check cooldown for active skills
+                    let cooldown = 0;
+                    let maxCooldown = 0;
+                    let manaCost = 0;
+                    let hasMana = true;
+                    
+                    if (!isPassive && (skillKey === 'Q' || skillKey === 'R' || skillKey === 'T' || skillKey === 'Y')) {
+                        cooldown = getSkillCooldown(skillKey);
+                        if (skill.levels[level - 1]) {
+                            maxCooldown = skill.levels[level - 1].cooldown || 0;
+                            manaCost = skill.levels[level - 1].manaCost || 0;
+                            hasMana = pl.mana >= manaCost;
+                        }
+                    }
+                    
+                    // Cooldown animation (circular overlay)
+                    if (cooldown > 0 && maxCooldown > 0) {
+                        const cooldownPct = cooldown / maxCooldown;
+                        const cooldownSeconds = Math.ceil(cooldown);
+                        
+                        slot.cooldownOverlay.opacity = 0.6 * cooldownPct;
+                        slot.cooldownOverlay.color = rgb(0, 0, 0);
+                        
+                        const angle = 270 - (1 - cooldownPct) * 360;
+                        slot.cooldownOverlay.angle = angle;
+                        
+                        slot.cooldownText.text = cooldownSeconds > 0 ? `${cooldownSeconds}` : "";
+                        slot.cooldownText.opacity = 1;
+                        slot.cooldownText.color = rgb(255, 255, 255);
+                    } else {
+                        slot.cooldownOverlay.opacity = 0;
+                        slot.cooldownOverlay.angle = 0;
+                        slot.cooldownText.opacity = 0;
+                        slot.cooldownText.text = "";
+                    }
+                    
+                    // Check if skill can be used (has mana)
+                    if (!hasMana && !isPassive) {
+                        slot.bg.color = rgb(100, 50, 50); // Red tint when no mana
+                    }
+                    
+                    // Ultimate (Y) gets special treatment
+                    if (skillKey === 'Y' && skill.isUltimate && GS.ultimateReady && hasMana) {
+                        const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
+                        slot.bg.color = rgb(255, 200 + pulse * 55, 50);
+                        slot.bg.opacity = 0.7 + pulse * 0.3;
+                    } else {
+                        slot.bg.opacity = 1;
+                    }
+                } else {
+                    // Skill not learned yet - show gray
+                    slot.icon.color = rgb(100, 100, 100); // Gray
+                    slot.bg.color = rgb(30, 25, 20); // Dark background
+                    slot.keyLabel.color = rgb(100, 100, 100);
+                    
+                    // All dots gray
+                    slot.levelDots.forEach(dot => {
+                        dot.color = rgb(40, 40, 40); // Very dark gray
+                    });
+                    
+                    slot.cooldownManaText.text = "";
+                    slot.cooldownOverlay.opacity = 0;
+                    slot.cooldownText.opacity = 0;
+                    
+                    // Show "Level 5+" requirement for ultimate (Y) if not available
+                    if (skillKey === 'Y' && skill.isUltimate && GS.playerLevel < 5) {
+                        slot.icon.text = "🔒";
+                        slot.icon.color = rgb(150, 100, 100);
+                        slot.keyLabel.text = "Lv5+";
+                        slot.keyLabel.color = rgb(200, 150, 150);
                     }
                 }
-                
-                // Cooldown animation (circular overlay - rotating arc)
-                if (cooldown > 0 && maxCooldown > 0) {
-                    const cooldownPct = cooldown / maxCooldown;
-                    const cooldownSeconds = Math.ceil(cooldown);
-                    
-                    // Circular cooldown animation (like Dota/LoL)
-                    // Use opacity to show remaining cooldown
-                    slot.cooldownOverlay.opacity = 0.6 * cooldownPct;
-                    slot.cooldownOverlay.color = rgb(0, 0, 0);
-                    
-                    // Rotate the overlay to show cooldown progress
-                    // Start from top (270 degrees) and rotate clockwise
-                    const angle = 270 - (1 - cooldownPct) * 360;
-                    slot.cooldownOverlay.angle = angle;
-                    
-                    // Show cooldown time
-                    slot.cooldownText.text = cooldownSeconds > 0 ? `${cooldownSeconds}` : "";
-                    slot.cooldownText.opacity = 1;
-                    slot.cooldownText.color = rgb(255, 255, 255);
-                } else {
-                    slot.cooldownOverlay.opacity = 0;
-                    slot.cooldownOverlay.angle = 0;
-                    slot.cooldownText.opacity = 0;
-                    slot.cooldownText.text = "";
-                }
-                
-                // Check if skill can be used (has mana)
-                if (!hasMana && (skillKey === 'Q' || skillKey === 'R' || skillKey === 'T' || skillKey === 'Y')) {
-                    slot.bg.color = rgb(100, 50, 50); // Red tint when no mana
-                }
-                
-                // Ultimate (Y) gets special treatment
-                if (skillKey === 'Y' && skill.isUltimate && GS.ultimateReady && hasMana) {
-                    const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
-                    slot.bg.color = rgb(255, 200 + pulse * 55, 50);
-                    slot.bg.opacity = 0.7 + pulse * 0.3;
-                } else {
-                    slot.bg.opacity = 1;
-                }
             } else {
-                // Skill not learned yet
-                slot.icon.text = "";
-                slot.bg.color = rgb(30, 25, 20); // Dark for not learned
-                slot.level.text = "";
-                slot.keyLabel.text = skill ? (skill.key || "") : "";
-                slot.cooldownOverlay.opacity = 0;
+                // No skill data - show placeholder
+                slot.icon.text = "?";
+                slot.icon.color = rgb(80, 80, 80);
+                slot.bg.color = rgb(20, 20, 20);
+                slot.keyLabel.text = skillKey;
+                slot.keyLabel.color = rgb(80, 80, 80);
                 
-                // Show "Level 5+" requirement for ultimate (Y) if not available
-                if (skillKey === 'Y' && skill && skill.isUltimate && GS.playerLevel < 5) {
-                    slot.icon.text = "🔒";
-                    slot.icon.color = rgb(150, 100, 100);
-                    slot.level.text = "Lv5+";
-                    slot.level.color = rgb(200, 150, 150);
-                }
+                slot.levelDots.forEach(dot => {
+                    dot.color = rgb(30, 30, 30);
+                });
             }
         });
         
