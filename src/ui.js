@@ -214,6 +214,7 @@ export function createHUD() {
         skillIcons.push({ 
             bg: skillBg, 
             icon: skillIcon, 
+            level: null, // Will be set in onUpdate
             levelDots: levelDots,
             keyLabel: keyLabel,
             skillKey: slotPos.key,
@@ -629,34 +630,66 @@ export function createHUD() {
             }
             
             // Always show skill icon (gray if not learned, colored if learned)
-                if (skill) {
-                slot.icon.text = skill.icon;
-                slot.keyLabel.text = skill.key || skillKey;
+            if (skill) {
+                // #region agent log
+                Logger.debug('[DBG$] HUD setting icon/keyLabel', { 
+                    index, 
+                    skillKey, 
+                    hasIcon: !!slot.icon, 
+                    hasKeyLabel: !!slot.keyLabel,
+                    iconExists: slot.icon && slot.icon.exists ? slot.icon.exists() : 'no_exists_method',
+                    keyLabelExists: slot.keyLabel && slot.keyLabel.exists ? slot.keyLabel.exists() : 'no_exists_method'
+                });
+                // #endregion
+                
+                if (slot.icon && slot.icon.exists && slot.icon.exists()) {
+                    slot.icon.text = skill.icon;
+                } else {
+                    Logger.warn('[DBG$] HUD icon invalid', { index, skillKey, icon: slot.icon });
+                }
+                
+                if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
+                    slot.keyLabel.text = skill.key || skillKey;
+                } else {
+                    Logger.warn('[DBG$] HUD keyLabel invalid', { index, skillKey, keyLabel: slot.keyLabel });
+                }
                 
                 // Check if skill is passive (no cooldown/manaCost) or active
                 const isPassive = !skill.levels || !skill.levels[0] || (!skill.levels[0].cooldown && !skill.levels[0].manaCost);
                 
                 if (level > 0) {
                     // Skill is learned - show colored
-                    slot.icon.color = rgb(255, 255, 255);
-                    slot.bg.color = isPassive ? rgb(60, 80, 60) : rgb(80, 70, 60); // Green tint for passive, brown for active
-                    slot.keyLabel.color = rgb(200, 200, 200);
+                    if (slot.icon && slot.icon.exists && slot.icon.exists()) {
+                        slot.icon.color = rgb(255, 255, 255);
+                    }
+                    if (slot.bg && slot.bg.exists && slot.bg.exists()) {
+                        slot.bg.color = isPassive ? rgb(60, 80, 60) : rgb(80, 70, 60); // Green tint for passive, brown for active
+                    }
+                    if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
+                        slot.keyLabel.color = rgb(200, 200, 200);
+                    }
                     
                     // Update level dots - gold for learned, gray for not learned
-                    slot.levelDots.forEach((dot, dotIndex) => {
-                        if (dotIndex < level) {
-                            dot.color = rgb(255, 220, 100); // Gold for learned levels
-                        } else {
-                            dot.color = rgb(60, 60, 60); // Gray for not learned
-                        }
-                    });
+                    if (slot.levelDots && Array.isArray(slot.levelDots)) {
+                        slot.levelDots.forEach((dot, dotIndex) => {
+                            if (dot && dot.exists && dot.exists()) {
+                                if (dotIndex < level) {
+                                    dot.color = rgb(255, 220, 100); // Gold for learned levels
+                                } else {
+                                    dot.color = rgb(60, 60, 60); // Gray for not learned
+                                }
+                            }
+                        });
+                    }
                     
                     // Show mana cost if active skill
-                    if (!isPassive && skill.levels[level - 1] && skill.levels[level - 1].manaCost) {
-                        slot.cooldownManaText.text = `${skill.levels[level - 1].manaCost}`;
-                        slot.cooldownManaText.color = rgb(200, 200, 255);
-                    } else {
-                        slot.cooldownManaText.text = "";
+                    if (slot.cooldownManaText && slot.cooldownManaText.exists && slot.cooldownManaText.exists()) {
+                        if (!isPassive && skill.levels[level - 1] && skill.levels[level - 1].manaCost) {
+                            slot.cooldownManaText.text = `${skill.levels[level - 1].manaCost}`;
+                            slot.cooldownManaText.color = rgb(200, 200, 255);
+                        } else {
+                            slot.cooldownManaText.text = "";
+                        }
                     }
                     
                     // Check cooldown for active skills
@@ -675,73 +708,115 @@ export function createHUD() {
                     }
                     
                     // Cooldown animation (circular overlay)
-                    if (cooldown > 0 && maxCooldown > 0) {
-                        const cooldownPct = cooldown / maxCooldown;
-                        const cooldownSeconds = Math.ceil(cooldown);
-                        
-                        slot.cooldownOverlay.opacity = 0.6 * cooldownPct;
-                        slot.cooldownOverlay.color = rgb(0, 0, 0);
-                        
-                        const angle = 270 - (1 - cooldownPct) * 360;
-                        slot.cooldownOverlay.angle = angle;
-                        
-                        slot.cooldownText.text = cooldownSeconds > 0 ? `${cooldownSeconds}` : "";
-                        slot.cooldownText.opacity = 1;
-                        slot.cooldownText.color = rgb(255, 255, 255);
-                    } else {
-                        slot.cooldownOverlay.opacity = 0;
-                        slot.cooldownOverlay.angle = 0;
-                        slot.cooldownText.opacity = 0;
-                        slot.cooldownText.text = "";
+                    if (slot.cooldownOverlay && slot.cooldownOverlay.exists && slot.cooldownOverlay.exists()) {
+                        if (cooldown > 0 && maxCooldown > 0) {
+                            const cooldownPct = cooldown / maxCooldown;
+                            const cooldownSeconds = Math.ceil(cooldown);
+                            
+                            slot.cooldownOverlay.opacity = 0.6 * cooldownPct;
+                            slot.cooldownOverlay.color = rgb(0, 0, 0);
+                            
+                            const angle = 270 - (1 - cooldownPct) * 360;
+                            slot.cooldownOverlay.angle = angle;
+                        } else {
+                            slot.cooldownOverlay.opacity = 0;
+                            slot.cooldownOverlay.angle = 0;
+                        }
+                    }
+                    
+                    if (slot.cooldownText && slot.cooldownText.exists && slot.cooldownText.exists()) {
+                        if (cooldown > 0 && maxCooldown > 0) {
+                            const cooldownSeconds = Math.ceil(cooldown);
+                            slot.cooldownText.text = cooldownSeconds > 0 ? `${cooldownSeconds}` : "";
+                            slot.cooldownText.opacity = 1;
+                            slot.cooldownText.color = rgb(255, 255, 255);
+                        } else {
+                            slot.cooldownText.opacity = 0;
+                            slot.cooldownText.text = "";
+                        }
                     }
                     
                     // Check if skill can be used (has mana)
-                    if (!hasMana && !isPassive) {
+                    if (!hasMana && !isPassive && slot.bg && slot.bg.exists && slot.bg.exists()) {
                         slot.bg.color = rgb(100, 50, 50); // Red tint when no mana
                     }
                     
                     // Ultimate (Y) gets special treatment
                     if (skillKey === 'Y' && skill.isUltimate && GS.ultimateReady && hasMana) {
-                        const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
-                        slot.bg.color = rgb(255, 200 + pulse * 55, 50);
-                        slot.bg.opacity = 0.7 + pulse * 0.3;
+                        if (slot.bg && slot.bg.exists && slot.bg.exists()) {
+                            const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
+                            slot.bg.color = rgb(255, 200 + pulse * 55, 50);
+                            slot.bg.opacity = 0.7 + pulse * 0.3;
+                        }
                     } else {
-                        slot.bg.opacity = 1;
+                        if (slot.bg && slot.bg.exists && slot.bg.exists()) {
+                            slot.bg.opacity = 1;
+                        }
                     }
                 } else {
                     // Skill not learned yet - show gray
-                    slot.icon.color = rgb(100, 100, 100); // Gray
-                    slot.bg.color = rgb(30, 25, 20); // Dark background
-                    slot.keyLabel.color = rgb(100, 100, 100);
+                    if (slot.icon && slot.icon.exists && slot.icon.exists()) {
+                        slot.icon.color = rgb(100, 100, 100); // Gray
+                    }
+                    if (slot.bg && slot.bg.exists && slot.bg.exists()) {
+                        slot.bg.color = rgb(30, 25, 20); // Dark background
+                    }
+                    if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
+                        slot.keyLabel.color = rgb(100, 100, 100);
+                    }
                     
                     // All dots gray
-                    slot.levelDots.forEach(dot => {
-                        dot.color = rgb(40, 40, 40); // Very dark gray
-                    });
+                    if (slot.levelDots && Array.isArray(slot.levelDots)) {
+                        slot.levelDots.forEach(dot => {
+                            if (dot && dot.exists && dot.exists()) {
+                                dot.color = rgb(40, 40, 40); // Very dark gray
+                            }
+                        });
+                    }
                     
-                    slot.cooldownManaText.text = "";
-                    slot.cooldownOverlay.opacity = 0;
-                    slot.cooldownText.opacity = 0;
+                    if (slot.cooldownManaText && slot.cooldownManaText.exists && slot.cooldownManaText.exists()) {
+                        slot.cooldownManaText.text = "";
+                    }
+                    if (slot.cooldownOverlay && slot.cooldownOverlay.exists && slot.cooldownOverlay.exists()) {
+                        slot.cooldownOverlay.opacity = 0;
+                    }
+                    if (slot.cooldownText && slot.cooldownText.exists && slot.cooldownText.exists()) {
+                        slot.cooldownText.opacity = 0;
+                    }
                     
                     // Show "Level 5+" requirement for ultimate (Y) if not available
                     if (skillKey === 'Y' && skill.isUltimate && GS.playerLevel < 5) {
-                        slot.icon.text = "🔒";
-                        slot.icon.color = rgb(150, 100, 100);
-                        slot.keyLabel.text = "Lv5+";
-                        slot.keyLabel.color = rgb(200, 150, 150);
+                        if (slot.icon && slot.icon.exists && slot.icon.exists()) {
+                            slot.icon.text = "🔒";
+                            slot.icon.color = rgb(150, 100, 100);
+                        }
+                        if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
+                            slot.keyLabel.text = "Lv5+";
+                            slot.keyLabel.color = rgb(200, 150, 150);
+                        }
                     }
                 }
             } else {
                 // No skill data - show placeholder
-                slot.icon.text = "?";
-                slot.icon.color = rgb(80, 80, 80);
-                slot.bg.color = rgb(20, 20, 20);
-                slot.keyLabel.text = skillKey;
-                slot.keyLabel.color = rgb(80, 80, 80);
+                if (slot.icon && slot.icon.exists && slot.icon.exists()) {
+                    slot.icon.text = "?";
+                    slot.icon.color = rgb(80, 80, 80);
+                }
+                if (slot.bg && slot.bg.exists && slot.bg.exists()) {
+                    slot.bg.color = rgb(20, 20, 20);
+                }
+                if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
+                    slot.keyLabel.text = skillKey;
+                    slot.keyLabel.color = rgb(80, 80, 80);
+                }
                 
-                slot.levelDots.forEach(dot => {
-                    dot.color = rgb(30, 30, 30);
-                });
+                if (slot.levelDots && Array.isArray(slot.levelDots)) {
+                    slot.levelDots.forEach(dot => {
+                        if (dot && dot.exists && dot.exists()) {
+                            dot.color = rgb(30, 30, 30);
+                        }
+                    });
+                }
             }
         });
         
