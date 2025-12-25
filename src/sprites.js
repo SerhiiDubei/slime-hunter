@@ -1648,7 +1648,9 @@ export function generateSprites() {
 // Load all sprites into Kaboom
 export function loadAllSprites() {
     const sprites = generateSprites();
-    Object.entries(sprites).forEach(([name, data]) => {
+    Object.entries(sprites).forEach((entry) => {
+        const name = entry[0];
+        const data = entry[1];
         loadSprite(name, data);
     });
     
