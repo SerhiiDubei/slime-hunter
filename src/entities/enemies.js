@@ -1611,9 +1611,8 @@ export function killEnemy(e, spawnKeyFn) {
         playSound('levelup');
         createLevelUpFX(GS.player.pos);
         
-        // Freeze game and show skill selection scene
-        GS.gameFrozen = true;
-        go("skillSelect");
+        // Skill point added - UI will show skill selection in game scene
+        // No scene change - just show overlay UI
     }
     
     // NOTE: Keys are spawned in onRoomCleared, not here
