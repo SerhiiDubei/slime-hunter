@@ -18,6 +18,8 @@ export const HEROES = {
             moveSpeed: 0.9,        // Slower
             maxHp: 1.5,            // +50% HP - TANK
             stamina: 0.85,
+            maxMana: 100,          // Mana pool
+            manaRegen: 2.0,        // Mana per second
         },
         
         // Melee attack properties
@@ -84,6 +86,8 @@ export const HEROES = {
             moveSpeed: 0.85,       // Slower movement
             maxHp: 0.6,            // -40% HP (VERY squishy)
             stamina: 1.3,
+            maxMana: 150,          // Higher mana pool
+            manaRegen: 3.0,        // Faster mana regen
         },
         
         // Melee attack properties
@@ -149,6 +153,8 @@ export const HEROES = {
             moveSpeed: 1.5,        // +50% speed! FASTEST
             maxHp: 0.75,           // -25% HP
             stamina: 2.0,          // +100% stamina - sprint forever
+            maxMana: 80,           // Lower mana pool
+            manaRegen: 1.5,        // Slower mana regen
         },
         
         // Melee attack properties
@@ -218,6 +224,8 @@ export const HEROES = {
             moveSpeed: 1.2,        // +20% speed
             maxHp: 1.0,            // Balanced HP
             stamina: 1.5,          // +50% stamina
+            maxMana: 120,          // Balanced mana
+            manaRegen: 2.5,        // Balanced mana regen
         },
         
         // Melee attack properties

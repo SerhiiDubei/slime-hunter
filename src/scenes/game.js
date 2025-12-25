@@ -12,8 +12,7 @@ import { createPlayer, setupPlayerMovement } from '../entities/player.js';
 import { spawnRandomEnemy, spawnBoss, spawnEnemy } from '../entities/enemies.js';
 import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
-import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
-import { setupAbilities, tryUseAbility, updateAbilities } from '../abilities.js';
+import { setupAbilities, tryUseSkillE, tryUseSkillQ, updateAbilities } from '../abilities.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
@@ -1187,19 +1186,27 @@ export function createGameScene() {
             const doMeleeAttack = () => meleeAttack(spawnKeyFn);
             const doRangedAttack = () => rangedAttack(spawnKeyFn);
 
-            // Setup ultimate and abilities
-            setupUltimate();
+            // Setup abilities
             setupAbilities();
 
             // Input - use customizable keybinds
             const meleeKey = KEYBINDS.meleeAttack || 'space';
             const rangedKey = KEYBINDS.rangedAttack || 'e';
             const ultKey = KEYBINDS.ultimate || 'q';
-            const abilityKey = KEYBINDS.ability || 'f';
             
             onKeyPress(meleeKey, doMeleeAttack);
-            onKeyPress(abilityKey, tryUseAbility);
             onKeyPress("j", doMeleeAttack);
+            
+            // Skill keys (E, R, Q)
+            onKeyPress("e", () => {
+                if (!GS.gameFrozen) tryUseSkillE();
+            });
+            onKeyPress("r", () => {
+                // Skill R is passive, no active use
+            });
+            onKeyPress("q", () => {
+                if (!GS.gameFrozen) tryUseSkillQ();
+            });
             
             let keyStates = {};
             let camUpdateTimer = 0;
@@ -1215,10 +1222,9 @@ export function createGameScene() {
                 keyStates.melee = meleePressed;
                 
                 const ultPressed = isKeyDown(ultKey);
-                if (ultPressed && !keyStates.ult) tryUseUltimate();
+                if (ultPressed && !keyStates.ult && !GS.gameFrozen) tryUseSkillQ();
                 keyStates.ult = ultPressed;
                 
-                updateUltimate();
                 updateAbilities();
                 
                 // ==================== SKILL SELECTION UI UPDATE ====================

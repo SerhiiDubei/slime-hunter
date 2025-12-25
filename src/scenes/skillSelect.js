@@ -1,10 +1,11 @@
 // ==================== SKILL SELECTION SCENE ====================
-// Shown when player levels up - choose 1 of 3 random active skills
+// Shown when player has skill points - choose which skill to upgrade
+// Also shown at level 1 to choose first skill
 
 import { CONFIG } from '../config.js';
 import { GS } from '../state.js';
 import { playSound } from '../audio.js';
-import { getHeroSkills, getHeroPassive } from '../data/heroSkills.js';
+import { getHeroSkills, getHeroPassive, getHeroSkillByKey } from '../data/heroSkills.js';
 import { getHero } from '../data/heroes.js';
 
 export function createSkillSelectScene() {
@@ -23,8 +24,9 @@ export function createSkillSelectScene() {
         ]);
         
         // Title
+        const titleText = GS.playerLevel === 1 ? "CHOOSE YOUR FIRST SKILL" : `LEVEL ${GS.playerLevel} UP!`;
         add([
-            text(`LEVEL ${GS.playerLevel} UP!`, { size: 32 }),
+            text(titleText, { size: 32 }),
             pos(W / 2, 80),
             anchor("center"),
             color(255, 220, 100),
@@ -33,7 +35,7 @@ export function createSkillSelectScene() {
         ]);
         
         add([
-            text("Choose a skill:", { size: 18 }),
+            text(`Skill Points: ${GS.skillPoints}`, { size: 18 }),
             pos(W / 2, 130),
             anchor("center"),
             color(200, 180, 140),
@@ -43,21 +45,25 @@ export function createSkillSelectScene() {
         
         // Get hero skills
         const heroSkills = getHeroSkills(GS.selectedHero);
-        const availableSkills = heroSkills.active.filter(skill => 
-            !GS.heroSkills.active.includes(skill.id)
-        );
         
-        // Select 3 random skills (or all if less than 3 available)
-        const skillsToShow = [];
-        const shuffled = [...availableSkills].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-            skillsToShow.push(shuffled[i]);
-        }
+        // All available skills (passive, E, R, Q)
+        const allSkills = [
+            { key: 'passive', skill: heroSkills.passive },
+            { key: 'E', skill: heroSkills.skillE },
+            { key: 'R', skill: heroSkills.skillR },
+            { key: 'Q', skill: heroSkills.skillQ },
+        ];
         
-        // If no skills available, show message
-        if (skillsToShow.length === 0) {
+        // Filter skills that can be upgraded (not max level)
+        const upgradableSkills = allSkills.filter(({ key, skill }) => {
+            const currentLevel = GS.getSkillLevel(key);
+            return currentLevel < 4; // Max level is 4
+        });
+        
+        // If no skills can be upgraded, show message
+        if (upgradableSkills.length === 0) {
             add([
-                text("All skills learned!", { size: 20 }),
+                text("All skills maxed!", { size: 20 }),
                 pos(W / 2, H / 2),
                 anchor("center"),
                 color(150, 200, 150),
@@ -66,20 +72,24 @@ export function createSkillSelectScene() {
             ]);
             
             wait(2, () => {
+                GS.gameFrozen = false;
                 go("game");
             });
             return;
         }
         
         // Skill cards
-        const cardWidth = 200;
-        const cardHeight = 180;
-        const cardGap = 20;
-        const startX = (W - (cardWidth * skillsToShow.length + cardGap * (skillsToShow.length - 1))) / 2;
-        const cardY = H / 2;
+        const cardWidth = 180;
+        const cardHeight = 220;
+        const cardGap = 15;
+        const startX = (W - (cardWidth * upgradableSkills.length + cardGap * (upgradableSkills.length - 1))) / 2;
+        const cardY = H / 2 + 20;
         
-        skillsToShow.forEach((skill, index) => {
+        upgradableSkills.forEach(({ key, skill }, index) => {
             const cardX = startX + index * (cardWidth + cardGap) + cardWidth / 2;
+            const currentLevel = GS.getSkillLevel(key);
+            const nextLevel = currentLevel + 1;
+            const isMaxLevel = currentLevel >= 4;
             
             // Card background
             const card = add([
@@ -91,7 +101,7 @@ export function createSkillSelectScene() {
                 fixed(),
                 z(151),
                 "skillCard",
-                { skillId: skill.id, skill: skill }
+                { skillKey: key, skill: skill }
             ]);
             
             // Card border
@@ -107,8 +117,18 @@ export function createSkillSelectScene() {
             // Skill icon
             add([
                 text(skill.icon, { size: 48 }),
-                pos(cardX, cardY - 60),
+                pos(cardX, cardY - 80),
                 anchor("center"),
+                fixed(),
+                z(152)
+            ]);
+            
+            // Key label
+            add([
+                text(`[${skill.key || 'PASSIVE'}]`, { size: 14 }),
+                pos(cardX, cardY - 50),
+                anchor("center"),
+                color(200, 200, 200),
                 fixed(),
                 z(152)
             ]);
@@ -116,16 +136,27 @@ export function createSkillSelectScene() {
             // Skill name
             add([
                 text(skill.name, { size: 16, width: cardWidth - 20 }),
-                pos(cardX, cardY - 20),
+                pos(cardX, cardY - 30),
                 anchor("center"),
                 color(255, 220, 100),
                 fixed(),
                 z(152)
             ]);
             
-            // Skill description
+            // Current level
             add([
-                text(skill.description, { size: 12, width: cardWidth - 20 }),
+                text(`Level ${currentLevel}/4`, { size: 12 }),
+                pos(cardX, cardY - 10),
+                anchor("center"),
+                color(180, 180, 180),
+                fixed(),
+                z(152)
+            ]);
+            
+            // Skill description (with level-specific info)
+            const description = skill.getDescription ? skill.getDescription(nextLevel) : skill.description;
+            add([
+                text(description, { size: 11, width: cardWidth - 20 }),
                 pos(cardX, cardY + 20),
                 anchor("center"),
                 color(180, 170, 160),
@@ -133,9 +164,23 @@ export function createSkillSelectScene() {
                 z(152)
             ]);
             
+            // Upgrade button text
+            if (!isMaxLevel) {
+                add([
+                    text("Click to upgrade", { size: 12 }),
+                    pos(cardX, cardY + 80),
+                    anchor("center"),
+                    color(150, 255, 150),
+                    fixed(),
+                    z(152)
+                ]);
+            }
+            
             // Hover effect
             card.onHoverUpdate(() => {
-                card.color = rgb(80, 70, 60);
+                if (!isMaxLevel) {
+                    card.color = rgb(80, 70, 60);
+                }
             });
             
             card.onHoverEnd(() => {
@@ -145,75 +190,54 @@ export function createSkillSelectScene() {
         
         // Click handler
         onClick("skillCard", (card) => {
-            const skillId = card.skillId;
+            const skillKey = card.skillKey;
             
-            // Add skill to active skills
-            if (!GS.heroSkills.active.includes(skillId)) {
-                GS.heroSkills.active.push(skillId);
-            }
-            
-            // Initialize passive skill if not set
-            if (!GS.heroSkills.passive) {
-                const passive = getHeroPassive(GS.selectedHero);
-                GS.heroSkills.passive = passive.id;
-            }
-            
-            playSound('levelup');
-            GS.gameFrozen = false; // Unfreeze game
-            // Return to game scene
-            go("game");
-        });
-        
-        // Keyboard selection (1, 2, 3)
-        onKeyPress("1", () => {
-            if (skillsToShow[0]) {
-                const skillId = skillsToShow[0].id;
-                if (!GS.heroSkills.active.includes(skillId)) {
-                    GS.heroSkills.active.push(skillId);
-                }
-                if (!GS.heroSkills.passive) {
-                    const passive = getHeroPassive(GS.selectedHero);
-                    GS.heroSkills.passive = passive.id;
-                }
+            // Upgrade skill
+            if (GS.upgradeSkill(skillKey)) {
                 playSound('levelup');
-                GS.gameFrozen = false; // Unfreeze game
-                go("game");
+                
+                // If no more skill points, return to game
+                if (GS.skillPoints <= 0) {
+                    GS.gameFrozen = false;
+                    go("game");
+                } else {
+                    // Still have skill points, refresh scene
+                    go("skillSelect");
+                }
+            } else {
+                playSound('hit');
             }
         });
         
-        onKeyPress("2", () => {
-            if (skillsToShow[1]) {
-                const skillId = skillsToShow[1].id;
-                if (!GS.heroSkills.active.includes(skillId)) {
-                    GS.heroSkills.active.push(skillId);
+        // Keyboard selection (1, 2, 3, 4)
+        for (let i = 0; i < 4; i++) {
+            const key = String(i + 1);
+            onKeyPress(key, () => {
+                if (upgradableSkills[i]) {
+                    const skillKey = upgradableSkills[i].key;
+                    if (GS.upgradeSkill(skillKey)) {
+                        playSound('levelup');
+                        if (GS.skillPoints <= 0) {
+                            GS.gameFrozen = false;
+                            go("game");
+                        } else {
+                            go("skillSelect");
+                        }
+                    } else {
+                        playSound('hit');
+                    }
                 }
-                if (!GS.heroSkills.passive) {
-                    const passive = getHeroPassive(GS.selectedHero);
-                    GS.heroSkills.passive = passive.id;
-                }
-                playSound('levelup');
-                GS.gameFrozen = false; // Unfreeze game
-                go("game");
-            }
-        });
+            });
+        }
         
-        onKeyPress("3", () => {
-            if (skillsToShow[2]) {
-                const skillId = skillsToShow[2].id;
-                if (!GS.heroSkills.active.includes(skillId)) {
-                    GS.heroSkills.active.push(skillId);
-                }
-                if (!GS.heroSkills.passive) {
-                    const passive = getHeroPassive(GS.selectedHero);
-                    GS.heroSkills.passive = passive.id;
-                }
-                playSound('levelup');
-                GS.gameFrozen = false; // Unfreeze game
+        // ESC to skip (if not level 1)
+        if (GS.playerLevel > 1) {
+            onKeyPress("escape", () => {
+                GS.gameFrozen = false;
                 go("game");
-            }
-        });
+            });
+        }
     });
 }
 
 export default { createSkillSelectScene };
-

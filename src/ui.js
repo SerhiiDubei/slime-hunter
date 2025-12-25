@@ -7,6 +7,7 @@ import { KEYS } from './keyboard.js';
 import { HEROES } from './data/heroes.js';
 import { getLevel } from './data/levels.js';
 import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
+import { getSkillCooldown } from './abilities.js';
 
 export function createHUD() {
     // Use viewport dimensions for UI positioning
@@ -29,26 +30,20 @@ export function createHUD() {
     // Stamina exhaustion indicator
     const stamExhaust = add([text("", { size: 9 }), pos(60, 40), anchor("center"), color(255, 100, 100), fixed(), z(102)]);
     
-    // XP bar - thin line below stamina
-    add([rect(100, 8), pos(10, 48), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(96, 4), pos(12, 50), color(20, 15, 12), fixed(), z(100)]);
-    const xpBar = add([rect(0, 3), pos(13, 50.5), color(220, 180, 80), fixed(), z(101)]);
-    const lvTxt = add([text("LV.1", { size: 10 }), pos(115, 51), anchor("left"), color(255, 220, 100), fixed(), z(102)]);
+    // Mana bar - below stamina
+    add([rect(100, 12), pos(10, 48), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(96, 8), pos(12, 50), color(20, 15, 12), fixed(), z(100)]);
+    const manaBar = add([rect(92, 6), pos(14, 51), color(100, 100, 255), fixed(), z(101)]);
+    const manaTxt = add([text("100/100", { size: 9 }), pos(60, 54), anchor("center"), color(200, 200, 255), fixed(), z(102)]);
     
-    // Ultimate bar (golden) - compact
-    add([rect(100, 18), pos(10, 58), color(60, 45, 30), fixed(), z(99)]);
-    add([rect(96, 14), pos(12, 60), color(25, 20, 15), fixed(), z(100)]);
-    const ultGlow = add([rect(96, 14), pos(12, 60), color(255, 200, 50), opacity(0), fixed(), z(100.5)]);
-    const ultBar = add([rect(0, 12), pos(13, 61), color(200, 150, 50), fixed(), z(101)]);
-    const ultTxt = add([text("[Q]", { size: 10 }), pos(25, 67), anchor("center"), color(200, 180, 140), fixed(), z(102)]);
-    const ultReady = add([text("", { size: 10 }), pos(75, 67), anchor("center"), color(255, 220, 100), fixed(), z(102)]);
+    // XP bar - thin line below mana
+    add([rect(100, 8), pos(10, 62), color(40, 30, 25), fixed(), z(99)]);
+    add([rect(96, 4), pos(12, 64), color(20, 15, 12), fixed(), z(100)]);
+    const xpBar = add([rect(0, 3), pos(13, 64.5), color(220, 180, 80), fixed(), z(101)]);
+    const lvTxt = add([text("LV.1", { size: 10 }), pos(115, 65), anchor("left"), color(255, 220, 100), fixed(), z(102)]);
     
-    // Ranged cooldown (small square)
-    add([rect(36, 36), pos(10, 80), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(32, 32), pos(12, 82), color(20, 15, 12), fixed(), z(100)]);
-    const rangedBar = add([rect(28, 28), pos(14, 84), color(80, 140, 180), fixed(), z(101)]);
-    add([text("[E]", { size: 12 }), pos(28, 98), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
-    const bulletTxt = add([text("x1", { size: 10 }), pos(50, 98), anchor("left"), color(150, 200, 220), fixed(), z(103)]);
+    // Skill points indicator (top left, below XP)
+    const skillPointsTxt = add([text("", { size: 11 }), pos(10, 74), anchor("left"), color(255, 220, 100), fixed(), z(102)]);
     
     // Level & Room indicator (top center) - compact
     add([rect(140, 40), pos(VW / 2, 8), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
@@ -72,16 +67,18 @@ export function createHUD() {
     // Passive skills (bottom right) - compact
     const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
     
-    // ==================== HERO SKILLS UI (Dota/LoL-style status bar) ====================
-    // Show active hero skills at bottom of screen (status bar style)
-    const skillsBarY = VH - 80;
-    const skillsBarWidth = 200;
-    const skillsBarHeight = 60;
+    // ==================== HERO SKILLS UI (Bottom center, square layout) ====================
+    // Show active hero skills at bottom of screen in a square grid
+    const skillsBarY = VH - 90;
+    const skillIconSize = 50;  // Square icons
+    const skillIconGap = 6;
+    const skillsBarWidth = skillIconSize * 4 + skillIconGap * 3;
+    const skillsBarHeight = skillIconSize * 2 + skillIconGap;  // 2 rows
     
-    // Skills bar background
+    // Skills bar background (square container)
     const skillsBarBg = add([
-        rect(skillsBarWidth, skillsBarHeight),
-        pos(VW / 2 - skillsBarWidth / 2, skillsBarY),
+        rect(skillsBarWidth + 8, skillsBarHeight + 8),
+        pos(VW / 2, skillsBarY),
         anchor("center"),
         color(40, 30, 25),
         opacity(0.9),
@@ -90,8 +87,8 @@ export function createHUD() {
     ]);
     
     const skillsBarFrame = add([
-        rect(skillsBarWidth - 4, skillsBarHeight - 4),
-        pos(VW / 2 - skillsBarWidth / 2 + 2, skillsBarY + 2),
+        rect(skillsBarWidth + 4, skillsBarHeight + 4),
+        pos(VW / 2, skillsBarY),
         anchor("center"),
         color(20, 15, 12),
         opacity(0.95),
@@ -99,17 +96,26 @@ export function createHUD() {
         z(99)
     ]);
     
-    // Skill icons container (4 slots: 1 passive + 3 active) - horizontal layout
+    // Skill icons container (4 slots: 1 passive + 3 active) - 2x2 grid
     const skillIcons = [];
-    const skillIconSize = 40;
-    const skillIconGap = 8;
-    const startX = VW / 2 - (skillIconSize * 4 + skillIconGap * 3) / 2;
+    const startX = VW / 2 - (skillIconSize * 2 + skillIconGap) / 2;
+    const startY = skillsBarY - (skillIconSize * 2 + skillIconGap) / 2;
+    
+    // Layout: [Passive] [E]
+    //         [R]       [Q]
+    const skillPositions = [
+        { key: 'passive', x: 0, y: 0 },  // Top left
+        { key: 'E', x: 1, y: 0 },        // Top right
+        { key: 'R', x: 0, y: 1 },        // Bottom left
+        { key: 'Q', x: 1, y: 1 },        // Bottom right
+    ];
     
     for (let i = 0; i < 4; i++) {
-        const skillX = startX + i * (skillIconSize + skillIconGap);
-        const skillY = skillsBarY + 10;
+        const pos = skillPositions[i];
+        const skillX = startX + pos.x * (skillIconSize + skillIconGap);
+        const skillY = startY + pos.y * (skillIconSize + skillIconGap);
         
-        // Skill slot background
+        // Skill slot background (square)
         const skillBg = add([
             rect(skillIconSize, skillIconSize),
             pos(skillX, skillY),
@@ -121,8 +127,8 @@ export function createHUD() {
         
         // Skill icon
         const skillIcon = add([
-            text("", { size: 24 }),
-            pos(skillX + skillIconSize / 2, skillY + skillIconSize / 2),
+            text("", { size: 28 }),
+            pos(skillX + skillIconSize / 2, skillY + skillIconSize / 2 - 6),
             anchor("center"),
             color(200, 200, 200),
             fixed(),
@@ -130,10 +136,21 @@ export function createHUD() {
             `skillIconText${i}`
         ]);
         
-        // Skill level indicator (for future upgrades)
+        // Key label (E, R, Q, or passive icon)
+        const keyLabel = add([
+            text("", { size: 12 }),
+            pos(skillX + skillIconSize / 2, skillY + skillIconSize - 12),
+            anchor("center"),
+            color(150, 150, 150),
+            fixed(),
+            z(101),
+            `skillKey${i}`
+        ]);
+        
+        // Skill level indicator
         const skillLevel = add([
             text("", { size: 10 }),
-            pos(skillX + skillIconSize - 8, skillY + skillIconSize - 8),
+            pos(skillX + skillIconSize - 6, skillY + 6),
             anchor("center"),
             color(255, 220, 100),
             fixed(),
@@ -141,7 +158,38 @@ export function createHUD() {
             `skillLevel${i}`
         ]);
         
-        skillIcons.push({ bg: skillBg, icon: skillIcon, level: skillLevel });
+        // Cooldown overlay (circular animation)
+        const cooldownOverlay = add([
+            rect(skillIconSize, skillIconSize),
+            pos(skillX, skillY),
+            color(0, 0, 0),
+            opacity(0),
+            fixed(),
+            z(102),
+            `skillCooldown${i}`
+        ]);
+        
+        // Cooldown text (shows remaining time)
+        const cooldownText = add([
+            text("", { size: 14 }),
+            pos(skillX + skillIconSize / 2, skillY + skillIconSize / 2),
+            anchor("center"),
+            color(255, 255, 255),
+            opacity(0),
+            fixed(),
+            z(103),
+            `skillCooldownText${i}`
+        ]);
+        
+        skillIcons.push({ 
+            bg: skillBg, 
+            icon: skillIcon, 
+            level: skillLevel, 
+            keyLabel: keyLabel,
+            skillKey: pos.key,
+            cooldownOverlay: cooldownOverlay,
+            cooldownText: cooldownText
+        });
     }
 
     // Hero indicator (bottom left) - compact
@@ -152,220 +200,248 @@ export function createHUD() {
         add([text(`${hero.icon} ${hero.name}`, { size: 12 }), pos(14, VH - 22), color(...hero.color), fixed(), z(101)]);
     }
     
-    // ==================== ROOM LAYOUT MINIMAP (Enter the Gungeon style) ====================
-    const minimapSize = 100;
+    // ==================== DUNGEON MAP (Full Level Overview) ====================
+    // Shows entire dungeon level with all rooms, corridors, and connections
+    const minimapSize = 180; // Larger for full dungeon view
     const minimapX = 10;
-    const minimapY = VH - 150;
+    const minimapY = VH - 200;
     
-    // Minimap frame
-    add([rect(minimapSize + 6, minimapSize + 6), pos(minimapX - 3, minimapY - 3), color(60, 50, 40), fixed(), z(97)]);
-    add([rect(minimapSize + 4, minimapSize + 4), pos(minimapX - 2, minimapY - 2), color(30, 25, 20), fixed(), z(98)]);
-    const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(10, 12, 18), fixed(), z(99)]);
+    // Minimap frame (parchment style)
+    add([rect(minimapSize + 8, minimapSize + 8), pos(minimapX - 4, minimapY - 4), color(139, 90, 43), fixed(), z(97)]);
+    add([rect(minimapSize + 4, minimapSize + 4), pos(minimapX - 2, minimapY - 2), color(101, 67, 33), fixed(), z(98)]);
+    const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(220, 200, 170), fixed(), z(99)]); // Parchment color
     
-    // Room number label
-    const minimapRoomLabel = add([
-        text("ROOM 1", { size: 8 }), 
-        pos(minimapX + minimapSize / 2, minimapY - 8), 
-        anchor("center"), color(120, 100, 80), fixed(), z(100)
+    // Title
+    const minimapTitle = add([
+        text("DUNGEON MAP", { size: 10 }), 
+        pos(minimapX + minimapSize / 2, minimapY - 12), 
+        anchor("center"), color(80, 60, 40), fixed(), z(100)
     ]);
     
     // Store minimap elements
-    let minimapTiles = [];
-    let minimapPlayer = null;
-    let minimapEnemies = [];
-    let currentRoomGrid = null;
+    let minimapRooms = [];
+    let minimapCorridors = [];
+    let minimapPlayerDot = null;
+    let dungeonMapData = null;
     
-    // Create room layout minimap
-    function createRoomMinimap(roomGrid) {
-        if (!roomGrid) return;
-        currentRoomGrid = roomGrid;
-        
-        // Clear old tiles
-        minimapTiles.forEach(t => { if (t && t.exists()) destroy(t); });
-        minimapTiles = [];
-        
-        const gridW = roomGrid.width;
-        const gridH = roomGrid.height;
-        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
-        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
-        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
-        
-        // Draw room tiles
-        for (let gy = 0; gy < gridH; gy++) {
-            for (let gx = 0; gx < gridW; gx++) {
-                const tileType = roomGrid.grid[gy] ? roomGrid.grid[gy][gx] : 0;
-                const tx = offsetX + gx * tileSize;
-                const ty = offsetY + gy * tileSize;
-                
-                let tileColor;
-                if (tileType === 1) {
-                    tileColor = [35, 40, 55]; // Floor - dark blue-gray
-                } else if (tileType === 2) {
-                    tileColor = [70, 60, 50]; // Pillar - brown
-                } else {
-                    tileColor = [15, 18, 25]; // Wall - almost black
-                }
-                
-                const tile = add([
-                    rect(tileSize - 0.5, tileSize - 0.5),
-                    pos(tx, ty),
-                    color(...tileColor),
-                    fixed(), z(100)
-                ]);
-                minimapTiles.push(tile);
-            }
-        }
-        
-        // Create player dot
-        if (minimapPlayer) destroy(minimapPlayer);
-        minimapPlayer = add([
-            circle(3),
-            pos(minimapX + minimapSize / 2, minimapY + minimapSize / 2),
-            color(100, 255, 150),
-            fixed(), z(104),
-            outline(1, rgb(255, 255, 255))
-        ]);
-        
-        // Update room label
-        if (GS.dungeon) {
-            const room = GS.dungeon.getCurrentRoom();
-            const progress = GS.dungeon.getProgress();
-            let labelText = `ROOM ${room.id + 1}/${progress.total}`;
-            if (room.type === 'boss') labelText = "⚠ BOSS";
-            else if (room.type === 'treasure') labelText = "💎 TREASURE";
-            else if (room.type === 'elite') labelText = "⭐ ELITE";
-            minimapRoomLabel.text = labelText;
-        }
-    }
-    
-    // Update player position on minimap
-    function updateMinimapPlayer() {
-        if (!minimapPlayer || !GS.player || !currentRoomGrid) return;
-        
-        const gridW = currentRoomGrid.width;
-        const gridH = currentRoomGrid.height;
-        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
-        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
-        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
-        
-        // Convert world position to grid position, then to minimap position
-        const gx = GS.player.pos.x / 40; // 40px per tile
-        const gy = GS.player.pos.y / 40;
-        const px = offsetX + gx * tileSize;
-        const py = offsetY + gy * tileSize;
-        
-        // Clamp to minimap bounds
-        minimapPlayer.pos.x = Math.max(offsetX, Math.min(offsetX + gridW * tileSize, px));
-        minimapPlayer.pos.y = Math.max(offsetY, Math.min(offsetY + gridH * tileSize, py));
-        
-        // Pulse effect
-        minimapPlayer.radius = 3 + Math.sin(time() * 6) * 0.5;
-    }
-    
-    // Update enemy positions on minimap
-    function updateMinimapEnemies() {
-        if (!currentRoomGrid) return;
-        
-        // Clear old enemy dots
-        minimapEnemies.forEach(e => { if (e && e.exists()) destroy(e); });
-        minimapEnemies = [];
-        
-        const gridW = currentRoomGrid.width;
-        const gridH = currentRoomGrid.height;
-        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
-        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
-        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
-        
-        // Draw enemy dots
-        GS.enemies.forEach(enemy => {
-            if (!enemy || !enemy.exists()) return;
-            
-            // Convert world position to grid position, then to minimap position
-            const egx = enemy.pos.x / 40; // 40px per tile
-            const egy = enemy.pos.y / 40;
-            const ex = offsetX + egx * tileSize;
-            const ey = offsetY + egy * tileSize;
-            
-            // Clamp to minimap bounds
-            const clampedX = Math.max(offsetX, Math.min(offsetX + gridW * tileSize, ex));
-            const clampedY = Math.max(offsetY, Math.min(offsetY + gridH * tileSize, ey));
-            
-            const enemyColor = enemy.isBoss ? [255, 80, 80] : 
-                               enemy.tier >= 3 ? [200, 100, 255] : 
-                               [255, 100, 100];
-            
-            const dot = add([
-                circle(enemy.isBoss ? 4 : 2),
-                pos(clampedX, clampedY),
-                color(...enemyColor),
-                fixed(), z(102),
-                opacity(0.9)
-            ]);
-            minimapEnemies.push(dot);
-        });
-    }
-    
-    // Door indicators on minimap edges
-    function updateMinimapDoors() {
+    // Create full dungeon map
+    function createDungeonMap() {
         if (!GS.dungeon) return;
         
-        const room = GS.dungeon.getCurrentRoom();
-        const gridW = currentRoomGrid ? currentRoomGrid.width : 40;
-        const gridH = currentRoomGrid ? currentRoomGrid.height : 30;
-        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH);
-        const offsetX = minimapX + (minimapSize - gridW * tileSize) / 2;
-        const offsetY = minimapY + (minimapSize - gridH * tileSize) / 2;
+        dungeonMapData = GS.dungeon.map;
+        if (!dungeonMapData || !dungeonMapData.rooms) return;
         
-        room.doors.forEach(door => {
-            const targetRoom = GS.dungeon.getRoom(door.to);
-            if (!targetRoom) return;
+        // Clear old elements
+        minimapRooms.forEach(r => { if (r && r.exists()) destroy(r); });
+        minimapCorridors.forEach(c => { if (c && c.exists()) destroy(c); });
+        minimapRooms = [];
+        minimapCorridors = [];
+        
+        const rooms = dungeonMapData.rooms;
+        const currentRoom = GS.dungeon.getCurrentRoom();
+        
+        // Find bounds for scaling
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        rooms.forEach(room => {
+            minX = Math.min(minX, room.x);
+            maxX = Math.max(maxX, room.x);
+            minY = Math.min(minY, room.y);
+            maxY = Math.max(maxY, room.y);
+        });
+        
+        const rangeX = maxX - minX + 1;
+        const rangeY = maxY - minY + 1;
+        const roomSize = Math.min(minimapSize / (rangeX * 1.5), minimapSize / (rangeY * 1.5), 12); // Max room size
+        const padding = 10;
+        const scale = Math.min(
+            (minimapSize - padding * 2) / (rangeX * 1.5),
+            (minimapSize - padding * 2) / (rangeY * 1.5)
+        );
+        
+        const offsetX = minimapX + minimapSize / 2;
+        const offsetY = minimapY + minimapSize / 2;
+        
+        // Draw corridors/connections first (so they appear behind rooms)
+        rooms.forEach(room => {
+            room.doors.forEach(door => {
+                const targetRoom = rooms[door.to];
+                if (!targetRoom) return;
+                
+                const x1 = offsetX + (room.x - (minX + maxX) / 2) * scale * 1.5;
+                const y1 = offsetY + (room.y - (minY + maxY) / 2) * scale * 1.5;
+                const x2 = offsetX + (targetRoom.x - (minX + maxX) / 2) * scale * 1.5;
+                const y2 = offsetY + (targetRoom.y - (minY + maxY) / 2) * scale * 1.5;
+                
+                // Draw corridor line
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                const corridor = add([
+                    rect(len, 2),
+                    pos(x1, y1),
+                    anchor("left"),
+                    rotate(angle),
+                    color(120, 100, 80), // Brown corridor
+                    opacity(0.6),
+                    fixed(),
+                    z(100)
+                ]);
+                minimapCorridors.push(corridor);
+            });
+        });
+        
+        // Draw rooms
+        rooms.forEach(room => {
+            const roomX = offsetX + (room.x - (minX + maxX) / 2) * scale * 1.5;
+            const roomY = offsetY + (room.y - (minY + maxY) / 2) * scale * 1.5;
             
-            let dx, dy;
-            const doorSize = 6;
-            
-            switch (door.side) {
-                case 'left':
-                    dx = offsetX - doorSize;
-                    dy = offsetY + gridH * tileSize / 2 - doorSize / 2;
-                    break;
-                case 'right':
-                    dx = offsetX + gridW * tileSize;
-                    dy = offsetY + gridH * tileSize / 2 - doorSize / 2;
-                    break;
-                case 'up':
-                    dx = offsetX + gridW * tileSize / 2 - doorSize / 2;
-                    dy = offsetY - doorSize;
-                    break;
-                case 'down':
-                    dx = offsetX + gridW * tileSize / 2 - doorSize / 2;
-                    dy = offsetY + gridH * tileSize;
-                    break;
-                default: return;
+            // Room color based on type and state
+            let roomColor;
+            let roomBorderColor;
+            if (room.id === currentRoom.id) {
+                roomColor = [255, 220, 100]; // Current room - gold
+                roomBorderColor = [255, 200, 50];
+            } else if (!room.visited) {
+                roomColor = [180, 160, 140]; // Unexplored - gray
+                roomBorderColor = [120, 100, 80];
+            } else if (room.type === 'boss') {
+                roomColor = [200, 80, 80]; // Boss - red
+                roomBorderColor = [150, 50, 50];
+            } else if (room.type === 'treasure') {
+                roomColor = [200, 180, 120]; // Treasure - gold
+                roomBorderColor = [180, 150, 80];
+            } else if (room.type === 'elite') {
+                roomColor = [180, 120, 200]; // Elite - purple
+                roomBorderColor = [150, 80, 180];
+            } else if (room.cleared) {
+                roomColor = [150, 200, 150]; // Cleared - green
+                roomBorderColor = [100, 180, 100];
+            } else {
+                roomColor = [200, 150, 120]; // Combat - orange
+                roomBorderColor = [180, 120, 80];
             }
             
-            // Door color based on type
-            let doorColor = GS.roomCleared ? [100, 200, 100] : [100, 80, 60]; // Green when cleared, brown when locked
-            if (targetRoom.type === 'boss') doorColor = [255, 80, 80]; // Red for boss
-            else if (targetRoom.type === 'treasure') doorColor = [205, 127, 50]; // Bronze instead of yellow for treasure
-            
-            const doorDot = add([
-                rect(doorSize, doorSize),
-                pos(dx, dy),
-                color(...doorColor),
-                fixed(), z(101)
+            // Room rectangle
+            const roomRect = add([
+                rect(roomSize, roomSize),
+                pos(roomX, roomY),
+                anchor("center"),
+                color(...roomColor),
+                opacity(room.visited ? 0.8 : 0.4),
+                fixed(),
+                z(101)
             ]);
-            minimapTiles.push(doorDot);
+            
+            // Room border
+            const roomBorder = add([
+                rect(roomSize + 2, roomSize + 2),
+                pos(roomX, roomY),
+                anchor("center"),
+                color(...roomBorderColor),
+                opacity(room.visited ? 1 : 0.5),
+                fixed(),
+                z(100)
+            ]);
+            
+            // Room icon/type indicator
+            let icon = "";
+            if (room.type === 'boss') icon = "👹";
+            else if (room.type === 'treasure') icon = "💎";
+            else if (room.type === 'elite') icon = "⭐";
+            else if (room.type === 'start') icon = "🚪";
+            else icon = "⚔️";
+            
+            if (room.visited || room.id === currentRoom.id) {
+                const roomIcon = add([
+                    text(icon, { size: 10 }),
+                    pos(roomX, roomY),
+                    anchor("center"),
+                    opacity(0.9),
+                    fixed(),
+                    z(102)
+                ]);
+                minimapRooms.push(roomIcon);
+            }
+            
+            minimapRooms.push(roomRect, roomBorder);
         });
+        
+        // Create/update player dot
+        if (minimapPlayerDot) destroy(minimapPlayerDot);
+        const currentRoomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * scale * 1.5;
+        const currentRoomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * scale * 1.5;
+        minimapPlayerDot = add([
+            circle(4),
+            pos(currentRoomX, currentRoomY),
+            color(100, 255, 150),
+            fixed(),
+            z(103),
+            outline(2, rgb(255, 255, 255))
+        ]);
     }
     
-    // Store grid for updates
+    // Update dungeon map when room changes
+    function updateDungeonMap() {
+        if (!GS.dungeon) return;
+        
+        // Recreate map if dungeon data changed
+        const currentMap = GS.dungeon.map;
+        if (!dungeonMapData || dungeonMapData !== currentMap) {
+            createDungeonMap();
+        } else {
+            // Just update player dot position
+            if (minimapPlayerDot && GS.dungeon) {
+                const currentRoom = GS.dungeon.getCurrentRoom();
+                if (!dungeonMapData || !dungeonMapData.rooms) return;
+                
+                const rooms = dungeonMapData.rooms;
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                rooms.forEach(room => {
+                    minX = Math.min(minX, room.x);
+                    maxX = Math.max(maxX, room.x);
+                    minY = Math.min(minY, room.y);
+                    maxY = Math.max(maxY, room.y);
+                });
+                
+                const rangeX = maxX - minX + 1;
+                const rangeY = maxY - minY + 1;
+                const scale = Math.min(
+                    (minimapSize - 20) / (rangeX * 1.5),
+                    (minimapSize - 20) / (rangeY * 1.5)
+                );
+                
+                const offsetX = minimapX + minimapSize / 2;
+                const offsetY = minimapY + minimapSize / 2;
+                
+                const roomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * scale * 1.5;
+                const roomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * scale * 1.5;
+                
+                minimapPlayerDot.pos.x = roomX;
+                minimapPlayerDot.pos.y = roomY;
+                
+                // Pulse effect
+                minimapPlayerDot.radius = 4 + Math.sin(time() * 6) * 0.5;
+            }
+        }
+    }
+    
+    // Store grid for updates (legacy support - now creates full dungeon map)
     GS.setRoomGrid = (grid) => {
-        createRoomMinimap(grid);
-        updateMinimapDoors();
+        // When room changes, update the full dungeon map
+        updateDungeonMap();
     };
 
     // Regen timer
     let regenTimer = 0;
+    
+    // Initialize dungeon map on first load
+    if (GS.dungeon) {
+        createDungeonMap();
+    }
     
     // OPTIMIZATION: Throttle UI updates
     let uiUpdateTimer = 0;
@@ -426,45 +502,33 @@ export function createHUD() {
             stamExhaust.text = "";
         }
         
+        // Mana bar
+        const maxMana = pl.maxMana || 100;
+        const manaPct = Math.max(0, pl.mana / maxMana);
+        manaBar.width = 92 * manaPct;
+        manaTxt.text = `${Math.floor(Math.max(0, pl.mana))}/${Math.floor(maxMana)}`;
+        
+        // Mana color gradient
+        if (manaPct > 0.5) {
+            manaBar.color = rgb(100, 100, 255);
+        } else if (manaPct > 0.25) {
+            manaBar.color = rgb(150, 150, 255);
+        } else {
+            manaBar.color = rgb(200, 100, 100);
+            manaBar.opacity = 0.7 + Math.sin(time() * 10) * 0.3;
+        }
+        
         // XP (compact = 94)
         xpBar.width = 94 * GS.getXPProgress();
         lvTxt.text = `LV.${GS.playerLevel}`;
         
-        // Ultimate (compact = 94)
-        const ultPct = GS.ultimateCharge / GS.ultimateMax;
-        ultBar.width = 94 * ultPct;
-        if (GS.ultimateReady) {
-            const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
-            ultBar.color = rgb(255, 200 + pulse * 55, 50);
-            ultBar.opacity = 0.7 + pulse * 0.3;
-            ultGlow.opacity = pulse * 0.4;
-            ultReady.text = "⚡READY!";
-            ultReady.color = rgb(255, 200 + pulse * 55, 100 + pulse * 100);
-            ultTxt.color = rgb(255, 220, 100);
+        // Skill points indicator
+        if (GS.skillPoints > 0) {
+            skillPointsTxt.text = `⭐ Skill Points: ${GS.skillPoints}`;
+            skillPointsTxt.color = rgb(255, 220, 100);
         } else {
-            ultBar.color = rgb(160, 120, 60);
-            ultReady.text = `${GS.ultimateCharge}/${GS.ultimateMax}`;
-            ultReady.color = rgb(255, 220, 100);
-            ultTxt.color = rgb(200, 180, 140);
-            ultBar.opacity = 1;
-            ultGlow.opacity = 0;
+            skillPointsTxt.text = "";
         }
-        
-        // Ranged cooldown (compact = 28)
-        if (pl.rangedCD <= 0) {
-            rangedBar.color = rgb(80, 140, 180);
-            rangedBar.height = 28;
-            rangedBar.pos.y = 84;
-        } else {
-            const pct = 1 - pl.rangedCD / stats.rangedCooldown;
-            rangedBar.color = rgb(50, 50, 60);
-            rangedBar.height = 28 * pct;
-            rangedBar.pos.y = 84 + 28 * (1 - pct);
-        }
-        
-        // Bullets
-        bulletTxt.text = `x${stats.bulletCount}`;
-        bulletTxt.color = stats.bulletCount >= 3 ? rgb(255, 150, 100) : stats.bulletCount >= 2 ? rgb(255, 220, 100) : rgb(150, 200, 220);
         
         // Score, gold, enemies (room-based)
         const roomEnemies = GS.roomEnemyCount || 0;
@@ -488,10 +552,9 @@ export function createHUD() {
             keyTxt.text = "";
         }
         
-        // ==================== ROOM MINIMAP UPDATE ====================
-        // Update player/enemy positions on minimap (already throttled by uiUpdateTimer)
-        updateMinimapPlayer();
-        updateMinimapEnemies();
+        // ==================== DUNGEON MAP UPDATE ====================
+        // Update full dungeon map (already throttled by uiUpdateTimer)
+        updateDungeonMap();
         
         // Passive skills (shop perks)
         const owned = [];
@@ -506,35 +569,96 @@ export function createHUD() {
         // ==================== UPDATE HERO SKILLS UI ====================
         const heroSkills = getHeroSkills(GS.selectedHero);
         
-        // Show passive skill (always first slot) - ALWAYS ACTIVE
-        if (GS.heroSkills.passive && skillIcons[0]) {
-            const passive = heroSkills.passive;
-            skillIcons[0].icon.text = passive.icon;
-            skillIcons[0].bg.color = rgb(80, 70, 60); // Brighter for active
-            skillIcons[0].level.text = ""; // Passive has no level
-        } else if (skillIcons[0]) {
-            skillIcons[0].icon.text = "";
-            skillIcons[0].bg.color = rgb(30, 25, 20); // Dark for inactive
-            skillIcons[0].level.text = "";
-        }
-        
-        // Show active skills (slots 2-4) - ONLY IF LEARNED
-        for (let i = 0; i < 3; i++) {
-            const skillIndex = i + 1;
-            if (i < GS.heroSkills.active.length && GS.heroSkills.active[i] && skillIcons[skillIndex]) {
-                const skillId = GS.heroSkills.active[i];
-                const skill = heroSkills.active.find(s => s.id === skillId);
-                if (skill) {
-                    skillIcons[skillIndex].icon.text = skill.icon;
-                    skillIcons[skillIndex].bg.color = rgb(80, 70, 60); // Brighter for learned
-                    skillIcons[skillIndex].level.text = ""; // No level system yet
-                }
-            } else if (skillIcons[skillIndex]) {
-                skillIcons[skillIndex].icon.text = "";
-                skillIcons[skillIndex].bg.color = rgb(30, 25, 20); // Dark for not learned
-                skillIcons[skillIndex].level.text = "";
+        // Update each skill slot
+        skillIcons.forEach((slot, index) => {
+            const skillKey = slot.skillKey;
+            let skill = null;
+            let level = 0;
+            
+            if (skillKey === 'passive') {
+                skill = heroSkills.passive;
+                level = GS.heroSkills.passive;
+            } else if (skillKey === 'E') {
+                skill = heroSkills.skillE;
+                level = GS.heroSkills.skillE;
+            } else if (skillKey === 'R') {
+                skill = heroSkills.skillR;
+                level = GS.heroSkills.skillR;
+            } else if (skillKey === 'Q') {
+                skill = heroSkills.skillQ;
+                level = GS.heroSkills.skillQ;
             }
-        }
+            
+            if (skill && level > 0) {
+                // Skill is learned
+                slot.icon.text = skill.icon;
+                slot.bg.color = rgb(80, 70, 60); // Brighter for learned
+                slot.level.text = level > 0 ? `${level}` : "";
+                slot.keyLabel.text = skill.key || "";
+                
+                // Check cooldown and mana
+                let cooldown = 0;
+                let maxCooldown = 0;
+                let manaCost = 0;
+                let hasMana = true;
+                
+                if (skillKey === 'E' || skillKey === 'Q') {
+                    cooldown = getSkillCooldown(skillKey);
+                    if (level > 0 && skill.levels[level - 1]) {
+                        maxCooldown = skill.levels[level - 1].cooldown || 0;
+                        manaCost = skill.levels[level - 1].manaCost || 0;
+                        hasMana = pl.mana >= manaCost;
+                    }
+                }
+                
+                // Cooldown animation (circular overlay - rotating arc)
+                if (cooldown > 0 && maxCooldown > 0) {
+                    const cooldownPct = cooldown / maxCooldown;
+                    const cooldownSeconds = Math.ceil(cooldown);
+                    
+                    // Circular cooldown animation (like Dota/LoL)
+                    // Use opacity to show remaining cooldown
+                    slot.cooldownOverlay.opacity = 0.6 * cooldownPct;
+                    slot.cooldownOverlay.color = rgb(0, 0, 0);
+                    
+                    // Rotate the overlay to show cooldown progress
+                    // Start from top (270 degrees) and rotate clockwise
+                    const angle = 270 - (1 - cooldownPct) * 360;
+                    slot.cooldownOverlay.angle = angle;
+                    
+                    // Show cooldown time
+                    slot.cooldownText.text = cooldownSeconds > 0 ? `${cooldownSeconds}` : "";
+                    slot.cooldownText.opacity = 1;
+                    slot.cooldownText.color = rgb(255, 255, 255);
+                } else {
+                    slot.cooldownOverlay.opacity = 0;
+                    slot.cooldownOverlay.angle = 0;
+                    slot.cooldownText.opacity = 0;
+                    slot.cooldownText.text = "";
+                }
+                
+                // Check if skill can be used (has mana)
+                if (!hasMana && (skillKey === 'E' || skillKey === 'Q')) {
+                    slot.bg.color = rgb(100, 50, 50); // Red tint when no mana
+                }
+                
+                // Ultimate (Q) gets special treatment
+                if (skillKey === 'Q' && GS.ultimateReady && hasMana) {
+                    const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
+                    slot.bg.color = rgb(255, 200 + pulse * 55, 50);
+                    slot.bg.opacity = 0.7 + pulse * 0.3;
+                } else {
+                    slot.bg.opacity = 1;
+                }
+            } else {
+                // Skill not learned yet
+                slot.icon.text = "";
+                slot.bg.color = rgb(30, 25, 20); // Dark for not learned
+                slot.level.text = "";
+                slot.keyLabel.text = skill ? (skill.key || "") : "";
+                slot.cooldownOverlay.opacity = 0;
+            }
+        });
         
         // ==================== UPDATE SKILL SELECTION BUTTONS (on level up) ====================
         // Show skill selection buttons if level up happened
