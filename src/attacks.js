@@ -226,28 +226,40 @@ export function rangedAttack(spawnKeyFn) {
         let isHoming = heroRanged.homing || false;
         let homingStrength = heroRanged.homingStrength || 0.15;
         
-        // Apply skill effects to ranged attack
-        for (const skillId of GS.heroSkills.active) {
-            const skill = heroSkills.active.find(s => s.id === skillId);
-            if (!skill) continue;
+        // Apply skill effects to ranged attack (NEW SYSTEM: skill levels)
+        // Ranged attack works ALWAYS, even without skills
+        // Skills only enhance the attack
+        try {
+            const skillELevel = GS.getSkillLevel ? GS.getSkillLevel('E') : 0;
+            const skillRLevel = GS.getSkillLevel ? GS.getSkillLevel('R') : 0;
+            const passiveLevel = GS.getSkillLevel ? GS.getSkillLevel('passive') : 0;
             
-            if (skill.effect.piercing) {
-                piercing = true;
+            // Apply skill E effects if learned
+            if (skillELevel > 0 && heroSkills && heroSkills.skillE) {
+                const skillE = heroSkills.skillE;
+                // Add skill E effects here if needed
             }
-            if (skill.effect.maxPierceCount) {
-                maxPierceCount = skill.effect.maxPierceCount;
+            
+            // Apply skill R effects if learned
+            if (skillRLevel > 0 && heroSkills && heroSkills.skillR) {
+                const skillR = heroSkills.skillR;
+                // Add skill R effects here if needed
             }
-            if (skill.effect.projectileSpeedBonus) {
-                projSpeed = Math.floor(projSpeed * (1 + skill.effect.projectileSpeedBonus));
+            
+            // Apply passive skill effects if learned
+            if (passiveLevel > 0 && heroSkills && heroSkills.passive) {
+                const passive = heroSkills.passive;
+                if (passive.levels && passive.levels[passiveLevel - 1]) {
+                    const passiveConfig = passive.levels[passiveLevel - 1];
+                    // Apply passive effects based on level
+                    if (passiveConfig && passiveConfig.homingStrengthBonus) {
+                        homingStrength = (homingStrength || 0.15) * (1 + passiveConfig.homingStrengthBonus);
+                    }
+                }
             }
-        }
-        
-        // Apply passive skill effects
-        if (GS.heroSkills.passive) {
-            const passive = heroSkills.passive;
-            if (passive.effect.homingStrengthBonus) {
-                homingStrength = (homingStrength || 0.15) * (1 + passive.effect.homingStrengthBonus);
-            }
+        } catch (skillError) {
+            // Skills are optional - ranged attack works without them
+            Logger.warn('Skill effects error (non-critical)', { error: skillError.message });
         }
         
         const dir = GS.lastMoveDir;

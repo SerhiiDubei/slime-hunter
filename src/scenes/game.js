@@ -1835,76 +1835,43 @@ export function createGameScene() {
                 skillSelectTitle = null;
             }
             
-            // Click handler for skill buttons
+            // Click handler for skill buttons (LEGACY - redirect to new skillSelect scene)
             onClick("skillSelectBtn", (btn) => {
-                const skillId = btn.skillId;
-                
-                // Add skill to active skills
-                if (!GS.heroSkills.active.includes(skillId)) {
-                    GS.heroSkills.active.push(skillId);
-                }
-                
-                // Initialize passive skill if not set
-                if (!GS.heroSkills.passive) {
-                    const passive = getHeroPassive(GS.selectedHero);
-                    GS.heroSkills.passive = passive.id;
-                }
-                
                 playSound('levelup');
                 GS.showSkillSelection = false;
                 GS.skillSelectionOptions = [];
                 hideSkillSelection();
+                go("skillSelect");
             });
             
-            // Keyboard selection (1, 2, 3)
+            // Keyboard selection (LEGACY - redirect to new skillSelect scene)
             onKeyPress("1", () => {
-                if (GS.showSkillSelection && GS.skillSelectionOptions[0]) {
-                    const skillId = GS.skillSelectionOptions[0].id;
-                    if (!GS.heroSkills.active.includes(skillId)) {
-                        GS.heroSkills.active.push(skillId);
-                    }
-                    if (!GS.heroSkills.passive) {
-                        const passive = getHeroPassive(GS.selectedHero);
-                        GS.heroSkills.passive = passive.id;
-                    }
+                if (GS.showSkillSelection) {
                     playSound('levelup');
                     GS.showSkillSelection = false;
                     GS.skillSelectionOptions = [];
                     hideSkillSelection();
+                    go("skillSelect");
                 }
             });
             
             onKeyPress("2", () => {
-                if (GS.showSkillSelection && GS.skillSelectionOptions[1]) {
-                    const skillId = GS.skillSelectionOptions[1].id;
-                    if (!GS.heroSkills.active.includes(skillId)) {
-                        GS.heroSkills.active.push(skillId);
-                    }
-                    if (!GS.heroSkills.passive) {
-                        const passive = getHeroPassive(GS.selectedHero);
-                        GS.heroSkills.passive = passive.id;
-                    }
+                if (GS.showSkillSelection) {
                     playSound('levelup');
                     GS.showSkillSelection = false;
                     GS.skillSelectionOptions = [];
                     hideSkillSelection();
+                    go("skillSelect");
                 }
             });
             
             onKeyPress("3", () => {
-                if (GS.showSkillSelection && GS.skillSelectionOptions[2]) {
-                    const skillId = GS.skillSelectionOptions[2].id;
-                    if (!GS.heroSkills.active.includes(skillId)) {
-                        GS.heroSkills.active.push(skillId);
-                    }
-                    if (!GS.heroSkills.passive) {
-                        const passive = getHeroPassive(GS.selectedHero);
-                        GS.heroSkills.passive = passive.id;
-                    }
+                if (GS.showSkillSelection) {
                     playSound('levelup');
                     GS.showSkillSelection = false;
                     GS.skillSelectionOptions = [];
                     hideSkillSelection();
+                    go("skillSelect");
                 }
             });
             
