@@ -1412,6 +1412,197 @@ function makeEnemyProjectile() {
     return canvas.toDataURL();
 }
 
+// ==================== ATTACK EFFECT SPRITES ====================
+
+// Sword slash effect (Warrior melee) - animated arc
+function makeSwordSlash() {
+    const { canvas, ctx } = createCanvas(80, 80);
+    const cx = 40, cy = 40;
+    
+    // Create gradient for slash
+    const grad = ctx.createLinearGradient(0, 0, 80, 80);
+    grad.addColorStop(0, 'rgba(255, 200, 100, 0.9)');
+    grad.addColorStop(0.5, 'rgba(255, 150, 50, 0.7)');
+    grad.addColorStop(1, 'rgba(255, 100, 0, 0.3)');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 35, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Bright center
+    ctx.fillStyle = 'rgba(255, 255, 200, 0.8)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Slash lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * 30, cy + Math.sin(angle) * 30);
+        ctx.stroke();
+    }
+    
+    return canvas.toDataURL();
+}
+
+// Dagger swipe effect (Assassin melee) - quick flash
+function makeDaggerSwipe() {
+    const { canvas, ctx } = createCanvas(60, 60);
+    const cx = 30, cy = 30;
+    
+    // Green toxic flash
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+    grad.addColorStop(0, 'rgba(150, 255, 150, 0.9)');
+    grad.addColorStop(0.5, 'rgba(100, 255, 100, 0.6)');
+    grad.addColorStop(1, 'rgba(50, 200, 50, 0.2)');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cross pattern (dagger swipe)
+    ctx.strokeStyle = 'rgba(200, 255, 200, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 20, cy - 20);
+    ctx.lineTo(cx + 20, cy + 20);
+    ctx.moveTo(cx + 20, cy - 20);
+    ctx.lineTo(cx - 20, cy + 20);
+    ctx.stroke();
+    
+    return canvas.toDataURL();
+}
+
+// Axe projectile sprite (Warrior ranged) - spinning axe
+function makeAxeProjectile() {
+    const { canvas, ctx } = createCanvas(32, 32);
+    const cx = 16, cy = 16;
+    
+    // Axe blade
+    ctx.fillStyle = '#dc7633';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 4, 12, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Blade edge (bright)
+    ctx.fillStyle = '#f39c12';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 4, 10, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Handle
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(cx - 2, cy - 2, 4, 12);
+    
+    // Metal ring
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 8, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    return canvas.toDataURL();
+}
+
+// Magic orb sprite (Mage ranged) - glowing sphere
+function makeMagicOrb() {
+    const { canvas, ctx } = createCanvas(24, 24);
+    const cx = 12, cy = 12;
+    
+    // Outer glow
+    const outerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+    outerGrad.addColorStop(0, 'rgba(180, 100, 255, 0.8)');
+    outerGrad.addColorStop(0.7, 'rgba(150, 50, 255, 0.5)');
+    outerGrad.addColorStop(1, 'rgba(100, 0, 200, 0.2)');
+    ctx.fillStyle = outerGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Inner core
+    const innerGrad = ctx.createRadialGradient(cx - 3, cy - 3, 0, cx, cy, 8);
+    innerGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    innerGrad.addColorStop(0.5, 'rgba(200, 150, 255, 0.9)');
+    innerGrad.addColorStop(1, 'rgba(150, 100, 255, 0.7)');
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Sparkle
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    return canvas.toDataURL();
+}
+
+// Arrow sprite (Ranger ranged) - simple arrow
+function makeArrowProjectile() {
+    const { canvas, ctx } = createCanvas(32, 8);
+    const cx = 16, cy = 4;
+    
+    // Arrow shaft
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(4, cy - 1, 24, 2);
+    
+    // Arrowhead
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.moveTo(28, cy);
+    ctx.lineTo(24, cy - 3);
+    ctx.lineTo(24, cy + 3);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Fletching
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.moveTo(4, cy - 1);
+    ctx.lineTo(0, cy - 3);
+    ctx.lineTo(0, cy + 3);
+    ctx.lineTo(4, cy + 1);
+    ctx.closePath();
+    ctx.fill();
+    
+    return canvas.toDataURL();
+}
+
+// Dagger projectile sprite (Assassin ranged) - throwing dagger
+function makeDaggerProjectile() {
+    const { canvas, ctx } = createCanvas(24, 8);
+    const cx = 12, cy = 4;
+    
+    // Blade
+    ctx.fillStyle = '#bdc3c7';
+    ctx.beginPath();
+    ctx.moveTo(20, cy);
+    ctx.lineTo(16, cy - 3);
+    ctx.lineTo(8, cy - 2);
+    ctx.lineTo(4, cy);
+    ctx.lineTo(8, cy + 2);
+    ctx.lineTo(16, cy + 3);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Handle
+    ctx.fillStyle = '#34495e';
+    ctx.fillRect(0, cy - 1.5, 6, 3);
+    
+    // Toxic glow
+    ctx.strokeStyle = 'rgba(100, 255, 100, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, cy - 2, 20, 4);
+    
+    return canvas.toDataURL();
+}
+
 // Generate all sprites
 export function generateSprites() {
     return {
@@ -1442,6 +1633,13 @@ export function generateSprites() {
         crack: makeCrack(),
         moss: makeMoss(),
         blood: makeBlood(),
+        // Attack effect sprites
+        swordSlash: makeSwordSlash(),
+        daggerSwipe: makeDaggerSwipe(),
+        axeProjectile: makeAxeProjectile(),
+        magicOrb: makeMagicOrb(),
+        arrowProjectile: makeArrowProjectile(),
+        daggerProjectile: makeDaggerProjectile(),
     };
 }
 
