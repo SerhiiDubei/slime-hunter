@@ -921,7 +921,7 @@ export function createGameScene() {
             perf.total = performance.now() - perfStart;
             
             // ========== PERFORMANCE REPORT ==========
-            const perfEntries = Object.entries(perf).filter(([k]) => k !== 'total');
+            const perfEntries = Object.entries(perf).filter((entry) => entry[0] !== 'total');
             const sortedPerf = perfEntries.sort((a, b) => b[1] - a[1]);
             const bottleneck = sortedPerf[0];
             
