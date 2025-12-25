@@ -23,6 +23,7 @@ import { createShopScene } from './scenes/shop.js';
 import { createLevelIntroScene } from './scenes/levelIntro.js';
 import { createOptionsScene } from './scenes/options.js';
 import { createLoadingScene } from './scenes/loading.js';
+import { createSkillSelectScene } from './scenes/skillSelect.js';
 
 Logger.info('🎮 Slime Hunter starting...');
 
@@ -89,6 +90,7 @@ try {
     createLevelIntroScene();
     createOptionsScene();
     createLoadingScene();
+    createSkillSelectScene(); // Skill selection scene
     Logger.info('All scenes created');
 } catch (error) {
     Logger.error('Failed to create scenes', { error: error.message, stack: error.stack });

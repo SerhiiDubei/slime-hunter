@@ -1610,17 +1610,10 @@ export function killEnemy(e, spawnKeyFn) {
     if (lvUp && GS.player) {
         playSound('levelup');
         createLevelUpFX(GS.player.pos);
-        const txt = add([
-            text(`LEVEL ${GS.playerLevel}!`, { size: 32 }),
-            pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT / 2 - 50),
-            anchor("center"), color(255, 220, 100), z(200), { t: 0 }
-        ]);
-        txt.onUpdate(() => {
-            txt.t += dt();
-            txt.opacity = 1 - txt.t / 2;
-            txt.pos.y -= 30 * dt();
-            if (txt.t > 2) destroy(txt);
-        });
+        
+        // Freeze game and show skill selection scene
+        GS.gameFrozen = true;
+        go("skillSelect");
     }
     
     // NOTE: Keys are spawned in onRoomCleared, not here

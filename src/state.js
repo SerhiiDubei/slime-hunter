@@ -2,6 +2,9 @@
 // Global game state management
 
 import { CONFIG } from './config.js';
+import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
+import { HEROES } from './data/heroes.js';
+import { Logger } from './logger.js';
 
 // 5 Core Player Stats
 export const STATS = {
@@ -85,6 +88,9 @@ export const GS = {
     // Selected hero
     selectedHero: 'warrior',
     
+    // Skill selection state
+    skillSelectOpen: null,  // null = not open, true = open, false = just closed
+    
     // Ultimate charge (fills by killing enemies)
     ultimateCharge: 0,
     ultimateMax: 6,  // Updated from hero config
@@ -99,7 +105,7 @@ export const GS = {
         sta: 1,  // Stamina
     },
     
-    // Passive skills (perks) - permanent upgrades
+    // Passive skills (perks) - permanent upgrades (shop)
     passiveSkills: {
         poison: 0,       // Level 0 = not owned
         vampirism: 0,
@@ -108,6 +114,20 @@ export const GS = {
         goldMagnet: 0,
         regeneration: 0,
     },
+    
+    // Hero-specific skills (upgraded with skill points)
+    // NEW SYSTEM: 4 skills on Q, R, T, Y keys
+    // E = ranged attack (not a skill)
+    // Space = melee attack (not a skill)
+    heroSkills: {
+        skillQ: 0,   // Level of Q skill (0-4)
+        skillR: 0,   // Level of R skill (0-4)
+        skillT: 0,   // Level of T skill (0-4)
+        skillY: 0,   // Level of Y skill (0-4)
+    },
+    
+    // Skill points (gained on level up)
+    skillPoints: 0,
     
     // Full reset (new game)
     reset() {
@@ -139,6 +159,13 @@ export const GS = {
             goldMagnet: 0,
             regeneration: 0,
         };
+        this.heroSkills = {
+            passive: 0,
+            skillE: 0,
+            skillR: 0,
+            skillQ: 0,
+        };
+        this.skillPoints = 0;
     },
     
     // Reset for next level (keep gold, stats & skills)
@@ -185,6 +212,81 @@ export const GS = {
     // Set hero (updates ultimate charge needed)
     setHero(heroId) {
         this.selectedHero = heroId;
+    },
+    
+    // Add skill point (called on level up)
+    addSkillPoint() {
+        this.skillPoints++;
+    },
+    
+    // Upgrade a skill (returns true if successful)
+    upgradeSkill(skillKey) {
+        Logger.info('upgradeSkill called', { skillKey, skillPoints: this.skillPoints, heroSkills: this.heroSkills });
+        
+        if (this.skillPoints <= 0) {
+            Logger.warn('No skill points available');
+            return false;
+        }
+        
+        const maxLevel = 4;
+        let currentLevel = 0;
+        
+        if (skillKey === 'Q') {
+            currentLevel = this.heroSkills.skillQ;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill Q already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillQ++;
+            Logger.info('Skill Q upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillQ });
+        } else if (skillKey === 'R') {
+            currentLevel = this.heroSkills.skillR;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill R already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillR++;
+            Logger.info('Skill R upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillR });
+        } else if (skillKey === 'T') {
+            currentLevel = this.heroSkills.skillT;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill T already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillT++;
+            Logger.info('Skill T upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillT });
+        } else if (skillKey === 'Y') {
+            // Ultimate can only be learned at level 5+
+            if (this.playerLevel < 5) {
+                Logger.warn('Ultimate (Y) can only be learned at level 5+', { currentLevel: this.playerLevel });
+                return false;
+            }
+            
+            currentLevel = this.heroSkills.skillY;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill Y already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillY++;
+            Logger.info('Skill Y upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillY });
+        } else {
+            Logger.error('Invalid skill key', { skillKey });
+            return false;
+        }
+        
+        this.skillPoints--;
+        Logger.info('Skill upgraded successfully', { skillKey, remainingPoints: this.skillPoints, heroSkills: this.heroSkills });
+        return true;
+    },
+    
+    // Get skill level
+    getSkillLevel(skillKey) {
+        if (skillKey === 'Q') return this.heroSkills.skillQ || 0;
+        if (skillKey === 'R') return this.heroSkills.skillR || 0;
+        if (skillKey === 'T') return this.heroSkills.skillT || 0;
+        if (skillKey === 'Y') return this.heroSkills.skillY || 0;
+        Logger.warn('getSkillLevel: invalid key', { skillKey });
+        return 0;
     },
     
     // Add ultimate charge (from kills)
@@ -244,25 +346,21 @@ export const GS = {
     
     addXP(amount) {
         this.playerXP += amount;
+        let leveledUp = false;
         while (this.playerLevel < CONFIG.PLAYER_LEVEL.MAX_LEVEL && 
                this.playerXP >= CONFIG.PLAYER_LEVEL.XP_TABLE[this.playerLevel]) {
             this.playerLevel++;
-            return true;
+            this.addSkillPoint(); // Add skill point on level up
+            leveledUp = true;
         }
-        return false;
+        return leveledUp;
     },
     
-    // Get computed stats based on levels and hero
+    // Get computed stats based on levels, hero, and skills
     getStats() {
-        const lv = this.playerLevel;
         const s = this.stats;
         
-        // Base multipliers from player level
-        const dmgMult = 1 + (lv - 1) * CONFIG.PLAYER_LEVEL.DAMAGE_BONUS;
-        const rangedMult = 1 + (lv - 1) * CONFIG.PLAYER_LEVEL.RANGED_DAMAGE_BONUS;
-        const cdMult = 1 - (lv - 1) * CONFIG.PLAYER_LEVEL.RANGED_COOLDOWN_REDUCTION;
-        
-        // Stat bonuses
+        // Stat bonuses (unchanged)
         const strBonus = 1 + (s.str - 1) * 0.15;      // +15% melee per STR level
         const spdBonus = 1 + (s.spd - 1) * 0.10;      // +10% speed per SPD level
         const vitBonus = 1 + (s.vit - 1) * 0.20;      // +20% HP per VIT level
@@ -270,19 +368,74 @@ export const GS = {
         const magCdBonus = 1 - (s.mag - 1) * 0.08;    // -8% cooldown per MAG level
         const staBonus = 1 + (s.sta - 1) * 0.15;      // +15% stamina per STA level
         
-        let bullets = 1;
-        if (lv >= CONFIG.PLAYER_LEVEL.TRIPLE_SHOT_LEVEL) bullets = 3;
-        else if (lv >= CONFIG.PLAYER_LEVEL.DOUBLE_SHOT_LEVEL) bullets = 2;
+        // Get hero base stats
+        const hero = HEROES[this.selectedHero];
+        const heroStats = hero ? hero.stats : {};
+        
+        // Base values (NO automatic level bonuses - now from skills!)
+        let meleeDamage = Math.floor(CONFIG.PLAYER_DAMAGE * strBonus);
+        let rangedDamage = Math.floor(CONFIG.RANGED_DAMAGE * magBonus);
+        let rangedCooldown = Math.max(0.3, CONFIG.RANGED_COOLDOWN * magCdBonus);
+        let bulletCount = 1;
+        let moveSpeed = Math.floor(CONFIG.PLAYER_SPEED * spdBonus);
+        let maxHp = Math.floor(CONFIG.PLAYER_HP * vitBonus);
+        let maxStamina = Math.floor(CONFIG.SPRINT_MAX_STAMINA * staBonus);
+        let staminaRegen = CONFIG.SPRINT_REGEN_RATE * staBonus;
+        let maxMana = heroStats.maxMana || 100;
+        let manaRegen = heroStats.manaRegen || 2.0;
+        
+        // Apply hero skills (with levels)
+        const heroSkills = getHeroSkills(this.selectedHero);
+        
+        // Apply passive skill
+        if (this.heroSkills.passive > 0) {
+            const passive = heroSkills.passive;
+            const level = this.heroSkills.passive;
+            const effect = passive.levels[level - 1];
+            
+            if (effect.rangedCooldownReduction) {
+                rangedCooldown *= (1 - effect.rangedCooldownReduction);
+            }
+            // Other passive effects applied elsewhere (damage reduction in damage calc, etc.)
+        }
+        
+        // Apply active skill R (stat bonuses)
+        if (this.heroSkills.skillR > 0) {
+            const skillR = heroSkills.skillR;
+            const level = this.heroSkills.skillR;
+            const effect = skillR.levels[level - 1];
+            
+            if (effect.meleeDamageBonus) {
+                meleeDamage = Math.floor(meleeDamage * (1 + effect.meleeDamageBonus));
+            }
+            if (effect.rangedDamageBonus) {
+                rangedDamage = Math.floor(rangedDamage * (1 + effect.rangedDamageBonus));
+            }
+            if (effect.rangedCooldownReduction) {
+                rangedCooldown *= (1 - effect.rangedCooldownReduction);
+            }
+            if (effect.maxHpBonus) {
+                maxHp = Math.floor(maxHp * (1 + effect.maxHpBonus));
+            }
+            if (effect.moveSpeedBonus) {
+                moveSpeed = Math.floor(moveSpeed * (1 + effect.moveSpeedBonus));
+            }
+            if (effect.maxPierceCount) {
+                // Applied in attacks.js
+            }
+        }
         
         return {
-            meleeDamage: Math.floor(CONFIG.PLAYER_DAMAGE * dmgMult * strBonus),
-            rangedDamage: Math.floor(CONFIG.RANGED_DAMAGE * rangedMult * magBonus),
-            rangedCooldown: Math.max(0.3, CONFIG.RANGED_COOLDOWN * cdMult * magCdBonus),
-            bulletCount: bullets,
-            moveSpeed: Math.floor(CONFIG.PLAYER_SPEED * spdBonus),
-            maxHp: Math.floor(CONFIG.PLAYER_HP * vitBonus),
-            maxStamina: Math.floor(CONFIG.SPRINT_MAX_STAMINA * staBonus),
-            staminaRegen: CONFIG.SPRINT_REGEN_RATE * staBonus,
+            meleeDamage,
+            rangedDamage,
+            rangedCooldown: Math.max(0.3, rangedCooldown),
+            bulletCount,
+            moveSpeed,
+            maxHp,
+            maxStamina,
+            staminaRegen,
+            maxMana,
+            manaRegen,
         };
     },
     

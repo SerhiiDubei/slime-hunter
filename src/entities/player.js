@@ -60,6 +60,8 @@ export function createPlayer() {
             invuln: 0,
             stamina: stats.maxStamina,
             maxStamina: stats.maxStamina,
+            mana: stats.maxMana,
+            maxMana: stats.maxMana,
             sprinting: false,
             isSlowed: false,
             slowTimer: 0,
@@ -126,8 +128,21 @@ export function setupPlayerMovement(p) {
                 p.stamina += stats.staminaRegen * dt();
             }
         }
+        
+        // Mana regeneration
+        if (p.mana < stats.maxMana) {
+            p.mana = Math.min(stats.maxMana, p.mana + stats.manaRegen * dt());
+        }
+        
         p.stamina = clamp(p.stamina, 0, stats.maxStamina);
         p.maxStamina = stats.maxStamina;
+        
+        // Mana regeneration
+        if (p.mana < stats.maxMana) {
+            p.mana += stats.manaRegen * dt();
+        }
+        p.mana = clamp(p.mana, 0, stats.maxMana);
+        p.maxMana = stats.maxMana;
         
         // Handle stamina exhaustion penalty
         if (p.staminaExhausted) {

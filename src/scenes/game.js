@@ -12,13 +12,13 @@ import { createPlayer, setupPlayerMovement } from '../entities/player.js';
 import { spawnRandomEnemy, spawnBoss, spawnEnemy } from '../entities/enemies.js';
 import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
-import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
-import { setupAbilities, tryUseAbility, updateAbilities } from '../abilities.js';
+import { setupAbilities, tryUseSkillQ, tryUseSkillR, tryUseSkillT, tryUseSkillY, updateAbilities } from '../abilities.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { spawnKey, checkAllKeysCollected, collectKey, updateBossDoorVisuals, canEnterDoor, getKeysNeeded } from '../systems/keysDoors.js';
+import { getHeroSkills, getHeroPassive } from '../data/heroSkills.js';
 
 let doors = [];  // Multiple doors now
 let doorTexts = [];
@@ -1186,19 +1186,37 @@ export function createGameScene() {
             const doMeleeAttack = () => meleeAttack(spawnKeyFn);
             const doRangedAttack = () => rangedAttack(spawnKeyFn);
 
-            // Setup ultimate and abilities
-            setupUltimate();
+            // Setup abilities
             setupAbilities();
 
-            // Input - use customizable keybinds
+            // Input - NEW SYSTEM:
+            // Space = melee attack (not a skill)
+            // E = ranged attack (not a skill)
+            // Q, R, T, Y = 4 skills
             const meleeKey = KEYBINDS.meleeAttack || 'space';
             const rangedKey = KEYBINDS.rangedAttack || 'e';
-            const ultKey = KEYBINDS.ultimate || 'q';
-            const abilityKey = KEYBINDS.ability || 'f';
             
             onKeyPress(meleeKey, doMeleeAttack);
-            onKeyPress(abilityKey, tryUseAbility);
             onKeyPress("j", doMeleeAttack);
+            
+            // Ranged attack on E (not a skill, just attack)
+            onKeyPress("e", () => {
+                if (!GS.gameFrozen) doRangedAttack();
+            });
+            
+            // Skill keys (Q, R, T, Y)
+            onKeyPress("q", () => {
+                if (!GS.gameFrozen) tryUseSkillQ();
+            });
+            onKeyPress("r", () => {
+                if (!GS.gameFrozen) tryUseSkillR();
+            });
+            onKeyPress("t", () => {
+                if (!GS.gameFrozen) tryUseSkillT();
+            });
+            onKeyPress("y", () => {
+                if (!GS.gameFrozen) tryUseSkillY();
+            });
             
             let keyStates = {};
             let camUpdateTimer = 0;
@@ -1213,12 +1231,13 @@ export function createGameScene() {
                 if (meleePressed && !keyStates.melee) doMeleeAttack();
                 keyStates.melee = meleePressed;
                 
-                const ultPressed = isKeyDown(ultKey);
-                if (ultPressed && !keyStates.ult) tryUseUltimate();
-                keyStates.ult = ultPressed;
-                
-                updateUltimate();
                 updateAbilities();
+                
+                // ==================== SKILL SELECTION UI UPDATE ====================
+                // Show/hide skill selection buttons based on state
+                if (GS.showSkillSelection && GS.skillSelectionOptions.length > 0) {
+                    // This will be handled by the skill selection UI system below
+                }
                 
                 // OPTIMIZED: Camera update (30/sec instead of 60 for smoother performance)
                 camUpdateTimer += dt();
@@ -1690,6 +1709,186 @@ export function createGameScene() {
             onClick("quitBtn", () => { hidePause(); go("start"); });
 
             onKeyPress("f1", () => { debug.inspect = !debug.inspect; });
+            
+            // ==================== SKILL SELECTION UI (Dota/LoL style) ====================
+            let skillSelectButtons = [];
+            let skillSelectOverlay = null;
+            let skillSelectTitle = null;
+            
+            function showSkillSelection() {
+                if (!GS.showSkillSelection || GS.skillSelectionOptions.length === 0) return;
+                if (skillSelectButtons.length > 0) return; // Already shown
+                
+                const VW = CONFIG.VIEWPORT_WIDTH;
+                const VH = CONFIG.VIEWPORT_HEIGHT;
+                const skillsBarY = VH - 80;
+                const buttonY = skillsBarY - 100;
+                
+                // Semi-transparent overlay (not full screen)
+                skillSelectOverlay = add([
+                    rect(VW, 120),
+                    pos(0, buttonY - 20),
+                    color(0, 0, 0),
+                    opacity(0.6),
+                    fixed(),
+                    z(149),
+                    "skillSelectOverlay"
+                ]);
+                
+                // Title
+                skillSelectTitle = add([
+                    text("LEVEL UP! Choose a skill:", { size: 18 }),
+                    pos(VW / 2, buttonY - 10),
+                    anchor("center"),
+                    color(255, 220, 100),
+                    fixed(),
+                    z(150),
+                    "skillSelectUI"
+                ]);
+                
+                // Create 3 skill buttons
+                const buttonWidth = 140;
+                const buttonHeight = 80;
+                const buttonGap = 20;
+                const startX = VW / 2 - (buttonWidth * GS.skillSelectionOptions.length + buttonGap * (GS.skillSelectionOptions.length - 1)) / 2;
+                
+                GS.skillSelectionOptions.forEach((skill, index) => {
+                    const buttonX = startX + index * (buttonWidth + buttonGap) + buttonWidth / 2;
+                    
+                    // Button background
+                    const btnBg = add([
+                        rect(buttonWidth, buttonHeight, { radius: 6 }),
+                        pos(buttonX, buttonY + 20),
+                        anchor("center"),
+                        color(60, 50, 40),
+                        area(),
+                        fixed(),
+                        z(150),
+                        "skillSelectBtn",
+                        { skillId: skill.id, skill: skill }
+                    ]);
+                    
+                    // Button border (glow on hover)
+                    const btnBorder = add([
+                        rect(buttonWidth + 4, buttonHeight + 4, { radius: 8 }),
+                        pos(buttonX, buttonY + 20),
+                        anchor("center"),
+                        color(100, 80, 60),
+                        opacity(0),
+                        fixed(),
+                        z(149),
+                        "skillSelectBtnBorder"
+                    ]);
+                    
+                    // Skill icon
+                    const btnIcon = add([
+                        text(skill.icon, { size: 32 }),
+                        pos(buttonX, buttonY + 5),
+                        anchor("center"),
+                        color(255, 255, 255),
+                        fixed(),
+                        z(151),
+                        "skillSelectUI"
+                    ]);
+                    
+                    // Skill name
+                    const btnName = add([
+                        text(skill.name, { size: 12, width: buttonWidth - 10 }),
+                        pos(buttonX, buttonY + 35),
+                        anchor("center"),
+                        color(255, 220, 100),
+                        fixed(),
+                        z(151),
+                        "skillSelectUI"
+                    ]);
+                    
+                    // Skill description (small)
+                    const btnDesc = add([
+                        text(skill.description, { size: 9, width: buttonWidth - 10 }),
+                        pos(buttonX, buttonY + 50),
+                        anchor("center"),
+                        color(180, 170, 160),
+                        fixed(),
+                        z(151),
+                        "skillSelectUI"
+                    ]);
+                    
+                    // Hover effects
+                    btnBg.onHoverUpdate(() => {
+                        btnBg.color = rgb(80, 70, 60);
+                        btnBorder.opacity = 0.8;
+                    });
+                    
+                    btnBg.onHoverEnd(() => {
+                        btnBg.color = rgb(60, 50, 40);
+                        btnBorder.opacity = 0;
+                    });
+                    
+                    skillSelectButtons.push({ bg: btnBg, border: btnBorder, icon: btnIcon, name: btnName, desc: btnDesc });
+                });
+            }
+            
+            function hideSkillSelection() {
+                skillSelectButtons.forEach(btn => {
+                    if (btn.bg && btn.bg.exists()) destroy(btn.bg);
+                    if (btn.border && btn.border.exists()) destroy(btn.border);
+                });
+                skillSelectButtons = [];
+                get("skillSelectUI").forEach(e => destroy(e));
+                if (skillSelectOverlay && skillSelectOverlay.exists()) destroy(skillSelectOverlay);
+                if (skillSelectTitle && skillSelectTitle.exists()) destroy(skillSelectTitle);
+                skillSelectOverlay = null;
+                skillSelectTitle = null;
+            }
+            
+            // Click handler for skill buttons (LEGACY - redirect to new skillSelect scene)
+            onClick("skillSelectBtn", (btn) => {
+                playSound('levelup');
+                GS.showSkillSelection = false;
+                GS.skillSelectionOptions = [];
+                hideSkillSelection();
+                go("skillSelect");
+            });
+            
+            // Keyboard selection (LEGACY - redirect to new skillSelect scene)
+            onKeyPress("1", () => {
+                if (GS.showSkillSelection) {
+                    playSound('levelup');
+                    GS.showSkillSelection = false;
+                    GS.skillSelectionOptions = [];
+                    hideSkillSelection();
+                    go("skillSelect");
+                }
+            });
+            
+            onKeyPress("2", () => {
+                if (GS.showSkillSelection) {
+                    playSound('levelup');
+                    GS.showSkillSelection = false;
+                    GS.skillSelectionOptions = [];
+                    hideSkillSelection();
+                    go("skillSelect");
+                }
+            });
+            
+            onKeyPress("3", () => {
+                if (GS.showSkillSelection) {
+                    playSound('levelup');
+                    GS.showSkillSelection = false;
+                    GS.skillSelectionOptions = [];
+                    hideSkillSelection();
+                    go("skillSelect");
+                }
+            });
+            
+            // Show/hide skill selection based on state
+            onUpdate(() => {
+                if (GS.showSkillSelection && skillSelectButtons.length === 0) {
+                    showSkillSelection();
+                } else if (!GS.showSkillSelection && skillSelectButtons.length > 0) {
+                    hideSkillSelection();
+                }
+            });
             
             Logger.info('Game scene initialized', { 
                 room: GS.currentRoom + 1, 
