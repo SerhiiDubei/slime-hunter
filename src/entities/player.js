@@ -6,6 +6,7 @@ import { GS } from '../state.js';
 import { KEYS } from '../keyboard.js';
 import { KEYBINDS } from '../state.js';
 import { clamp } from '../utils.js';
+import { getHeroSkills } from '../data/heroSkills.js';
 
 // Camera follow function - keeps player centered
 function updateCamera(player) {
