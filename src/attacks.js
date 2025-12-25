@@ -21,7 +21,15 @@ export function meleeAttack(spawnKeyFn) {
     const meleeDamageMult = heroMelee.meleeDamageMultiplier || (isMeleeSpecialist ? 1.5 : 0.5);
     
     p.atkCD = CONFIG.PLAYER_ATTACK_COOLDOWN;
-    playSound('attack');
+    
+    // Play hero-specific melee sound
+    if (GS.selectedHero === 'warrior') {
+        playSound('melee_sword');
+    } else if (GS.selectedHero === 'assassin') {
+        playSound('melee_dagger');
+    } else {
+        playSound('melee_weak');  // Mage, Ranger
+    }
 
     const dir = GS.lastMoveDir;
     const slashAngle = Math.atan2(dir.y, dir.x);
@@ -152,7 +160,19 @@ export function rangedAttack(spawnKeyFn) {
         // Hero-specific cooldown
         const cooldown = heroRanged.cooldown || stats.rangedCooldown;
         p.rangedCD = cooldown;
-        playSound('ranged');
+        
+        // Play hero-specific ranged sound
+        if (projShape === 'axe') {
+            playSound('ranged_axe');
+        } else if (projShape === 'orb') {
+            playSound('ranged_orb');
+        } else if (projShape === 'dagger') {
+            playSound('ranged_dagger');
+        } else if (projShape === 'arrow') {
+            playSound('ranged_arrow');
+        } else {
+            playSound('ranged');  // Fallback
+        }
         
         // Hero-specific projectile properties
         const projColor = heroRanged.projectileColor || [100, 200, 255];
