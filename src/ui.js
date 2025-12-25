@@ -491,29 +491,29 @@ export function createHUD() {
         // ==================== UPDATE HERO SKILLS UI ====================
         const heroSkills = getHeroSkills(GS.selectedHero);
         
-        // Show passive skill (always first slot)
+        // Show passive skill (always first slot) - ALWAYS ACTIVE
         if (GS.heroSkills.passive && skillIcons[0]) {
             const passive = heroSkills.passive;
             skillIcons[0].icon.text = passive.icon;
-            skillIcons[0].bg.color = rgb(60, 50, 40);
+            skillIcons[0].bg.color = rgb(80, 70, 60); // Brighter for active
         } else if (skillIcons[0]) {
             skillIcons[0].icon.text = "";
-            skillIcons[0].bg.color = rgb(30, 25, 20);
+            skillIcons[0].bg.color = rgb(30, 25, 20); // Dark for inactive
         }
         
-        // Show active skills (slots 2-4)
+        // Show active skills (slots 2-4) - ONLY IF LEARNED
         for (let i = 0; i < 3; i++) {
             const skillIndex = i + 1;
-            if (GS.heroSkills.active[i] && skillIcons[skillIndex]) {
+            if (i < GS.heroSkills.active.length && GS.heroSkills.active[i] && skillIcons[skillIndex]) {
                 const skillId = GS.heroSkills.active[i];
                 const skill = heroSkills.active.find(s => s.id === skillId);
                 if (skill) {
                     skillIcons[skillIndex].icon.text = skill.icon;
-                    skillIcons[skillIndex].bg.color = rgb(60, 50, 40);
+                    skillIcons[skillIndex].bg.color = rgb(80, 70, 60); // Brighter for learned
                 }
             } else if (skillIcons[skillIndex]) {
                 skillIcons[skillIndex].icon.text = "";
-                skillIcons[skillIndex].bg.color = rgb(30, 25, 20);
+                skillIcons[skillIndex].bg.color = rgb(30, 25, 20); // Dark for not learned
             }
         }
     });
