@@ -1845,54 +1845,7 @@ export function createGameScene() {
                 skillSelectTitle = null;
             }
             
-            // Click handler for skill buttons (LEGACY - redirect to new skillSelect scene)
-            onClick("skillSelectBtn", (btn) => {
-                playSound('levelup');
-                GS.showSkillSelection = false;
-                GS.skillSelectionOptions = [];
-                hideSkillSelection();
-                go("skillSelect");
-            });
-            
-            // Keyboard selection (LEGACY - redirect to new skillSelect scene)
-            onKeyPress("1", () => {
-                if (GS.showSkillSelection) {
-                    playSound('levelup');
-                    GS.showSkillSelection = false;
-                    GS.skillSelectionOptions = [];
-                    hideSkillSelection();
-                    go("skillSelect");
-                }
-            });
-            
-            onKeyPress("2", () => {
-                if (GS.showSkillSelection) {
-                    playSound('levelup');
-                    GS.showSkillSelection = false;
-                    GS.skillSelectionOptions = [];
-                    hideSkillSelection();
-                    go("skillSelect");
-                }
-            });
-            
-            onKeyPress("3", () => {
-                if (GS.showSkillSelection) {
-                    playSound('levelup');
-                    GS.showSkillSelection = false;
-                    GS.skillSelectionOptions = [];
-                    hideSkillSelection();
-                    go("skillSelect");
-                }
-            });
-            
-            // Show/hide skill selection based on state
-            onUpdate(() => {
-                if (GS.showSkillSelection && skillSelectButtons.length === 0) {
-                    showSkillSelection();
-                } else if (!GS.showSkillSelection && skillSelectButtons.length > 0) {
-                    hideSkillSelection();
-                }
-            });
+            // LEGACY CODE REMOVED - skill selection now handled by skillUpgradeUI above
             
             Logger.info('Game scene initialized', { 
                 room: GS.currentRoom + 1, 
