@@ -496,9 +496,11 @@ export function createHUD() {
             const passive = heroSkills.passive;
             skillIcons[0].icon.text = passive.icon;
             skillIcons[0].bg.color = rgb(80, 70, 60); // Brighter for active
+            skillIcons[0].level.text = ""; // Passive has no level
         } else if (skillIcons[0]) {
             skillIcons[0].icon.text = "";
             skillIcons[0].bg.color = rgb(30, 25, 20); // Dark for inactive
+            skillIcons[0].level.text = "";
         }
         
         // Show active skills (slots 2-4) - ONLY IF LEARNED
@@ -510,11 +512,19 @@ export function createHUD() {
                 if (skill) {
                     skillIcons[skillIndex].icon.text = skill.icon;
                     skillIcons[skillIndex].bg.color = rgb(80, 70, 60); // Brighter for learned
+                    skillIcons[skillIndex].level.text = ""; // No level system yet
                 }
             } else if (skillIcons[skillIndex]) {
                 skillIcons[skillIndex].icon.text = "";
                 skillIcons[skillIndex].bg.color = rgb(30, 25, 20); // Dark for not learned
+                skillIcons[skillIndex].level.text = "";
             }
+        }
+        
+        // ==================== UPDATE SKILL SELECTION BUTTONS (on level up) ====================
+        // Show skill selection buttons if level up happened
+        if (GS.showSkillSelection) {
+            // This will be handled in game scene
         }
     });
 }

@@ -19,6 +19,7 @@ import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { spawnKey, checkAllKeysCollected, collectKey, updateBossDoorVisuals, canEnterDoor, getKeysNeeded } from '../systems/keysDoors.js';
+import { getHeroSkills, getHeroPassive } from '../data/heroSkills.js';
 
 let doors = [];  // Multiple doors now
 let doorTexts = [];
