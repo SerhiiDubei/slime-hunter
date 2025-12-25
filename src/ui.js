@@ -662,9 +662,10 @@ export function createHUD() {
     
     // ==================== DUNGEON MAP (Full Level Overview) ====================
     // Shows entire dungeon level with all rooms, corridors, and connections
+    // Positioned in top-left corner, separate from hero panel
     const minimapSize = 180; // Larger for full dungeon view
     const minimapX = 10;
-    const minimapY = VH - 200;
+    const minimapY = 80; // Top-left, below top UI elements
     
     // Minimap frame (parchment style)
     add([rect(minimapSize + 8, minimapSize + 8), pos(minimapX - 4, minimapY - 4), color(139, 90, 43), fixed(), z(97)]);
