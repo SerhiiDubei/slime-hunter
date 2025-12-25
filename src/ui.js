@@ -120,7 +120,7 @@ export function createHUD() {
     const heroSkills = getHeroSkills(GS.selectedHero);
     
     Logger.debug('[DBG$] before skill icons loop', { slots: skillPositions.length, hero: GS.selectedHero });
-
+    
     for (let i = 0; i < 4; i++) {
         const slotPos = skillPositions[i];
         const skillX = startX + slotPos.index * (skillIconSize + skillIconGap);
@@ -600,7 +600,16 @@ export function createHUD() {
         const heroSkills = getHeroSkills(GS.selectedHero);
         
         // Update each skill slot
+    Logger.debug('[DBG$] HUD update start', { slots: skillIcons.length, hero: GS.selectedHero });
         skillIcons.forEach((slot, index) => {
+        if (!slot) {
+            Logger.error('[DBG$] HUD slot missing', { index });
+            return;
+        }
+        if (!slot.icon || !slot.keyLabel) {
+            Logger.error('[DBG$] HUD slot missing fields', { index, hasIcon: !!slot.icon, hasKeyLabel: !!slot.keyLabel });
+            return;
+        }
             const skillKey = slot.skillKey;
             let skill = null;
             let level = 0;
