@@ -1705,7 +1705,9 @@ export function createGameScene() {
                 const totalWidth = buttonWidth * upgradableSkills.length + buttonGap * (upgradableSkills.length - 1);
                 const startX = VW / 2 - totalWidth / 2;
                 
-                upgradableSkills.forEach(({ key, skill }, index) => {
+                upgradableSkills.forEach((item, index) => {
+                    const key = item.key;
+                    const skill = item.skill;
                     const buttonX = startX + index * (buttonWidth + buttonGap) + buttonWidth / 2;
                     const currentLevel = GS.getSkillLevel(key);
                     const isLocked = key === 'Y' && GS.playerLevel < 5;
