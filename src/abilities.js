@@ -108,9 +108,6 @@ export function tryUseSkillR() {
     const skill = heroSkills.skillR;
     if (!skill) return false;
     
-    // Skill R might be passive (no active use) or active
-    // For now, most are passive stat boosts, so return false
-    // But check if it has active effects
     const config = skill.levels[level - 1];
     
     // If skill has cooldown/manaCost, it's active
@@ -122,7 +119,47 @@ export function tryUseSkillR() {
         return true;
     }
     
-    // Passive skill, no active use
+    // Passive skill - show visual feedback that it's active
+    const addFn = getKaboomFn('add');
+    const posFn = getKaboomFn('pos');
+    const textFn = getKaboomFn('text');
+    const colorFn = getKaboomFn('color');
+    const anchorFn = getKaboomFn('anchor');
+    const zFn = getKaboomFn('z');
+    const destroyFn = getKaboomFn('destroy');
+    
+    if (addFn && posFn && textFn && GS.player) {
+        // Show "PASSIVE" text above player
+        const passiveText = addFn([
+            textFn("PASSIVE", { size: 14 }),
+            posFn(GS.player.pos.x, GS.player.pos.y - 30),
+            anchorFn("center"),
+            colorFn(150, 200, 255),
+            zFn(30),
+            { t: 0 }
+        ]);
+        
+        if (passiveText && passiveText.onUpdate) {
+            const dtFn = getKaboomFn('dt');
+            passiveText.onUpdate(() => {
+                if (!passiveText.exists()) return;
+                const dt = dtFn ? dtFn() : 0.016;
+                passiveText.t += dt;
+                passiveText.pos.y -= 30 * dt;
+                passiveText.opacity = 1 - passiveText.t * 2;
+                if (passiveText.t > 0.5 && destroyFn) {
+                    destroyFn(passiveText);
+                }
+            });
+        }
+    }
+    
+    // Play sound feedback
+    if (typeof playSound === 'function') {
+        playSound('click');
+    }
+    
+    // Passive skill is always active, no need to activate
     return false;
 }
 
