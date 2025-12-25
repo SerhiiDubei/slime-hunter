@@ -298,7 +298,7 @@ function abilityIceShard(config) {
         anchorFn("center"), rotateFn(Math.atan2(dir.y, dir.x) * 180 / Math.PI),
         zFn(10), moveFn ? moveFn(Math.atan2(dir.y, dir.x) * 180 / Math.PI, config.speed) : null,
         { t: 0, pierced: [] }
-    ].filter(x => x !== null));
+    ].filter(item => item !== null));
     
     shard.onUpdate(() => {
         const dt = dtFn();
@@ -414,7 +414,7 @@ function abilityMultiShot(config) {
             anchorFn("center"), rotateFn(angle * 180 / Math.PI),
             zFn(10), moveFn ? moveFn(angle * 180 / Math.PI, 450) : null,
             { t: 0 }
-        ].filter(x => x !== null));
+        ].filter(item => item !== null));
         
         arrow.onUpdate(() => {
             const dt = dtFn();
@@ -623,7 +623,7 @@ function ultimateArrowStorm(config) {
             anchorFn("center"), rotateFn(arrowAngle * 180 / Math.PI),
             zFn(10), moveFn ? moveFn(arrowAngle * 180 / Math.PI, 400) : null,
             { t: 0 }
-        ].filter(x => x !== null));
+        ].filter(item => item !== null));
         
         arrow.onUpdate(() => {
             const dtFn = getKaboomFn('dt');
