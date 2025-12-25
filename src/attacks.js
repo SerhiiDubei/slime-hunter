@@ -7,6 +7,7 @@ import { playSound } from './audio.js';
 import { createHitFX, createProjectileFX } from './effects.js';
 import { killEnemy } from './entities/enemies.js';
 import { getHero } from './data/heroes.js';
+import { getHeroSkills } from './data/heroSkills.js';
 import { Logger } from './logger.js';
 
 export function meleeAttack(spawnKeyFn) {
@@ -185,13 +186,17 @@ export function rangedAttack(spawnKeyFn) {
         const hero = getHero(GS.selectedHero);
         const heroRanged = hero.ranged || {};
         
+        // Get hero skills to apply effects
+        const heroSkills = getHeroSkills(GS.selectedHero);
+        
         // Hero-specific projectile properties (DEFINE FIRST!)
         const projColor = heroRanged.projectileColor || [100, 200, 255];
         const projSize = heroRanged.projectileSize || CONFIG.RANGED_SIZE;
-        const projSpeed = heroRanged.projectileSpeed || CONFIG.RANGED_SPEED;
+        let projSpeed = heroRanged.projectileSpeed || CONFIG.RANGED_SPEED;
         const dmgMult = heroRanged.damageMultiplier || 1.0;
-        const piercing = heroRanged.piercing || false;
+        let piercing = heroRanged.piercing || false;
         const projShape = heroRanged.projectileShape || "orb";
+        let maxPierceCount = heroRanged.maxPierceCount || 99;
         
         // Hero-specific cooldown
         const cooldown = heroRanged.cooldown || stats.rangedCooldown;
@@ -215,12 +220,35 @@ export function rangedAttack(spawnKeyFn) {
         const knockback = heroRanged.knockback || 0;
         const spinSpeed = heroRanged.spinSpeed || 360;
         const trailColor = heroRanged.trailColor || projColor;
-        const maxPierceCount = heroRanged.maxPierceCount || 99;
         const burstCount = heroRanged.burstCount || 1;
         const burstSpread = heroRanged.burstSpread || 0;
         const burstDelay = heroRanged.burstDelay || 0;
-        const isHoming = heroRanged.homing || false;
-        const homingStrength = heroRanged.homingStrength || 0.15;
+        let isHoming = heroRanged.homing || false;
+        let homingStrength = heroRanged.homingStrength || 0.15;
+        
+        // Apply skill effects to ranged attack
+        for (const skillId of GS.heroSkills.active) {
+            const skill = heroSkills.active.find(s => s.id === skillId);
+            if (!skill) continue;
+            
+            if (skill.effect.piercing) {
+                piercing = true;
+            }
+            if (skill.effect.maxPierceCount) {
+                maxPierceCount = skill.effect.maxPierceCount;
+            }
+            if (skill.effect.projectileSpeedBonus) {
+                projSpeed = Math.floor(projSpeed * (1 + skill.effect.projectileSpeedBonus));
+            }
+        }
+        
+        // Apply passive skill effects
+        if (GS.heroSkills.passive) {
+            const passive = heroSkills.passive;
+            if (passive.effect.homingStrengthBonus) {
+                homingStrength = (homingStrength || 0.15) * (1 + passive.effect.homingStrengthBonus);
+            }
+        }
         
         const dir = GS.lastMoveDir;
         const baseDamage = stats.rangedDamage * dmgMult;

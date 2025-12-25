@@ -2,7 +2,7 @@
 // Global game state management
 
 import { CONFIG } from './config.js';
-import { getHeroSkills } from './data/heroSkills.js';
+import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
 
 // 5 Core Player Stats
 export const STATS = {
