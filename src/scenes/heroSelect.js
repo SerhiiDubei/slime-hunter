@@ -106,6 +106,18 @@ export function createHeroSelectScene() {
                 ultIcon: '👤',
                 stats: { atk: 3, mag: 3, spd: 5, hp: 2, sta: 5 },
             },
+            {
+                id: 'ranger',
+                name: 'RANGER',
+                title: 'Master Archer',
+                desc: 'A balanced fighter with homing arrows. Excels at ranged combat with tracking projectiles.',
+                ultimate: 'ARROW STORM',
+                ultDesc: 'Rains down arrows in a large area.',
+                color: [100, 150, 80],
+                icon: '🏹',
+                ultIcon: '🌪️',
+                stats: { atk: 3, mag: 4, spd: 4, hp: 3, sta: 4 },
+            },
         ];
         
         let selectedHero = 'warrior';
@@ -159,7 +171,8 @@ export function createHeroSelectScene() {
             const heroSpriteMap = {
                 'warrior': 'heroWarrior',
                 'mage': 'heroMage',
-                'assassin': 'heroAssassin'
+                'assassin': 'heroAssassin',
+                'ranger': 'heroRanger'
             };
             const heroSprite = add([
                 sprite(heroSpriteMap[hero.id] || 'player'),
@@ -448,15 +461,15 @@ export function createHeroSelectScene() {
         onKeyPress("3", () => updateSelection('assassin'));
         
         onKeyPress("left", () => {
-            const heroes = ['warrior', 'mage', 'assassin'];
+            const heroes = ['warrior', 'mage', 'assassin', 'ranger'];
             const idx = heroes.indexOf(selectedHero);
-            updateSelection(heroes[(idx - 1 + 3) % 3]);
+            updateSelection(heroes[(idx - 1 + 4) % 4]);
         });
         
         onKeyPress("right", () => {
-            const heroes = ['warrior', 'mage', 'assassin'];
+            const heroes = ['warrior', 'mage', 'assassin', 'ranger'];
             const idx = heroes.indexOf(selectedHero);
-            updateSelection(heroes[(idx + 1) % 3]);
+            updateSelection(heroes[(idx + 1) % 4]);
         });
     });
 }

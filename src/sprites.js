@@ -265,12 +265,102 @@ function makePlayer() {
     return makeWarriorFrames()[0];
 }
 
+// Ranger - Bow-wielding archer (4 frames)
+function makeRangerFrames() {
+    const frames = [];
+    const size = 32;
+    const cx = size / 2;
+    
+    for (let f = 0; f < 4; f++) {
+        const { canvas, ctx } = createCanvas(size, size);
+        const bounce = Math.sin(f * Math.PI / 2) * 1;
+        const legOffset = f % 2 === 0 ? 0 : 1.5;
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(cx, 28, 7, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Legs (animated)
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(cx - 4 - legOffset, 18 - bounce, 3, 8);
+        ctx.fillRect(cx + 1 + legOffset, 18 - bounce, 3, 8);
+        
+        // Boots
+        ctx.fillStyle = '#3E2723';
+        ctx.fillRect(cx - 5 - legOffset, 24 - bounce, 4, 3);
+        ctx.fillRect(cx + 1 + legOffset, 24 - bounce, 4, 3);
+        
+        // Body - leather tunic
+        const tunicGrad = ctx.createLinearGradient(cx - 6, 10, cx + 6, 20);
+        tunicGrad.addColorStop(0, '#6B4423');
+        tunicGrad.addColorStop(1, '#8B4513');
+        ctx.fillStyle = tunicGrad;
+        ctx.beginPath();
+        ctx.roundRect(cx - 6, 10 - bounce, 12, 10, 2);
+        ctx.fill();
+        
+        // Belt
+        ctx.fillStyle = '#4a3728';
+        ctx.fillRect(cx - 5, 18 - bounce, 10, 2);
+        
+        // Head
+        ctx.fillStyle = '#ffe0bd';
+        ctx.beginPath();
+        ctx.arc(cx, 8 - bounce, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Hood
+        ctx.fillStyle = '#6B4423';
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, 8 - bounce);
+        ctx.quadraticCurveTo(cx, 2 - bounce, cx + 6, 8 - bounce);
+        ctx.lineTo(cx + 5, 10 - bounce);
+        ctx.quadraticCurveTo(cx, 5 - bounce, cx - 5, 10 - bounce);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(cx - 2, 7 - bounce, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 7 - bounce, 1, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Bow (rotated based on frame)
+        const bowAngle = f * 0.3;
+        ctx.save();
+        ctx.translate(cx + 7, 12 - bounce);
+        ctx.rotate(bowAngle);
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#654321';
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        
+        // Quiver
+        ctx.fillStyle = '#3E2723';
+        ctx.fillRect(cx - 10, 12 - bounce, 3, 10);
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(cx - 9, 13 - bounce, 1, 8);
+        
+        frames.push(canvas.toDataURL());
+    }
+    return frames;
+}
+
 // Generate all hero animation frames
 function makeHeroAnimations() {
     return {
         warrior: makeWarriorFrames(),
         mage: makeMageFrames(),
-        assassin: makeAssassinFrames()
+        assassin: makeAssassinFrames(),
+        ranger: makeRangerFrames()
     };
 }
 
@@ -1393,6 +1483,16 @@ export function loadAllSprites() {
     });
     heroAnims.assassin.forEach((frame, i) => {
         loadSprite(`heroAssassin_${i}`, frame);
+    });
+    
+    // Ranger animation frames
+    loadSprite("heroRanger", heroAnims.ranger[0], {
+        sliceX: 1,
+        sliceY: 1,
+        anims: { idle: 0 }
+    });
+    heroAnims.ranger.forEach((frame, i) => {
+        loadSprite(`heroRanger_${i}`, frame);
     });
 }
 

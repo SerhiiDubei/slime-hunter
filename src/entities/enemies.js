@@ -420,7 +420,8 @@ export function spawnBoss() {
          bossConfig.sprite === 'bossNecro' ? '💀' :
          bossConfig.sprite === 'bossFrost' ? '❄️' :
          bossConfig.sprite === 'bossInferno' ? '🔥' :
-         bossConfig.sprite === 'bossShadow' ? '👤' : '👾';
+         bossConfig.sprite === 'bossShadow' ? '👤' :
+         bossConfig.sprite === 'bossMega' ? '👾' : '👾';
          
     add([
         text(bossIcon, { size: 64 }),

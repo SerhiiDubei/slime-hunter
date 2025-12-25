@@ -13,6 +13,7 @@ import { spawnRandomEnemy, spawnBoss, spawnEnemy } from '../entities/enemies.js'
 import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
 import { setupUltimate, tryUseUltimate, updateUltimate } from '../ultimate.js';
+import { setupAbilities, tryUseAbility, updateAbilities } from '../abilities.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
@@ -1185,15 +1186,18 @@ export function createGameScene() {
             const doMeleeAttack = () => meleeAttack(spawnKeyFn);
             const doRangedAttack = () => rangedAttack(spawnKeyFn);
 
-            // Setup ultimate
+            // Setup ultimate and abilities
             setupUltimate();
+            setupAbilities();
 
             // Input - use customizable keybinds
             const meleeKey = KEYBINDS.meleeAttack || 'space';
             const rangedKey = KEYBINDS.rangedAttack || 'e';
             const ultKey = KEYBINDS.ultimate || 'q';
+            const abilityKey = KEYBINDS.ability || 'f';
             
             onKeyPress(meleeKey, doMeleeAttack);
+            onKeyPress(abilityKey, tryUseAbility);
             onKeyPress("j", doMeleeAttack);
             
             let keyStates = {};
@@ -1214,6 +1218,7 @@ export function createGameScene() {
                 keyStates.ult = ultPressed;
                 
                 updateUltimate();
+                updateAbilities();
                 
                 // OPTIMIZED: Camera update (30/sec instead of 60 for smoother performance)
                 camUpdateTimer += dt();

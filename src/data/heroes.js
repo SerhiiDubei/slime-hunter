@@ -1,5 +1,5 @@
 // ==================== HERO CONFIGURATIONS ====================
-// 3 unique heroes with VERY different ranged attack playstyles!
+// 4 unique heroes with VERY different ranged attack playstyles!
 
 export const HEROES = {
     // ========== WARRIOR ==========
@@ -35,6 +35,18 @@ export const HEROES = {
             spinSpeed: 900,                        // Fast spin
             knockback: 60,                         // Pushes enemies back
             trailColor: [180, 80, 40],
+        },
+        
+        // Active ability
+        ability: {
+            name: "SHIELD BASH",
+            icon: "🛡️",
+            description: "Charges forward, dealing damage and stunning enemies",
+            cooldown: 8.0,
+            damage: 25,
+            range: 150,
+            stunDuration: 1.5,
+            knockback: 80,
         },
         
         // Ultimate ability
@@ -81,6 +93,18 @@ export const HEROES = {
             trailColor: [150, 50, 255],
             maxPierceCount: 4,                     // Pierce up to 4 enemies
             chainLightning: false,                 // Future feature
+        },
+        
+        // Active ability
+        ability: {
+            name: "ICE SHARD",
+            icon: "❄️",
+            description: "Fires a piercing ice shard that freezes enemies",
+            cooldown: 6.0,
+            damage: 20,
+            speed: 600,
+            freezeDuration: 2.0,
+            piercing: true,
         },
         
         ultimate: {
@@ -133,6 +157,17 @@ export const HEROES = {
             trailColor: [80, 200, 100],
         },
         
+        // Active ability
+        ability: {
+            name: "SMOKE BOMB",
+            icon: "💨",
+            description: "Creates a smoke cloud that grants invisibility and speed boost",
+            cooldown: 10.0,
+            duration: 3.0,
+            speedBoost: 1.5,
+            radius: 120,
+        },
+        
         ultimate: {
             name: "SHADOW STRIKE",
             icon: "👤",
@@ -143,12 +178,69 @@ export const HEROES = {
             invulnDuration: 1.2,
         },
     },
+    
+    // ========== RANGER ==========
+    // Balanced ranged/melee - BOW with homing arrows
+    ranger: {
+        id: "ranger",
+        name: "RANGER",
+        icon: "🏹",
+        description: "Master archer with homing arrows and balanced combat",
+        color: [100, 150, 80],
+        
+        stats: {
+            meleeDamage: 1.0,      // Balanced
+            rangedDamage: 1.2,     // +20% ranged
+            moveSpeed: 1.1,        // +10% speed
+            maxHp: 1.0,            // Balanced HP
+            stamina: 1.2,          // +20% stamina
+        },
+        
+        // HOMING ARROW - tracks enemies
+        ranged: {
+            name: "Homing Arrow",
+            description: "Arrows that track and follow enemies",
+            projectileColor: [150, 200, 100],     // Green/brown
+            projectileSize: 12,                    // Medium
+            projectileSpeed: 380,                  // Medium speed
+            cooldown: 1.8,                         // Medium cooldown
+            damageMultiplier: 1.0,                 // Balanced damage
+            piercing: false,
+            projectileShape: "arrow",
+            // Special: Arrows home in on enemies
+            homing: true,
+            homingStrength: 0.15,                  // How much arrow curves
+            trailColor: [120, 180, 90],
+        },
+        
+        // Active ability
+        ability: {
+            name: "MULTI-SHOT",
+            icon: "🎯",
+            description: "Fires 5 arrows in a spread pattern",
+            cooldown: 7.0,
+            arrowCount: 5,
+            spreadAngle: 0.6,
+            damage: 18,
+        },
+        
+        ultimate: {
+            name: "ARROW STORM",
+            icon: "🌪️",
+            description: "Rains down arrows in a large area",
+            chargeNeeded: 6,
+            arrowCount: 20,
+            damage: 15,
+            radius: 250,
+        },
+    },
 };
 
 // Quick reference for attack patterns:
 // WARRIOR: 1 big slow powerful axe | Long cooldown | High damage | Knockback
 // MAGE:    1-3 fast bolts         | Short cooldown | Low damage  | Piercing
 // ASSASSIN: 3 daggers burst       | Medium cooldown| Medium dmg  | Poison DOT
+// RANGER:  Homing arrows          | Medium cooldown| Balanced    | Tracking
 
 export function getHero(id) {
     return HEROES[id] || HEROES.warrior;
