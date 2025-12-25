@@ -1688,7 +1688,9 @@ export function createGameScene() {
                 ];
                 
                 // Filter skills that can be upgraded
-                const upgradableSkills = allSkills.filter(({ key, skill }) => {
+                const upgradableSkills = allSkills.filter((item) => {
+                    const key = item.key;
+                    const skill = item.skill;
                     const currentLevel = GS.getSkillLevel(key);
                     if (key === 'Y' && GS.playerLevel < 5) return false;
                     return currentLevel < 4;
