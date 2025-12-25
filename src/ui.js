@@ -479,11 +479,20 @@ export function createHUD() {
                     if (lvl.critMultiplier) stats.push(`Crit Damage: ${lvl.critMultiplier}x`);
                     if (lvl.meleeDamageBonus) stats.push(`Melee Dmg: +${Math.floor(lvl.meleeDamageBonus * 100)}%`);
                     if (lvl.rangedDamageBonus) stats.push(`Ranged Dmg: +${Math.floor(lvl.rangedDamageBonus * 100)}%`);
+                    if (lvl.damageReduction) stats.push(`Damage Reduction: ${Math.floor(lvl.damageReduction * 100)}%`);
+                    if (lvl.rangedCooldownReduction) stats.push(`Ranged CD: -${Math.floor(lvl.rangedCooldownReduction * 100)}%`);
+                    if (lvl.freezeDuration) stats.push(`Freeze: ${lvl.freezeDuration}s`);
+                    if (lvl.speed) stats.push(`Speed: ${lvl.speed}px/s`);
+                    if (lvl.piercing) stats.push(`Piercing: Yes`);
                     if (lvl.maxPierceCount) stats.push(`Pierce: ${lvl.maxPierceCount}`);
                     if (lvl.homingStrengthBonus) stats.push(`Homing: +${Math.floor(lvl.homingStrengthBonus * 100)}%`);
                     if (lvl.arrowCount) stats.push(`Arrows: ${lvl.arrowCount}`);
                     if (lvl.strikes) stats.push(`Strikes: ${lvl.strikes}`);
                     if (lvl.invulnDuration) stats.push(`Invulnerability: ${lvl.invulnDuration}s`);
+                    if (lvl.meteorCount) stats.push(`Meteors: ${lvl.meteorCount}`);
+                    if (lvl.maxHpBonus) stats.push(`Max HP: +${Math.floor(lvl.maxHpBonus * 100)}%`);
+                    if (lvl.moveSpeedBonus) stats.push(`Move Speed: +${Math.floor(lvl.moveSpeedBonus * 100)}%`);
+                    if (lvl.spreadAngle) stats.push(`Spread: ${lvl.spreadAngle.toFixed(1)}`);
                     
                     statsText = stats.join("\n");
                 } else if (skill.levels && skill.levels[0]) {
@@ -506,11 +515,20 @@ export function createHUD() {
                     if (lvl.critMultiplier) stats.push(`Crit Damage: ${lvl.critMultiplier}x`);
                     if (lvl.meleeDamageBonus) stats.push(`Melee Dmg: +${Math.floor(lvl.meleeDamageBonus * 100)}%`);
                     if (lvl.rangedDamageBonus) stats.push(`Ranged Dmg: +${Math.floor(lvl.rangedDamageBonus * 100)}%`);
+                    if (lvl.damageReduction) stats.push(`Damage Reduction: ${Math.floor(lvl.damageReduction * 100)}%`);
+                    if (lvl.rangedCooldownReduction) stats.push(`Ranged CD: -${Math.floor(lvl.rangedCooldownReduction * 100)}%`);
+                    if (lvl.freezeDuration) stats.push(`Freeze: ${lvl.freezeDuration}s`);
+                    if (lvl.speed) stats.push(`Speed: ${lvl.speed}px/s`);
+                    if (lvl.piercing) stats.push(`Piercing: Yes`);
                     if (lvl.maxPierceCount) stats.push(`Pierce: ${lvl.maxPierceCount}`);
                     if (lvl.homingStrengthBonus) stats.push(`Homing: +${Math.floor(lvl.homingStrengthBonus * 100)}%`);
                     if (lvl.arrowCount) stats.push(`Arrows: ${lvl.arrowCount}`);
                     if (lvl.strikes) stats.push(`Strikes: ${lvl.strikes}`);
                     if (lvl.invulnDuration) stats.push(`Invulnerability: ${lvl.invulnDuration}s`);
+                    if (lvl.meteorCount) stats.push(`Meteors: ${lvl.meteorCount}`);
+                    if (lvl.maxHpBonus) stats.push(`Max HP: +${Math.floor(lvl.maxHpBonus * 100)}%`);
+                    if (lvl.moveSpeedBonus) stats.push(`Move Speed: +${Math.floor(lvl.moveSpeedBonus * 100)}%`);
+                    if (lvl.spreadAngle) stats.push(`Spread: ${lvl.spreadAngle.toFixed(1)}`);
                     
                     statsText = "Level 1:\n" + stats.join("\n");
                 }
