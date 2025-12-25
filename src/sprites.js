@@ -832,21 +832,21 @@ function makeDoor(open) {
     ctx.lineTo(38, 35);
     ctx.stroke();
     
-    // Metal studs
-    ctx.fillStyle = open ? '#f1c40f' : '#666666';
+    // Metal studs (bronze/silver instead of yellow)
+    ctx.fillStyle = open ? '#cd7f32' : '#666666'; // Bronze color instead of yellow
     [[14, 22], [34, 22], [14, 50], [34, 50]].forEach(([x, y]) => {
         ctx.beginPath();
         ctx.arc(x, y, 2.5, 0, Math.PI * 2);
         ctx.fill();
     });
     
-    // Door handle/ring
-    ctx.strokeStyle = open ? '#f39c12' : '#888888';
+    // Door handle/ring (bronze instead of orange-yellow)
+    ctx.strokeStyle = open ? '#b87333' : '#888888'; // Bronze color
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(30, 42, 5, 0, Math.PI);
     ctx.stroke();
-    ctx.fillStyle = open ? '#f39c12' : '#888888';
+    ctx.fillStyle = open ? '#b87333' : '#888888'; // Bronze color
     ctx.beginPath();
     ctx.arc(30, 37, 2, 0, Math.PI * 2);
     ctx.fill();

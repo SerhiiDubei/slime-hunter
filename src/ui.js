@@ -271,9 +271,9 @@ export function createHUD() {
             }
             
             // Door color based on type
-            let doorColor = GS.roomCleared ? [100, 200, 100] : [100, 80, 60];
-            if (targetRoom.type === 'boss') doorColor = [255, 80, 80];
-            else if (targetRoom.type === 'treasure') doorColor = [255, 220, 100];
+            let doorColor = GS.roomCleared ? [100, 200, 100] : [100, 80, 60]; // Green when cleared, brown when locked
+            if (targetRoom.type === 'boss') doorColor = [255, 80, 80]; // Red for boss
+            else if (targetRoom.type === 'treasure') doorColor = [205, 127, 50]; // Bronze instead of yellow for treasure
             
             const doorDot = add([
                 rect(doorSize, doorSize),
