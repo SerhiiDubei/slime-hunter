@@ -37,6 +37,9 @@ export function tryUseUltimate() {
         case 'assassin':
             ultimateShadowStrike(hero.ultimate);
             break;
+        case 'ranger':
+            ultimateArrowStorm(hero.ultimate);
+            break;
     }
     
     return true;
@@ -326,6 +329,86 @@ function ultimateShadowStrike(config) {
     
     doStrike();
     showUltimateName("👤 ТІНЬОВИЙ УДАР!");
+}
+
+// RANGER: Arrow Storm - rains arrows in large area
+function ultimateArrowStorm(config) {
+    const p = GS.player;
+    
+    // Center on player
+    const centerX = p.pos.x;
+    const centerY = p.pos.y;
+    
+    // Rain arrows in area
+    for (let i = 0; i < config.arrowCount; i++) {
+        wait(i * 0.1, () => {
+            // Random position in radius
+            const angle = rand(0, Math.PI * 2);
+            const dist = rand(0, config.radius);
+            const targetX = centerX + Math.cos(angle) * dist;
+            const targetY = centerY + Math.sin(angle) * dist;
+            
+            // Arrow from sky
+            const arrow = add([
+                rect(4, 20), pos(targetX, targetY - 100),
+                color(150, 200, 100), opacity(0.9),
+                anchor("center"), rotate(90), z(10),
+                move(90, 500), { t: 0 }
+            ]);
+            
+            arrow.onUpdate(() => {
+                arrow.t += dt();
+                if (arrow.pos.y > targetY) {
+                    // Impact
+                    shake(3);
+                    playSound('hit');
+                    
+                    // Impact effect
+                    const impact = add([
+                        circle(15), pos(targetX, targetY),
+                        color(150, 200, 100), opacity(0.8),
+                        anchor("center"), z(11), { r: 15 }
+                    ]);
+                    impact.onUpdate(() => {
+                        impact.r += 80 * dt();
+                        impact.radius = impact.r;
+                        impact.opacity -= 3 * dt();
+                        if (impact.opacity <= 0) destroy(impact);
+                    });
+                    
+                    // Damage enemies
+                    for (const e of get("enemy")) {
+                        if (!e.exists()) continue;
+                        if (vec2(targetX, targetY).dist(e.pos) < 40) {
+                            e.hp -= config.damage;
+                            
+                            // Damage number
+                            const dmgTxt = add([
+                                text(`-${config.damage}`, { size: 12 }),
+                                pos(e.pos.x, e.pos.y - 15),
+                                anchor("center"), color(150, 200, 100), z(100), { t: 0 }
+                            ]);
+                            dmgTxt.onUpdate(() => {
+                                dmgTxt.t += dt();
+                                dmgTxt.pos.y -= 25 * dt();
+                                dmgTxt.opacity = 1 - dmgTxt.t;
+                                if (dmgTxt.t > 0.8) destroy(dmgTxt);
+                            });
+                            
+                            // Check if enemy died
+                            if (e.hp <= 0) {
+                                killEnemy(e);
+                            }
+                        }
+                    }
+                    
+                    destroy(arrow);
+                }
+            });
+        });
+    }
+    
+    showUltimateName("🌪️ СТРІЛЯНИЙ ШТОРМ!");
 }
 
 // Show ultimate name

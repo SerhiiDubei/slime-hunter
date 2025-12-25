@@ -30,7 +30,8 @@ function getHeroSpriteName() {
     const spriteMap = {
         'warrior': 'heroWarrior',
         'mage': 'heroMage',
-        'assassin': 'heroAssassin'
+        'assassin': 'heroAssassin',
+        'ranger': 'heroRanger'
     };
     return spriteMap[heroType] || 'heroWarrior';
 }
@@ -213,7 +214,8 @@ export function setupPlayerMovement(p) {
             const heroPrefix = {
                 'warrior': 'heroWarrior',
                 'mage': 'heroMage',
-                'assassin': 'heroAssassin'
+                'assassin': 'heroAssassin',
+                'ranger': 'heroRanger'
             }[p.heroType] || 'heroWarrior';
             
             try {
