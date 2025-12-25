@@ -122,16 +122,16 @@ export function createHUD() {
     Logger.debug('[DBG$] before skill icons loop', { slots: skillPositions.length, hero: GS.selectedHero });
 
     for (let i = 0; i < 4; i++) {
-        const pos = skillPositions[i];
-        const skillX = startX + pos.index * (skillIconSize + skillIconGap);
+        const slotPos = skillPositions[i];
+        const skillX = startX + slotPos.index * (skillIconSize + skillIconGap);
         const skillY = startY;
         
         // Get skill data
         let skill = null;
-        if (pos.key === 'Q') skill = heroSkills.skillQ;
-        else if (pos.key === 'R') skill = heroSkills.skillR;
-        else if (pos.key === 'T') skill = heroSkills.skillT;
-        else if (pos.key === 'Y') skill = heroSkills.skillY;
+        if (slotPos.key === 'Q') skill = heroSkills.skillQ;
+        else if (slotPos.key === 'R') skill = heroSkills.skillR;
+        else if (slotPos.key === 'T') skill = heroSkills.skillT;
+        else if (slotPos.key === 'Y') skill = heroSkills.skillY;
         
         // Skill slot background (square) - always visible
         const skillBg = add([
