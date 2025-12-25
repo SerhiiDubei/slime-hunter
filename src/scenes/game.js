@@ -904,7 +904,9 @@ export function createGameScene() {
             for (const [key, box] of collisionMap) {
                 if (processed.has(key)) continue;
                 
-                const [gx, gy] = key.split(',').map(Number);
+                const coords = key.split(',').map(Number);
+                const gx = coords[0];
+                const gy = coords[1];
                 let width = 40;
                 let currentGx = gx;
                 
