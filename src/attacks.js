@@ -321,13 +321,13 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
         ]);
         
     } else if (projShape === "arrow") {
-        // RANGER ARROW - use sprite
+        // RANGER ARROW - use sprite (smaller scale)
         const arrowAngle = Math.atan2(d.y, d.x) * (180 / Math.PI);
         proj = add([
             sprite("arrowProjectile"),
             pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
             anchor("center"), z(15), rotate(arrowAngle),
-            scale(projSize / 8), // Scale sprite
+            scale(projSize / 6), // Smaller scale for smaller sprite
             { 
                 dir: d, dist: 0, dmg: damage, piercing,
                 hasPoison, poisonDmg, poisonDur, knockback,
