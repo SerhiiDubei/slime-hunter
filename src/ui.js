@@ -211,6 +211,131 @@ export function createHUD() {
             `skillCooldownText${i}`
         ]);
         
+        // Tooltip (shown on hover)
+        const tooltipBg = add([
+            rect(280, 200, { radius: 6 }),
+            pos(skillX + skillIconSize / 2, skillY - 120),
+            anchor("center"),
+            color(20, 15, 10),
+            opacity(0),
+            fixed(),
+            z(200),
+            `skillTooltipBg${i}`
+        ]);
+        
+        const tooltipName = add([
+            text("", { size: 16 }),
+            pos(skillX + skillIconSize / 2, skillY - 200),
+            anchor("center"),
+            color(255, 220, 100),
+            opacity(0),
+            fixed(),
+            z(201),
+            `skillTooltipName${i}`
+        ]);
+        
+        const tooltipDesc = add([
+            text("", { size: 11, width: 260 }),
+            pos(skillX + skillIconSize / 2, skillY - 180),
+            anchor("center"),
+            color(200, 190, 180),
+            opacity(0),
+            fixed(),
+            z(201),
+            `skillTooltipDesc${i}`
+        ]);
+        
+        const tooltipStats = add([
+            text("", { size: 10, width: 260 }),
+            pos(skillX + skillIconSize / 2, skillY - 100),
+            anchor("center"),
+            color(150, 200, 255),
+            opacity(0),
+            fixed(),
+            z(201),
+            `skillTooltipStats${i}`
+        ]);
+        
+        // Hover handlers
+        skillBg.onHoverUpdate(() => {
+            if (skill) {
+                const level = GS.getSkillLevel(slotPos.key);
+                tooltipBg.opacity = 0.95;
+                tooltipName.opacity = 1;
+                tooltipDesc.opacity = 1;
+                tooltipStats.opacity = 1;
+                
+                tooltipName.text = skill.name || slotPos.key;
+                tooltipDesc.text = skill.description || "";
+                
+                // Build stats text (like Dota)
+                let statsText = "";
+                if (level > 0 && skill.levels && skill.levels[level - 1]) {
+                    const lvl = skill.levels[level - 1];
+                    const stats = [];
+                    
+                    if (lvl.damage) stats.push(`Damage: ${lvl.damage}`);
+                    if (lvl.range) stats.push(`Range: ${lvl.range}px`);
+                    if (lvl.stunDuration) stats.push(`Stun: ${lvl.stunDuration}s`);
+                    if (lvl.knockback) stats.push(`Knockback: ${lvl.knockback}`);
+                    if (lvl.cooldown) stats.push(`Cooldown: ${lvl.cooldown}s`);
+                    if (lvl.manaCost) stats.push(`Mana: ${lvl.manaCost}`);
+                    if (lvl.duration) stats.push(`Duration: ${lvl.duration}s`);
+                    if (lvl.speedBoost) stats.push(`Speed: +${Math.floor((lvl.speedBoost - 1) * 100)}%`);
+                    if (lvl.radius) stats.push(`Radius: ${lvl.radius}px`);
+                    if (lvl.poisonDamage) stats.push(`Poison: ${lvl.poisonDamage}/tick`);
+                    if (lvl.poisonDuration) stats.push(`Poison Duration: ${lvl.poisonDuration}s`);
+                    if (lvl.critChance) stats.push(`Crit Chance: ${Math.floor(lvl.critChance * 100)}%`);
+                    if (lvl.critMultiplier) stats.push(`Crit Damage: ${lvl.critMultiplier}x`);
+                    if (lvl.meleeDamageBonus) stats.push(`Melee Dmg: +${Math.floor(lvl.meleeDamageBonus * 100)}%`);
+                    if (lvl.rangedDamageBonus) stats.push(`Ranged Dmg: +${Math.floor(lvl.rangedDamageBonus * 100)}%`);
+                    if (lvl.maxPierceCount) stats.push(`Pierce: ${lvl.maxPierceCount}`);
+                    if (lvl.homingStrengthBonus) stats.push(`Homing: +${Math.floor(lvl.homingStrengthBonus * 100)}%`);
+                    if (lvl.arrowCount) stats.push(`Arrows: ${lvl.arrowCount}`);
+                    if (lvl.strikes) stats.push(`Strikes: ${lvl.strikes}`);
+                    if (lvl.invulnDuration) stats.push(`Invulnerability: ${lvl.invulnDuration}s`);
+                    
+                    statsText = stats.join("\n");
+                } else if (skill.levels && skill.levels[0]) {
+                    // Show level 1 stats if not learned
+                    const lvl = skill.levels[0];
+                    const stats = [];
+                    
+                    if (lvl.damage) stats.push(`Damage: ${lvl.damage}`);
+                    if (lvl.range) stats.push(`Range: ${lvl.range}px`);
+                    if (lvl.stunDuration) stats.push(`Stun: ${lvl.stunDuration}s`);
+                    if (lvl.knockback) stats.push(`Knockback: ${lvl.knockback}`);
+                    if (lvl.cooldown) stats.push(`Cooldown: ${lvl.cooldown}s`);
+                    if (lvl.manaCost) stats.push(`Mana: ${lvl.manaCost}`);
+                    if (lvl.duration) stats.push(`Duration: ${lvl.duration}s`);
+                    if (lvl.speedBoost && stats.push(`Speed: +${Math.floor((lvl.speedBoost - 1) * 100)}%`));
+                    if (lvl.radius) stats.push(`Radius: ${lvl.radius}px`);
+                    if (lvl.poisonDamage) stats.push(`Poison: ${lvl.poisonDamage}/tick`);
+                    if (lvl.poisonDuration) stats.push(`Poison Duration: ${lvl.poisonDuration}s`);
+                    if (lvl.critChance) stats.push(`Crit Chance: ${Math.floor(lvl.critChance * 100)}%`);
+                    if (lvl.critMultiplier) stats.push(`Crit Damage: ${lvl.critMultiplier}x`);
+                    if (lvl.meleeDamageBonus) stats.push(`Melee Dmg: +${Math.floor(lvl.meleeDamageBonus * 100)}%`);
+                    if (lvl.rangedDamageBonus) stats.push(`Ranged Dmg: +${Math.floor(lvl.rangedDamageBonus * 100)}%`);
+                    if (lvl.maxPierceCount) stats.push(`Pierce: ${lvl.maxPierceCount}`);
+                    if (lvl.homingStrengthBonus) stats.push(`Homing: +${Math.floor(lvl.homingStrengthBonus * 100)}%`);
+                    if (lvl.arrowCount) stats.push(`Arrows: ${lvl.arrowCount}`);
+                    if (lvl.strikes) stats.push(`Strikes: ${lvl.strikes}`);
+                    if (lvl.invulnDuration) stats.push(`Invulnerability: ${lvl.invulnDuration}s`);
+                    
+                    statsText = "Level 1:\n" + stats.join("\n");
+                }
+                
+                tooltipStats.text = statsText;
+            }
+        });
+        
+        skillBg.onHoverEnd(() => {
+            tooltipBg.opacity = 0;
+            tooltipName.opacity = 0;
+            tooltipDesc.opacity = 0;
+            tooltipStats.opacity = 0;
+        });
+        
         skillIcons.push({ 
             bg: skillBg, 
             icon: skillIcon, 
