@@ -607,6 +607,9 @@ export function createGameScene() {
             totalRooms: GS.totalRooms 
         });
         
+        console.log('🎮 GAME SCENE LOADED - Performance monitoring active!');
+        console.log('📊 FPS logs will appear every 2 seconds during gameplay');
+        
         try {
             Logger.debug('Initializing game state', {
                 currentLevel: GS.currentLevel,
@@ -1148,6 +1151,7 @@ export function createGameScene() {
             let alreadyClearedTimer = 0;
             
             // ========== FPS & PERFORMANCE MONITORING ==========
+            console.log('🚀 PERFORMANCE MONITORING INITIALIZED - FPS logs will appear every 2 seconds');
             let fpsTimer = 0;
             let fpsLastTime = performance.now();
             let frameTimeSum = 0;
