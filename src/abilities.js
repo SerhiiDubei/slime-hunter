@@ -268,9 +268,11 @@ function abilityShieldBash(config) {
                 if (e.stunTimer === undefined) e.stunTimer = 0;
                 e.stunTimer = config.stunDuration;
                 
-                // Knockback
+                // Knockback - use vec2 to avoid minification conflicts
+                const vec2Fn = getKaboomFn('vec2');
                 const knockDir = e.pos.sub(p.pos).unit();
-                e.pos = e.pos.add(knockDir.scale(config.knockback));
+                const knockVec = vec2Fn ? vec2Fn(knockDir.x * config.knockback, knockDir.y * config.knockback) : { x: knockDir.x * config.knockback, y: knockDir.y * config.knockback };
+                e.pos = e.pos.add(knockVec);
                 
                 if (e.hp <= 0) killEnemy(e);
             }
