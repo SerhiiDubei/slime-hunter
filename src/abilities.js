@@ -7,6 +7,56 @@ import { HEROES } from './data/heroes.js';
 import { playSound } from './audio.js';
 import { killEnemy } from './entities/enemies.js';
 
+// Get Kaboom functions
+const dt = (typeof window !== 'undefined' && typeof window.dt === 'function') ? window.dt :
+          (typeof globalThis !== 'undefined' && typeof globalThis.dt === 'function') ? globalThis.dt :
+          (typeof dt === 'function') ? dt : null;
+const add = (typeof window !== 'undefined' && typeof window.add === 'function') ? window.add :
+          (typeof globalThis !== 'undefined' && typeof globalThis.add === 'function') ? globalThis.add :
+          (typeof add === 'function') ? add : null;
+const get = (typeof window !== 'undefined' && typeof window.get === 'function') ? window.get :
+          (typeof globalThis !== 'undefined' && typeof globalThis.get === 'function') ? globalThis.get :
+          (typeof get === 'function') ? get : null;
+const wait = (typeof window !== 'undefined' && typeof window.wait === 'function') ? window.wait :
+            (typeof globalThis !== 'undefined' && typeof globalThis.wait === 'function') ? globalThis.wait :
+            (typeof wait === 'function') ? wait : null;
+const shake = (typeof window !== 'undefined' && typeof window.shake === 'function') ? window.shake :
+             (typeof globalThis !== 'undefined' && typeof globalThis.shake === 'function') ? globalThis.shake :
+             (typeof shake === 'function') ? shake : null;
+const vec2 = (typeof window !== 'undefined' && typeof window.vec2 === 'function') ? window.vec2 :
+            (typeof globalThis !== 'undefined' && typeof globalThis.vec2 === 'function') ? globalThis.vec2 :
+            (typeof vec2 === 'function') ? vec2 : null;
+const rect = (typeof window !== 'undefined' && typeof window.rect === 'function') ? window.rect :
+            (typeof globalThis !== 'undefined' && typeof globalThis.rect === 'function') ? globalThis.rect :
+            (typeof rect === 'function') ? rect : null;
+const circle = (typeof window !== 'undefined' && typeof window.circle === 'function') ? window.circle :
+              (typeof globalThis !== 'undefined' && typeof globalThis.circle === 'function') ? globalThis.circle :
+              (typeof circle === 'function') ? circle : null;
+const pos = (typeof window !== 'undefined' && typeof window.pos === 'function') ? window.pos :
+           (typeof globalThis !== 'undefined' && typeof globalThis.pos === 'function') ? globalThis.pos :
+           (typeof pos === 'function') ? pos : null;
+const anchor = (typeof window !== 'undefined' && typeof window.anchor === 'function') ? window.anchor :
+              (typeof globalThis !== 'undefined' && typeof globalThis.anchor === 'function') ? globalThis.anchor :
+              (typeof anchor === 'function') ? anchor : null;
+const z = (typeof window !== 'undefined' && typeof window.z === 'function') ? window.z :
+         (typeof globalThis !== 'undefined' && typeof globalThis.z === 'function') ? globalThis.z :
+         (typeof z === 'function') ? z : null;
+const color = (typeof window !== 'undefined' && typeof window.color === 'function') ? window.color :
+             (typeof globalThis !== 'undefined' && typeof globalThis.color === 'function') ? globalThis.color :
+             (typeof color === 'function') ? color : null;
+const opacity = (typeof window !== 'undefined' && typeof window.opacity === 'function') ? window.opacity :
+               (typeof globalThis !== 'undefined' && typeof globalThis.opacity === 'function') ? globalThis.opacity :
+               (typeof opacity === 'function') ? opacity : null;
+const rotate = (typeof window !== 'undefined' && typeof window.rotate === 'function') ? window.rotate :
+              (typeof globalThis !== 'undefined' && typeof globalThis.rotate === 'function') ? globalThis.rotate :
+              (typeof rotate === 'function') ? rotate : null;
+const move = (typeof window !== 'undefined' && typeof window.move === 'function') ? window.move :
+            (typeof globalThis !== 'undefined' && typeof globalThis.move === 'function') ? globalThis.move :
+            (typeof move === 'function') ? move : null;
+const lifespan = (typeof window !== 'undefined' && typeof window.lifespan === 'function') ? window.lifespan :
+                (typeof globalThis !== 'undefined' && typeof globalThis.lifespan === 'function') ? globalThis.lifespan :
+                (typeof lifespan === 'function') ? lifespan : null;
+
 let abilityCooldowns = {
     warrior: 0,
     mage: 0,
