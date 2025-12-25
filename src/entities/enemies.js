@@ -9,6 +9,7 @@ import { createDeathFX, createXPFX, createLevelUpFX } from '../effects.js';
 import { ENEMY_TYPES, getRandomEnemyType, getRandomTier, applyTier, TIER_CONFIG } from '../data/enemies.js';
 import { getBossForLevel } from '../data/bosses.js';
 import { getLevel } from '../data/levels.js';
+import { getBossMessages } from '../data/bossMessages.js';
 import { Logger } from '../logger.js';
 
 // Spawn regular enemy with tier system
@@ -441,25 +442,64 @@ export function spawnBoss() {
         anchor("center"), color(30, 25, 35), outline(2, rgb(150, 80, 80)), z(95), "bossIntro"
     ]);
     
-    // Boss dialogue
-    const dialogue = levelConfig?.bossDialogue || "You will not survive!";
-    add([
-        text(`"${dialogue}"`, { size: 14, width: 560 }),
-        pos(CONFIG.MAP_WIDTH / 2, 320),
-        anchor("center"), color(255, 200, 200), z(96), "bossIntro"
-    ]);
+    // Get boss messages
+    const bossMessages = getBossMessages(bossConfig.id);
+    const messageCount = Math.min(25, bossMessages.length); // Show 20-25 messages
     
-    // Skip prompt
-    add([
-        text("Press SPACE to continue...", { size: 10 }),
-        pos(CONFIG.MAP_WIDTH / 2, 400),
-        anchor("center"), color(100, 100, 100), z(96), "bossIntro"
-    ]);
+    // Show multiple messages at the top of screen (one after another)
+    let currentMessageIndex = 0;
+    let messageElements = [];
+    
+    const showNextMessage = () => {
+        if (currentMessageIndex >= messageCount) {
+            // All messages shown, show skip prompt
+            add([
+                text("Press SPACE to continue...", { size: 10 }),
+                pos(CONFIG.MAP_WIDTH / 2, CONFIG.MAP_HEIGHT - 50),
+                anchor("center"), color(100, 100, 100), z(96), "bossIntro"
+            ]);
+            return;
+        }
+        
+        // Remove previous message
+        messageElements.forEach(e => {
+            if (e && e.exists()) destroy(e);
+        });
+        messageElements = [];
+        
+        // Show current message at top
+        const message = bossMessages[currentMessageIndex];
+        const msgText = add([
+            text(`"${message}"`, { size: 18, width: CONFIG.MAP_WIDTH - 100 }),
+            pos(CONFIG.MAP_WIDTH / 2, 60 + (currentMessageIndex % 3) * 30),
+            anchor("center"), 
+            color(255, 200, 200), 
+            z(96), 
+            "bossIntro",
+            { fadeIn: true, opacity: 0 }
+        ]);
+        messageElements.push(msgText);
+        
+        // Fade in effect
+        msgText.onUpdate(() => {
+            if (msgText.opacity < 1) {
+                msgText.opacity += dt() * 3;
+            }
+        });
+        
+        currentMessageIndex++;
+        
+        // Show next message after delay (faster for many messages)
+        wait(0.15, showNextMessage);
+    };
+    
+    // Start showing messages
+    showNextMessage();
     
     shake(15);
     playSound('boss');
     
-    // Clear intro on SPACE or after delay
+    // Clear intro on SPACE or after all messages + delay
     let introDone = false;
     const finishIntro = () => {
         if (introDone) return;
@@ -467,11 +507,14 @@ export function spawnBoss() {
         overlay.opacity = 0;
         destroy(overlay);
         get("bossIntro").forEach(e => destroy(e));
+        messageElements.forEach(e => {
+            if (e && e.exists()) destroy(e);
+        });
         GS.gameFrozen = false;
     };
     
     onKeyPress("space", finishIntro);
-    wait(3.5, finishIntro);
+    wait(messageCount * 0.15 + 2.0, finishIntro); // Wait for all messages + 2 sec
     
     const halfSize = bossConfig.size / 2;
     

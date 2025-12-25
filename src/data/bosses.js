@@ -2,13 +2,13 @@
 // Unique bosses for each level with special abilities!
 
 export const BOSS_TYPES = {
-    // Level 1 Boss: Slime King - Bullet Storm
+    // Level 1 Boss: Slime King - Bullet Storm (STRENGTHENED 3-5x)
     slime_king: {
         id: "slime_king",
         name: "SLIME KING",
         sprite: "bossKing",
-        hpMultiplier: 4.0,
-        damageMultiplier: 2.0,
+        hpMultiplier: 15.0,        // 4.0 * 3.75 = 15.0
+        damageMultiplier: 8.0,      // 2.0 * 4.0 = 8.0
         speedMultiplier: 0.6,
         size: 52,
         color: [231, 76, 60],
@@ -22,13 +22,13 @@ export const BOSS_TYPES = {
         abilitySpeed: 160,
     },
     
-    // Level 2 Boss: Speed Demon - Leap attack (BALANCED!)
+    // Level 2 Boss: Speed Demon - Leap attack (STRENGTHENED 3-5x)
     speed_demon: {
         id: "speed_demon",
         name: "SPEED DEMON",
         sprite: "bossSpeed",
-        hpMultiplier: 3.0,
-        damageMultiplier: 1.8,
+        hpMultiplier: 12.0,         // 3.0 * 4.0 = 12.0
+        damageMultiplier: 7.2,      // 1.8 * 4.0 = 7.2
         speedMultiplier: 0.6,       // Slower walking
         size: 48,
         color: [0, 255, 255],
@@ -43,13 +43,13 @@ export const BOSS_TYPES = {
         leapWarning: 0.7,           // 0.7 sec warning before leap!
     },
     
-    // Level 3 Boss: Necromancer - Summons + shoots
+    // Level 3 Boss: Necromancer - Summons + shoots (STRENGTHENED 3-5x)
     necromancer: {
         id: "necromancer",
         name: "NECROMANCER",
         sprite: "bossNecro",
-        hpMultiplier: 5.0,
-        damageMultiplier: 2.0,
+        hpMultiplier: 20.0,        // 5.0 * 4.0 = 20.0
+        damageMultiplier: 9.0,      // 2.0 * 4.5 = 9.0
         speedMultiplier: 0.5,
         size: 52,
         color: [155, 89, 182],
@@ -66,13 +66,13 @@ export const BOSS_TYPES = {
         deathBoltSpeed: 100,       // Slower homing bolt
     },
     
-    // Level 4 Boss: Frost Giant - Ice storm + freeze aura
+    // Level 4 Boss: Frost Giant - Ice storm + freeze aura (STRENGTHENED 3-5x)
     frost_giant: {
         id: "frost_giant",
         name: "FROST GIANT",
         sprite: "bossFrost",
-        hpMultiplier: 6.0,
-        damageMultiplier: 2.5,
+        hpMultiplier: 24.0,        // 6.0 * 4.0 = 24.0
+        damageMultiplier: 12.5,     // 2.5 * 5.0 = 12.5
         speedMultiplier: 0.4,
         size: 56,
         color: [100, 200, 255],
@@ -90,13 +90,13 @@ export const BOSS_TYPES = {
         freezeDuration: 1.5,
     },
     
-    // Level 5 Boss: Inferno - Fire aura + meteor
+    // Level 5 Boss: Inferno - Fire aura + meteor (STRENGTHENED 3-5x)
     inferno: {
         id: "inferno",
         name: "INFERNO",
         sprite: "bossInferno",
-        hpMultiplier: 7.0,
-        damageMultiplier: 3.0,
+        hpMultiplier: 28.0,        // 7.0 * 4.0 = 28.0
+        damageMultiplier: 15.0,     // 3.0 * 5.0 = 15.0
         speedMultiplier: 0.7,
         size: 54,
         color: [255, 100, 50],
@@ -114,13 +114,13 @@ export const BOSS_TYPES = {
         meteorCount: 3,
     },
     
-    // Level 6 Boss: Shadow Lord - Teleport + dark wave (HARDER!)
+    // Level 6 Boss: Shadow Lord - Teleport + dark wave (STRENGTHENED 3-5x)
     shadow_lord: {
         id: "shadow_lord",
         name: "SHADOW LORD",
         sprite: "bossShadow",
-        hpMultiplier: 12.0,          // More HP! (was 8)
-        damageMultiplier: 3.5,        // More damage! (was 2.5)
+        hpMultiplier: 48.0,          // 12.0 * 4.0 = 48.0
+        damageMultiplier: 17.5,      // 3.5 * 5.0 = 17.5
         speedMultiplier: 1.2,         // Faster! (was 1.0)
         size: 55,                     // Bigger
         color: [50, 50, 80],
@@ -137,13 +137,13 @@ export const BOSS_TYPES = {
         darkWaveSpeed: 220,           // Faster wave (was 180)
     },
     
-    // Level 7 Boss: MEGA SLIME - All abilities + RAGE!
+    // Level 7 Boss: MEGA SLIME - All abilities + RAGE! (STRENGTHENED 3-5x)
     mega_slime: {
         id: "mega_slime",
         name: "MEGA SLIME",
         sprite: "bossMega",
-        hpMultiplier: 12.0,
-        damageMultiplier: 4.0,
+        hpMultiplier: 50.0,         // 12.0 * 4.17 = 50.0
+        damageMultiplier: 20.0,     // 4.0 * 5.0 = 20.0
         speedMultiplier: 0.6,
         size: 70,
         color: [255, 50, 150],
