@@ -148,7 +148,40 @@ export function meleeAttack(spawnKeyFn) {
     
     // Deal damage - DIRECTIONAL CHECK (not circular!)
     const stats = GS.getStats();
-    const baseDamage = stats.meleeDamage * meleeDamageMult;
+    let baseDamage = stats.meleeDamage * meleeDamageMult;
+    
+    // Apply crit from skillT (Shadow Strike)
+    let isCrit = false;
+    let critMultiplier = 1.0;
+    if (GS.heroSkills.skillT > 0) {
+        const heroSkills = getHeroSkills(GS.selectedHero);
+        const skillT = heroSkills.skillT;
+        const level = GS.heroSkills.skillT;
+        const effect = skillT.levels[level - 1];
+        if (effect.critChance && effect.critMultiplier) {
+            if (Math.random() < effect.critChance) {
+                isCrit = true;
+                critMultiplier = effect.critMultiplier;
+                baseDamage = Math.floor(baseDamage * critMultiplier);
+            }
+        }
+    }
+    
+    // Check for skillR (poison) - Assassin Venom (for melee)
+    let hasPoison = false;
+    let poisonDmg = 0;
+    let poisonDur = 0;
+    if (GS.heroSkills.skillR > 0) {
+        const heroSkills = getHeroSkills(GS.selectedHero);
+        const skillR = heroSkills.skillR;
+        const level = GS.heroSkills.skillR;
+        const effect = skillR.levels[level - 1];
+        if (effect.poisonDamage && effect.poisonDuration) {
+            hasPoison = true;
+            poisonDmg = effect.poisonDamage;
+            poisonDur = effect.poisonDuration;
+        }
+    }
     
     for (const e of GS.enemies) {
         if (!e || !e.exists()) continue;
@@ -164,6 +197,30 @@ export function meleeAttack(spawnKeyFn) {
         const halfWidth = (meleeWidth / 2) / meleeRange; // Convert to angle
         if (dist <= meleeRange && normalizedAngleDiff <= halfWidth) {
             e.hp -= baseDamage;
+            
+            // Apply poison from skillR (melee)
+            if (hasPoison && poisonDmg > 0 && poisonDur > 0) {
+                applyPoison(e, poisonDmg, poisonDur);
+            }
+            
+            // Show crit visual
+            if (isCrit) {
+                const critFX = add([
+                    text("💥", { size: 24 }),
+                    pos(e.pos.x, e.pos.y - 30),
+                    anchor("center"),
+                    color(255, 200, 0),
+                    z(30),
+                    { t: 0 }
+                ]);
+                critFX.onUpdate(() => {
+                    critFX.t += dt();
+                    critFX.pos.y -= 50 * dt();
+                    critFX.opacity = 1 - critFX.t * 2;
+                    critFX.scale = vec2(1 + critFX.t * 0.5);
+                    if (critFX.t > 0.5) destroy(critFX);
+                });
+            }
             
             // Stronger knockback for melee specialists
             const knockDir = toEnemy.unit();
@@ -214,9 +271,21 @@ export function rangedAttack(spawnKeyFn) {
         } else {
             playSound('ranged');  // Fallback
         }
-        const hasPoison = heroRanged.poison || false;
-        const poisonDmg = heroRanged.poisonDamage || 0;
-        const poisonDur = heroRanged.poisonDuration || 0;
+        // Check for skillR (poison) - Assassin Venom
+        let hasPoison = heroRanged.poison || false;
+        let poisonDmg = heroRanged.poisonDamage || 0;
+        let poisonDur = heroRanged.poisonDuration || 0;
+        
+        if (GS.heroSkills.skillR > 0) {
+            const skillR = heroSkills.skillR;
+            const level = GS.heroSkills.skillR;
+            const effect = skillR.levels[level - 1];
+            if (effect.poisonDamage && effect.poisonDuration) {
+                hasPoison = true;
+                poisonDmg = effect.poisonDamage;
+                poisonDur = effect.poisonDuration;
+            }
+        }
         const knockback = heroRanged.knockback || 0;
         const spinSpeed = heroRanged.spinSpeed || 360;
         const trailColor = heroRanged.trailColor || projColor;

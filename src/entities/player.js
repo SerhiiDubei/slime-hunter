@@ -265,7 +265,33 @@ export function setupPlayerMovement(p) {
         if (p.sprinting) {
             p.color = rgb(150, 255, 230);
         } else {
-            p.color = rgb(255, 255, 255);
+            // Check for passive skills visual effects
+            const heroSkills = getHeroSkills(GS.selectedHero);
+            let hasPassiveGlow = false;
+            
+            // Skill R (Venom) - green glow
+            if (GS.heroSkills.skillR > 0) {
+                const skillR = heroSkills.skillR;
+                if (skillR && skillR.levels && skillR.levels[0] && skillR.levels[0].poisonDamage) {
+                    const pulse = Math.sin(time() * 4) * 0.3 + 0.7;
+                    p.color = rgb(100 + pulse * 50, 255, 100 + pulse * 50);
+                    hasPassiveGlow = true;
+                }
+            }
+            
+            // Skill T (Shadow Strike - crit) - purple glow
+            if (!hasPassiveGlow && GS.heroSkills.skillT > 0) {
+                const skillT = heroSkills.skillT;
+                if (skillT && skillT.levels && skillT.levels[0] && skillT.levels[0].critChance) {
+                    const pulse = Math.sin(time() * 5) * 0.2 + 0.8;
+                    p.color = rgb(200 + pulse * 55, 100 + pulse * 50, 255);
+                    hasPassiveGlow = true;
+                }
+            }
+            
+            if (!hasPassiveGlow) {
+                p.color = rgb(255, 255, 255);
+            }
         }
     });
 }
