@@ -23,6 +23,7 @@ import { createShopScene } from './scenes/shop.js';
 import { createLevelIntroScene } from './scenes/levelIntro.js';
 import { createOptionsScene } from './scenes/options.js';
 import { createLoadingScene } from './scenes/loading.js';
+import { createSkillSelectScene } from './scenes/skillSelect.js';
 
 Logger.info('🎮 Slime Hunter starting...');
 
