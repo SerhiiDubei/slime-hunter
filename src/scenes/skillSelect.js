@@ -159,7 +159,11 @@ export function createSkillSelectScene() {
             }
             
             playSound('levelup');
-            go("game");
+            GS.skillSelectOpen = false; // Mark that skill selection is closed
+            // Don't go to game - just close the overlay (scene will continue)
+            // Use a flag to prevent scene restart
+            destroyAll("skillCard");
+            destroyAll("skillOverlay");
         });
         
         // Keyboard selection (1, 2, 3)

@@ -86,6 +86,9 @@ export const GS = {
     // Selected hero
     selectedHero: 'warrior',
     
+    // Skill selection state
+    skillSelectOpen: null,  // null = not open, true = open, false = just closed
+    
     // Ultimate charge (fills by killing enemies)
     ultimateCharge: 0,
     ultimateMax: 6,  // Updated from hero config

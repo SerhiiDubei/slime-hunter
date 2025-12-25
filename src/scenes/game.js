@@ -660,6 +660,12 @@ function onRoomCleared() {
 
 export function createGameScene() {
     scene("game", () => {
+        // If returning from skill select, don't restart the scene
+        if (GS.skillSelectOpen === false) {
+            GS.skillSelectOpen = null; // Reset flag
+            return; // Don't restart scene
+        }
+        
         // Initialize dungeon manager if not exists
         if (!GS.dungeon) {
             GS.dungeon = new DungeonManager(GS.currentLevel);
