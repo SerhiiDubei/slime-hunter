@@ -938,7 +938,11 @@ export function createGameScene() {
             console.log(`8. Player: ${(perf.player || 0).toFixed(2)}ms`);
             console.log(`%cTOTAL: ${perf.total.toFixed(2)}ms`, 'color: #4ecdc4; font-weight: bold;');
             console.log(`%c🔥 BOTTLENECK: ${bottleneck[0]} (${bottleneck[1].toFixed(2)}ms)`, 'color: #ff6b6b; font-weight: bold; font-size: 14px;');
-            console.log(`Top 3: ${sortedPerf.slice(0, 3).map(([k, v]) => `${k}(${v.toFixed(2)}ms)`).join(', ')}`);
+            console.log(`Top 3: ${sortedPerf.slice(0, 3).map((item) => {
+                const k = item[0];
+                const v = item[1];
+                return `${k}(${v.toFixed(2)}ms)`;
+            }).join(', ')}`);
             
             // Console table for better readability
             console.table({
