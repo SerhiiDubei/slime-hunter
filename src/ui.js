@@ -10,6 +10,10 @@ import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
 import { getSkillCooldown } from './abilities.js';
 
 export function createHUD() {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ui.js:12',message:'createHUD entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     // Use viewport dimensions for UI positioning
     const VW = CONFIG.VIEWPORT_WIDTH;
     const VH = CONFIG.VIEWPORT_HEIGHT;

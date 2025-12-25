@@ -575,6 +575,10 @@ function onRoomCleared() {
 
 export function createGameScene() {
     scene("game", () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:577',message:'Game scene entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
         // Initialize dungeon manager if not exists
         if (!GS.dungeon) {
             GS.dungeon = new DungeonManager(GS.currentLevel);
@@ -1555,7 +1559,15 @@ export function createGameScene() {
             });
 
             // Create HUD
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:1628',message:'Before createHUD call',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            
             createHUD();
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'game.js:1633',message:'After createHUD call',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             
             // Send room layout to minimap
             if (GS.setRoomGrid) {
