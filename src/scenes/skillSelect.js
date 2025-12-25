@@ -56,7 +56,9 @@ export function createSkillSelectScene() {
         
         // Filter skills that can be upgraded (not max level)
         // Y (ultimate) can only be learned at level 5+
-        const upgradableSkills = allSkills.filter(({ key, skill }) => {
+        const upgradableSkills = allSkills.filter((item) => {
+            const key = item.key;
+            const skill = item.skill;
             const currentLevel = GS.getSkillLevel(key);
             
             // Ultimate (Y) can only be learned at level 5+
