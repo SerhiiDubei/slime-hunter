@@ -336,34 +336,25 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
         ]);
         
     } else {
-        // MAGE ORB - glowing magic sphere
+        // MAGE ORB - use sprite with pulsing animation
         proj = add([
-            circle(projSize / 2),
+            sprite("magicOrb"),
             pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
-            color(...projColor), opacity(0.95),
             anchor("center"), z(15),
+            scale(projSize / 12), // Scale sprite
             { 
                 dir: d, dist: 0, dmg: damage, piercing,
                 hasPoison, poisonDmg, poisonDur, knockback,
-                pierceCount: 0, maxPierceCount
+                pierceCount: 0, maxPierceCount, pulseTime: 0
             }
         ]);
         
-        // Inner glow with emoji overlay
-        const innerGlow = add([
-            circle(projSize / 4),
-            pos(proj.pos), color(255, 255, 255), opacity(0.7),
-            anchor("center"), z(17)
-        ]);
-        const orbIcon = add([
-            text('🔮', { size: Math.floor(projSize * 0.6) }),
-            pos(proj.pos), anchor("center"), z(18)
-        ]);
-        innerGlow.onUpdate(() => {
-            if (!proj.exists()) { destroy(innerGlow); destroy(orbIcon); return; }
-            innerGlow.pos = proj.pos;
-            innerGlow.opacity = 0.5 + Math.sin(time() * 20) * 0.3;
-            orbIcon.pos = proj.pos;
+        // Pulsing glow effect
+        proj.onUpdate(() => {
+            if (!proj.exists()) return;
+            proj.pulseTime = (proj.pulseTime || 0) + dt();
+            const pulseScale = 1 + Math.sin(proj.pulseTime * 10) * 0.2;
+            proj.scale = vec2((projSize / 12) * pulseScale);
         });
     }
     
