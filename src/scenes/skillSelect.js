@@ -159,11 +159,9 @@ export function createSkillSelectScene() {
             }
             
             playSound('levelup');
-            GS.skillSelectOpen = false; // Mark that skill selection is closed
-            // Don't go to game - just close the overlay (scene will continue)
-            // Use a flag to prevent scene restart
-            destroyAll("skillCard");
-            destroyAll("skillOverlay");
+            GS.gameFrozen = false; // Unfreeze game
+            // Return to game scene
+            go("game");
         });
         
         // Keyboard selection (1, 2, 3)
@@ -178,6 +176,7 @@ export function createSkillSelectScene() {
                     GS.heroSkills.passive = passive.id;
                 }
                 playSound('levelup');
+                GS.gameFrozen = false; // Unfreeze game
                 go("game");
             }
         });
@@ -193,6 +192,7 @@ export function createSkillSelectScene() {
                     GS.heroSkills.passive = passive.id;
                 }
                 playSound('levelup');
+                GS.gameFrozen = false; // Unfreeze game
                 go("game");
             }
         });
@@ -208,6 +208,7 @@ export function createSkillSelectScene() {
                     GS.heroSkills.passive = passive.id;
                 }
                 playSound('levelup');
+                GS.gameFrozen = false; // Unfreeze game
                 go("game");
             }
         });
