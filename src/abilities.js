@@ -43,19 +43,21 @@ export function tryUseAbility() {
     if (!GS.player || !GS.player.exists()) return false;
     
     // Use ability!
-    playSound('ranged');
-    
     switch (GS.selectedHero) {
         case 'warrior':
+            playSound('ability_shield');
             abilityShieldBash(hero.ability);
             break;
         case 'mage':
+            playSound('ability_ice');
             abilityIceShard(hero.ability);
             break;
         case 'assassin':
+            playSound('ability_smoke');
             abilitySmokeBomb(hero.ability);
             break;
         case 'ranger':
+            playSound('ability_multishot');
             abilityMultiShot(hero.ability);
             break;
     }
@@ -191,6 +193,7 @@ function abilityIceShard(config) {
                 if (e.freezeTimer === undefined) e.freezeTimer = 0;
                 e.freezeTimer = config.freezeDuration;
                 e.isFrozen = true;
+                playSound('freeze');  // Play freeze sound
                 
                 if (e.hp <= 0) killEnemy(e);
                 

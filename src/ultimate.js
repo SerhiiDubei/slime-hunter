@@ -25,19 +25,22 @@ export function tryUseUltimate() {
     const hero = HEROES[GS.selectedHero];
     if (!hero) return false;
     
-    playSound('boss');
-    
+    // Play hero-specific ultimate sound
     switch (GS.selectedHero) {
         case 'warrior':
+            playSound('ultimate_earthquake');
             ultimateEarthquake(hero.ultimate);
             break;
         case 'mage':
+            playSound('ultimate_meteor');
             ultimateMeteorShower(hero.ultimate);
             break;
         case 'assassin':
+            playSound('ultimate_shadow');
             ultimateShadowStrike(hero.ultimate);
             break;
         case 'ranger':
+            playSound('ultimate_arrowstorm');
             ultimateArrowStorm(hero.ultimate);
             break;
     }
