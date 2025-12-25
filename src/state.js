@@ -2,6 +2,7 @@
 // Global game state management
 
 import { CONFIG } from './config.js';
+import { getHeroSkills } from './data/heroSkills.js';
 
 // 5 Core Player Stats
 export const STATS = {
@@ -261,17 +262,11 @@ export const GS = {
         return false;
     },
     
-    // Get computed stats based on levels and hero
+    // Get computed stats based on levels, hero, and skills
     getStats() {
-        const lv = this.playerLevel;
         const s = this.stats;
         
-        // Base multipliers from player level
-        const dmgMult = 1 + (lv - 1) * CONFIG.PLAYER_LEVEL.DAMAGE_BONUS;
-        const rangedMult = 1 + (lv - 1) * CONFIG.PLAYER_LEVEL.RANGED_DAMAGE_BONUS;
-        const cdMult = 1 - (lv - 1) * CONFIG.PLAYER_LEVEL.RANGED_COOLDOWN_REDUCTION;
-        
-        // Stat bonuses
+        // Stat bonuses (unchanged)
         const strBonus = 1 + (s.str - 1) * 0.15;      // +15% melee per STR level
         const spdBonus = 1 + (s.spd - 1) * 0.10;      // +10% speed per SPD level
         const vitBonus = 1 + (s.vit - 1) * 0.20;      // +20% HP per VIT level
@@ -279,19 +274,62 @@ export const GS = {
         const magCdBonus = 1 - (s.mag - 1) * 0.08;    // -8% cooldown per MAG level
         const staBonus = 1 + (s.sta - 1) * 0.15;      // +15% stamina per STA level
         
-        let bullets = 1;
-        if (lv >= CONFIG.PLAYER_LEVEL.TRIPLE_SHOT_LEVEL) bullets = 3;
-        else if (lv >= CONFIG.PLAYER_LEVEL.DOUBLE_SHOT_LEVEL) bullets = 2;
+        // Base values (NO automatic level bonuses - now from skills!)
+        let meleeDamage = Math.floor(CONFIG.PLAYER_DAMAGE * strBonus);
+        let rangedDamage = Math.floor(CONFIG.RANGED_DAMAGE * magBonus);
+        let rangedCooldown = Math.max(0.3, CONFIG.RANGED_COOLDOWN * magCdBonus);
+        let bulletCount = 1;
+        let moveSpeed = Math.floor(CONFIG.PLAYER_SPEED * spdBonus);
+        let maxHp = Math.floor(CONFIG.PLAYER_HP * vitBonus);
+        let maxStamina = Math.floor(CONFIG.SPRINT_MAX_STAMINA * staBonus);
+        let staminaRegen = CONFIG.SPRINT_REGEN_RATE * staBonus;
+        
+        // Apply hero skills (replaces automatic level bonuses)
+        const heroSkills = getHeroSkills(this.selectedHero);
+        
+        // Apply passive skill
+        if (this.heroSkills.passive) {
+            const passive = heroSkills.passive;
+            if (passive.effect.rangedCooldownReduction) {
+                rangedCooldown *= (1 - passive.effect.rangedCooldownReduction);
+            }
+            // Other passive effects applied elsewhere (damage reduction in damage calc, etc.)
+        }
+        
+        // Apply active skills
+        for (const skillId of this.heroSkills.active) {
+            const skill = heroSkills.active.find(s => s.id === skillId);
+            if (!skill) continue;
+            
+            if (skill.effect.meleeDamageBonus) {
+                meleeDamage = Math.floor(meleeDamage * (1 + skill.effect.meleeDamageBonus));
+            }
+            if (skill.effect.rangedDamageBonus) {
+                rangedDamage = Math.floor(rangedDamage * (1 + skill.effect.rangedDamageBonus));
+            }
+            if (skill.effect.rangedCooldownReduction) {
+                rangedCooldown *= (1 - skill.effect.rangedCooldownReduction);
+            }
+            if (skill.effect.maxHpBonus) {
+                maxHp = Math.floor(maxHp * (1 + skill.effect.maxHpBonus));
+            }
+            if (skill.effect.moveSpeedBonus) {
+                moveSpeed = Math.floor(moveSpeed * (1 + skill.effect.moveSpeedBonus));
+            }
+            if (skill.effect.bulletCount) {
+                bulletCount = skill.effect.bulletCount;
+            }
+        }
         
         return {
-            meleeDamage: Math.floor(CONFIG.PLAYER_DAMAGE * dmgMult * strBonus),
-            rangedDamage: Math.floor(CONFIG.RANGED_DAMAGE * rangedMult * magBonus),
-            rangedCooldown: Math.max(0.3, CONFIG.RANGED_COOLDOWN * cdMult * magCdBonus),
-            bulletCount: bullets,
-            moveSpeed: Math.floor(CONFIG.PLAYER_SPEED * spdBonus),
-            maxHp: Math.floor(CONFIG.PLAYER_HP * vitBonus),
-            maxStamina: Math.floor(CONFIG.SPRINT_MAX_STAMINA * staBonus),
-            staminaRegen: CONFIG.SPRINT_REGEN_RATE * staBonus,
+            meleeDamage,
+            rangedDamage,
+            rangedCooldown: Math.max(0.3, rangedCooldown),
+            bulletCount,
+            moveSpeed,
+            maxHp,
+            maxStamina,
+            staminaRegen,
         };
     },
     
