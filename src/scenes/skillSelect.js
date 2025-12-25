@@ -96,7 +96,9 @@ export function createSkillSelectScene() {
         const startX = (W - (cardWidth * upgradableSkills.length + cardGap * (upgradableSkills.length - 1))) / 2;
         const cardY = H / 2 + 20;
         
-        upgradableSkills.forEach(({ key, skill }, index) => {
+        upgradableSkills.forEach((item, index) => {
+            const key = item.key;
+            const skill = item.skill;
             const cardX = startX + index * (cardWidth + cardGap) + cardWidth / 2;
             const currentLevel = GS.getSkillLevel(key);
             const nextLevel = currentLevel + 1;

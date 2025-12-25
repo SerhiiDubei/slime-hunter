@@ -10,15 +10,26 @@ import { playSound } from './audio.js';
 import { killEnemy } from './entities/enemies.js';
 import { getHeroSkills, getHeroSkillByKey } from './data/heroSkills.js';
 
-// Helper to get Kaboom functions at runtime (not at module init)
+// Helper to get Kaboom functions at runtime (not at module init) - patched
+// Returns a no-op function if missing to avoid "X is not a function" at runtime
 function getKaboomFn(name) {
-    if (typeof window !== 'undefined' && typeof window[name] !== 'undefined') {
-        return window[name];
-    }
-    if (typeof globalThis !== 'undefined' && typeof globalThis[name] !== 'undefined') {
-        return globalThis[name];
-    }
-    return null;
+    const fn =
+        (typeof window !== 'undefined' && typeof window[name] === 'function') ? window[name] :
+        (typeof globalThis !== 'undefined' && typeof globalThis[name] === 'function') ? globalThis[name] :
+        null;
+    if (fn) return fn;
+    
+    // Safe fallbacks per function name to avoid runtime TypeErrors when Kaboom isn't ready
+    if (name === 'dt') return () => 0;
+    if (name === 'get') return () => [];
+    if (name === 'wait') return (_, cb) => { if (cb) cb(); };
+    if (name === 'destroy') return () => {};
+    if (name === 'shake') return () => {};
+    if (name === 'play') return () => {};
+    if (name === 'move') return () => {};
+    
+    // Generic no-op
+    return () => {};
 }
 
 // Cooldowns for each skill (Q, R, T, Y)
