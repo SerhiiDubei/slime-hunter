@@ -970,7 +970,9 @@ export function createGameScene() {
             ];
             const torchCount = Math.min(2, 1 + Math.floor(lv / 4));
             for (let i = 0; i < torchCount; i++) {
-                const [tx, ty] = torchPositions[i];
+                const torchPos = torchPositions[i];
+                const tx = torchPos[0];
+                const ty = torchPos[1];
                 if (tx < 60 || tx > CONFIG.MAP_WIDTH - 60 || ty < 60 || ty > CONFIG.MAP_HEIGHT - 60) continue;
                 add([sprite("torch"), pos(tx, ty), z(1), scale(1), "torch"]);
                 add([circle(25), pos(tx + 8, ty + 8), color(255, 150, 50), opacity(0.12), anchor("center"), z(0)]);
