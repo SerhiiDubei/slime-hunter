@@ -6,6 +6,7 @@ import { GS } from './state.js';
 import { KEYS } from './keyboard.js';
 import { HEROES } from './data/heroes.js';
 import { getLevel } from './data/levels.js';
+import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
 
 export function createHUD() {
     // Use viewport dimensions for UI positioning
@@ -477,7 +478,7 @@ export function createHUD() {
         updateMinimapPlayer();
         updateMinimapEnemies();
         
-        // Passive skills
+        // Passive skills (shop perks)
         const owned = [];
         if (GS.passiveSkills.poison > 0) owned.push(`☠️${GS.passiveSkills.poison}`);
         if (GS.passiveSkills.vampirism > 0) owned.push(`🧛${GS.passiveSkills.vampirism}`);
@@ -486,6 +487,35 @@ export function createHUD() {
         if (GS.passiveSkills.goldMagnet > 0) owned.push(`🧲${GS.passiveSkills.goldMagnet}`);
         if (GS.passiveSkills.regeneration > 0) owned.push(`💚${GS.passiveSkills.regeneration}`);
         skillsTxt.text = owned.join(' ');
+        
+        // ==================== UPDATE HERO SKILLS UI ====================
+        const heroSkills = getHeroSkills(GS.selectedHero);
+        
+        // Show passive skill (always first slot)
+        if (GS.heroSkills.passive && skillIcons[0]) {
+            const passive = heroSkills.passive;
+            skillIcons[0].icon.text = passive.icon;
+            skillIcons[0].bg.color = rgb(60, 50, 40);
+        } else if (skillIcons[0]) {
+            skillIcons[0].icon.text = "";
+            skillIcons[0].bg.color = rgb(30, 25, 20);
+        }
+        
+        // Show active skills (slots 2-4)
+        for (let i = 0; i < 3; i++) {
+            const skillIndex = i + 1;
+            if (GS.heroSkills.active[i] && skillIcons[skillIndex]) {
+                const skillId = GS.heroSkills.active[i];
+                const skill = heroSkills.active.find(s => s.id === skillId);
+                if (skill) {
+                    skillIcons[skillIndex].icon.text = skill.icon;
+                    skillIcons[skillIndex].bg.color = rgb(60, 50, 40);
+                }
+            } else if (skillIcons[skillIndex]) {
+                skillIcons[skillIndex].icon.text = "";
+                skillIcons[skillIndex].bg.color = rgb(30, 25, 20);
+            }
+        }
     });
 }
 
