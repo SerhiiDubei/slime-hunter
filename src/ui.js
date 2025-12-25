@@ -538,13 +538,6 @@ export function createHUD() {
         });
     }
 
-    // Hero indicator (bottom left) - compact
-    const hero = HEROES[GS.selectedHero];
-    if (hero) {
-        add([rect(90, 24), pos(10, VH - 34), color(40, 30, 25), fixed(), z(99)]);
-        add([rect(86, 20), pos(12, VH - 32), color(25, 20, 15), fixed(), z(100)]);
-        add([text(`${hero.icon} ${hero.name}`, { size: 12 }), pos(14, VH - 22), color(...hero.color), fixed(), z(101)]);
-    }
     
     // ==================== DUNGEON MAP (Full Level Overview) ====================
     // Shows entire dungeon level with all rooms, corridors, and connections
