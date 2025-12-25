@@ -1,35 +1,19 @@
 // ==================== HERO-SPECIFIC SKILLS ====================
-// Each hero has 4 skills: 1 passive + 3 active (E, R, Q-ultimate)
+// NEW SYSTEM: Each hero has 4 skills on Q, R, T, Y keys
+// E = ranged attack (not a skill)
+// Space = melee attack (not a skill)
 // Each skill has 4 levels of upgrade
 // Skills are upgraded using skill points gained on level up
 
 export const HERO_SKILLS = {
     // ========== WARRIOR SKILLS ==========
     warrior: {
-        // PASSIVE SKILL (always active, 4 levels)
-        passive: {
-            id: "warrior_armor",
-            name: "IRON ARMOR",
-            icon: "🛡️",
-            description: "Reduces incoming damage",
-            levels: [
-                { damageReduction: 0.10 },  // Level 1: 10%
-                { damageReduction: 0.15 },  // Level 2: 15%
-                { damageReduction: 0.20 },  // Level 3: 20%
-                { damageReduction: 0.25 },  // Level 4: 25%
-            ],
-            getDescription(level) {
-                const pct = this.levels[level - 1].damageReduction * 100;
-                return `Reduces incoming damage by ${pct}%`;
-            }
-        },
-        
-        // ACTIVE SKILL E - Shield Bash
-        skillE: {
+        // SKILL Q - Shield Bash
+        skillQ: {
             id: "warrior_shield_bash",
             name: "SHIELD BASH",
             icon: "🛡️",
-            key: "E",
+            key: "Q",
             description: "Charges forward, dealing damage and stunning enemies",
             levels: [
                 { damage: 25, range: 150, stunDuration: 1.0, knockback: 60, cooldown: 8.0, manaCost: 50 },
@@ -43,7 +27,7 @@ export const HERO_SKILLS = {
             }
         },
         
-        // ACTIVE SKILL R - Mighty Strike
+        // SKILL R - Mighty Strike
         skillR: {
             id: "warrior_mighty_strike",
             name: "MIGHTY STRIKE",
@@ -62,12 +46,31 @@ export const HERO_SKILLS = {
             }
         },
         
-        // ACTIVE SKILL Q - Ultimate: Earthquake
-        skillQ: {
+        // SKILL T - Iron Armor (passive-like, but active skill)
+        skillT: {
+            id: "warrior_iron_armor",
+            name: "IRON ARMOR",
+            icon: "🛡️",
+            key: "T",
+            description: "Reduces incoming damage",
+            levels: [
+                { damageReduction: 0.10 },  // Level 1: 10%
+                { damageReduction: 0.15 },  // Level 2: 15%
+                { damageReduction: 0.20 },  // Level 3: 20%
+                { damageReduction: 0.25 },  // Level 4: 25%
+            ],
+            getDescription(level) {
+                const pct = this.levels[level - 1].damageReduction * 100;
+                return `Reduces incoming damage by ${pct}%`;
+            }
+        },
+        
+        // SKILL Y - Ultimate: Earthquake
+        skillY: {
             id: "warrior_earthquake",
             name: "EARTHQUAKE",
             icon: "🌋",
-            key: "Q",
+            key: "Y",
             description: "Damages and stuns all nearby enemies",
             isUltimate: true,
             levels: [
@@ -85,28 +88,12 @@ export const HERO_SKILLS = {
     
     // ========== MAGE SKILLS ==========
     mage: {
-        passive: {
-            id: "mage_arcane_flow",
-            name: "ARCANE FLOW",
-            icon: "✨",
-            description: "Reduces ranged attack cooldown",
-            levels: [
-                { rangedCooldownReduction: 0.10 },  // Level 1: -10%
-                { rangedCooldownReduction: 0.15 },  // Level 2: -15%
-                { rangedCooldownReduction: 0.20 },  // Level 3: -20%
-                { rangedCooldownReduction: 0.25 },  // Level 4: -25%
-            ],
-            getDescription(level) {
-                const pct = this.levels[level - 1].rangedCooldownReduction * 100;
-                return `-${pct}% ranged attack cooldown`;
-            }
-        },
-        
-        skillE: {
+        // SKILL Q - Ice Shard
+        skillQ: {
             id: "mage_ice_shard",
             name: "ICE SHARD",
             icon: "❄️",
-            key: "E",
+            key: "Q",
             description: "Fires a piercing ice shard that freezes enemies",
             levels: [
                 { damage: 20, speed: 600, freezeDuration: 1.5, piercing: true, cooldown: 6.0, manaCost: 40 },
@@ -120,6 +107,7 @@ export const HERO_SKILLS = {
             }
         },
         
+        // SKILL R - Power Bolt
         skillR: {
             id: "mage_power_bolt",
             name: "POWER BOLT",
@@ -138,11 +126,31 @@ export const HERO_SKILLS = {
             }
         },
         
-        skillQ: {
+        // SKILL T - Arcane Flow
+        skillT: {
+            id: "mage_arcane_flow",
+            name: "ARCANE FLOW",
+            icon: "✨",
+            key: "T",
+            description: "Reduces ranged attack cooldown",
+            levels: [
+                { rangedCooldownReduction: 0.10 },  // Level 1: -10%
+                { rangedCooldownReduction: 0.15 },  // Level 2: -15%
+                { rangedCooldownReduction: 0.20 },  // Level 3: -20%
+                { rangedCooldownReduction: 0.25 },  // Level 4: -25%
+            ],
+            getDescription(level) {
+                const pct = this.levels[level - 1].rangedCooldownReduction * 100;
+                return `-${pct}% ranged attack cooldown`;
+            }
+        },
+        
+        // SKILL Y - Ultimate: Meteor Storm
+        skillY: {
             id: "mage_meteor_storm",
             name: "METEOR STORM",
             icon: "☄️",
-            key: "Q",
+            key: "Y",
             description: "Calls down a barrage of devastating meteors",
             isUltimate: true,
             levels: [
@@ -160,29 +168,12 @@ export const HERO_SKILLS = {
     
     // ========== ASSASSIN SKILLS ==========
     assassin: {
-        passive: {
-            id: "assassin_crit",
-            name: "SHADOW STRIKE",
-            icon: "🗡️",
-            description: "Chance to deal critical damage",
-            levels: [
-                { critChance: 0.15, critMultiplier: 2.0 },  // Level 1: 15% chance, 2x
-                { critChance: 0.20, critMultiplier: 2.2 },  // Level 2: 20% chance, 2.2x
-                { critChance: 0.25, critMultiplier: 2.4 },  // Level 3: 25% chance, 2.4x
-                { critChance: 0.30, critMultiplier: 2.6 },  // Level 4: 30% chance, 2.6x
-            ],
-            getDescription(level) {
-                const lvl = this.levels[level - 1];
-                const pct = lvl.critChance * 100;
-                return `${pct}% chance to deal ${lvl.critMultiplier}x damage`;
-            }
-        },
-        
-        skillE: {
+        // SKILL Q - Smoke Bomb
+        skillQ: {
             id: "assassin_smoke_bomb",
             name: "SMOKE BOMB",
             icon: "💨",
-            key: "E",
+            key: "Q",
             description: "Creates a smoke cloud that grants invisibility and speed boost",
             levels: [
                 { duration: 3.0, speedBoost: 1.5, radius: 120, cooldown: 10.0, manaCost: 60 },
@@ -196,6 +187,7 @@ export const HERO_SKILLS = {
             }
         },
         
+        // SKILL R - Venom
         skillR: {
             id: "assassin_poison",
             name: "VENOM",
@@ -214,11 +206,32 @@ export const HERO_SKILLS = {
             }
         },
         
-        skillQ: {
+        // SKILL T - Shadow Strike (crit)
+        skillT: {
+            id: "assassin_crit",
+            name: "SHADOW STRIKE",
+            icon: "🗡️",
+            key: "T",
+            description: "Chance to deal critical damage",
+            levels: [
+                { critChance: 0.15, critMultiplier: 2.0 },  // Level 1: 15% chance, 2x
+                { critChance: 0.20, critMultiplier: 2.2 },  // Level 2: 20% chance, 2.2x
+                { critChance: 0.25, critMultiplier: 2.4 },  // Level 3: 25% chance, 2.4x
+                { critChance: 0.30, critMultiplier: 2.6 },  // Level 4: 30% chance, 2.6x
+            ],
+            getDescription(level) {
+                const lvl = this.levels[level - 1];
+                const pct = lvl.critChance * 100;
+                return `${pct}% chance to deal ${lvl.critMultiplier}x damage`;
+            }
+        },
+        
+        // SKILL Y - Ultimate: Shadow Strike
+        skillY: {
             id: "assassin_shadow_strike",
             name: "SHADOW STRIKE",
             icon: "👤",
-            key: "Q",
+            key: "Y",
             description: "Teleports to enemies and strikes each one",
             isUltimate: true,
             levels: [
@@ -236,28 +249,12 @@ export const HERO_SKILLS = {
     
     // ========== RANGER SKILLS ==========
     ranger: {
-        passive: {
-            id: "ranger_homing",
-            name: "TRACKING",
-            icon: "🎯",
-            description: "Arrows track enemies better",
-            levels: [
-                { homingStrengthBonus: 0.50 },  // Level 1: +50%
-                { homingStrengthBonus: 0.75 },  // Level 2: +75%
-                { homingStrengthBonus: 1.00 },   // Level 3: +100%
-                { homingStrengthBonus: 1.30 },   // Level 4: +130%
-            ],
-            getDescription(level) {
-                const pct = this.levels[level - 1].homingStrengthBonus * 100;
-                return `+${pct}% arrow homing strength`;
-            }
-        },
-        
-        skillE: {
+        // SKILL Q - Multi-Shot
+        skillQ: {
             id: "ranger_multi_shot",
             name: "MULTI-SHOT",
             icon: "🎯",
-            key: "E",
+            key: "Q",
             description: "Fires multiple arrows in a spread pattern",
             levels: [
                 { arrowCount: 5, damage: 20, spreadAngle: 0.7, cooldown: 6.0, manaCost: 45 },
@@ -271,6 +268,7 @@ export const HERO_SKILLS = {
             }
         },
         
+        // SKILL R - Piercing Arrow
         skillR: {
             id: "ranger_piercing_arrow",
             name: "PIERCING ARROW",
@@ -289,11 +287,31 @@ export const HERO_SKILLS = {
             }
         },
         
-        skillQ: {
+        // SKILL T - Tracking
+        skillT: {
+            id: "ranger_homing",
+            name: "TRACKING",
+            icon: "🎯",
+            key: "T",
+            description: "Arrows track enemies better",
+            levels: [
+                { homingStrengthBonus: 0.50 },  // Level 1: +50%
+                { homingStrengthBonus: 0.75 },  // Level 2: +75%
+                { homingStrengthBonus: 1.00 },   // Level 3: +100%
+                { homingStrengthBonus: 1.30 },   // Level 4: +130%
+            ],
+            getDescription(level) {
+                const pct = this.levels[level - 1].homingStrengthBonus * 100;
+                return `+${pct}% arrow homing strength`;
+            }
+        },
+        
+        // SKILL Y - Ultimate: Arrow Storm
+        skillY: {
             id: "ranger_arrow_storm",
             name: "ARROW STORM",
             icon: "🌪️",
-            key: "Q",
+            key: "Y",
             description: "Rains down arrows in a large area",
             isUltimate: true,
             levels: [
@@ -315,25 +333,25 @@ export function getHeroSkills(heroId) {
     return HERO_SKILLS[heroId] || HERO_SKILLS.warrior;
 }
 
-// Get passive skill for a hero
+// Get passive skill for a hero (LEGACY - returns null, no passive anymore)
 export function getHeroPassive(heroId) {
-    const skills = getHeroSkills(heroId);
-    return skills.passive;
+    return null; // No passive skills in new system
 }
 
-// Get active skill by key (E, R, Q)
+// Get active skill by key (Q, R, T, Y)
 export function getHeroSkillByKey(heroId, key) {
     const skills = getHeroSkills(heroId);
-    if (key === 'E') return skills.skillE;
-    if (key === 'R') return skills.skillR;
     if (key === 'Q') return skills.skillQ;
+    if (key === 'R') return skills.skillR;
+    if (key === 'T') return skills.skillT;
+    if (key === 'Y') return skills.skillY;
     return null;
 }
 
-// Get all active skills for a hero
+// Get all active skills for a hero (Q, R, T, Y)
 export function getHeroActiveSkills(heroId) {
     const skills = getHeroSkills(heroId);
-    return [skills.skillE, skills.skillR, skills.skillQ].filter(s => s);
+    return [skills.skillQ, skills.skillR, skills.skillT, skills.skillY].filter(s => s);
 }
 
 export default { HERO_SKILLS, getHeroSkills, getHeroPassive, getHeroActiveSkills, getHeroSkillByKey };

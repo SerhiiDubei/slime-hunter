@@ -101,13 +101,13 @@ export function createHUD() {
     const startX = VW / 2 - (skillIconSize * 2 + skillIconGap) / 2;
     const startY = skillsBarY - (skillIconSize * 2 + skillIconGap) / 2;
     
-    // Layout: [Passive] [E]
-    //         [R]       [Q]
+    // Layout: [Q] [R]
+    //         [T] [Y]
     const skillPositions = [
-        { key: 'passive', x: 0, y: 0 },  // Top left
-        { key: 'E', x: 1, y: 0 },        // Top right
-        { key: 'R', x: 0, y: 1 },        // Bottom left
-        { key: 'Q', x: 1, y: 1 },        // Bottom right
+        { key: 'Q', x: 0, y: 0 },        // Top left
+        { key: 'R', x: 1, y: 0 },        // Top right
+        { key: 'T', x: 0, y: 1 },        // Bottom left
+        { key: 'Y', x: 1, y: 1 },        // Bottom right (ultimate)
     ];
     
     for (let i = 0; i < 4; i++) {
@@ -575,18 +575,18 @@ export function createHUD() {
             let skill = null;
             let level = 0;
             
-            if (skillKey === 'passive') {
-                skill = heroSkills.passive;
-                level = GS.heroSkills.passive;
-            } else if (skillKey === 'E') {
-                skill = heroSkills.skillE;
-                level = GS.heroSkills.skillE;
+            if (skillKey === 'Q') {
+                skill = heroSkills.skillQ;
+                level = GS.heroSkills.skillQ;
             } else if (skillKey === 'R') {
                 skill = heroSkills.skillR;
                 level = GS.heroSkills.skillR;
-            } else if (skillKey === 'Q') {
-                skill = heroSkills.skillQ;
-                level = GS.heroSkills.skillQ;
+            } else if (skillKey === 'T') {
+                skill = heroSkills.skillT;
+                level = GS.heroSkills.skillT;
+            } else if (skillKey === 'Y') {
+                skill = heroSkills.skillY;
+                level = GS.heroSkills.skillY;
             }
             
             if (skill && level > 0) {
@@ -602,7 +602,8 @@ export function createHUD() {
                 let manaCost = 0;
                 let hasMana = true;
                 
-                if (skillKey === 'E' || skillKey === 'Q') {
+                // Check cooldown and mana for active skills (Q, R, T, Y)
+                if (skillKey === 'Q' || skillKey === 'R' || skillKey === 'T' || skillKey === 'Y') {
                     cooldown = getSkillCooldown(skillKey);
                     if (level > 0 && skill.levels[level - 1]) {
                         maxCooldown = skill.levels[level - 1].cooldown || 0;
@@ -638,12 +639,12 @@ export function createHUD() {
                 }
                 
                 // Check if skill can be used (has mana)
-                if (!hasMana && (skillKey === 'E' || skillKey === 'Q')) {
+                if (!hasMana && (skillKey === 'Q' || skillKey === 'R' || skillKey === 'T' || skillKey === 'Y')) {
                     slot.bg.color = rgb(100, 50, 50); // Red tint when no mana
                 }
                 
-                // Ultimate (Q) gets special treatment
-                if (skillKey === 'Q' && GS.ultimateReady && hasMana) {
+                // Ultimate (Y) gets special treatment
+                if (skillKey === 'Y' && skill.isUltimate && GS.ultimateReady && hasMana) {
                     const pulse = Math.sin(time() * 6) * 0.5 + 0.5;
                     slot.bg.color = rgb(255, 200 + pulse * 55, 50);
                     slot.bg.opacity = 0.7 + pulse * 0.3;
@@ -657,6 +658,14 @@ export function createHUD() {
                 slot.level.text = "";
                 slot.keyLabel.text = skill ? (skill.key || "") : "";
                 slot.cooldownOverlay.opacity = 0;
+                
+                // Show "Level 5+" requirement for ultimate (Y) if not available
+                if (skillKey === 'Y' && skill && skill.isUltimate && GS.playerLevel < 5) {
+                    slot.icon.text = "🔒";
+                    slot.icon.color = rgb(150, 100, 100);
+                    slot.level.text = "Lv5+";
+                    slot.level.color = rgb(200, 150, 150);
+                }
             }
         });
         

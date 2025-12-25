@@ -12,7 +12,7 @@ import { createPlayer, setupPlayerMovement } from '../entities/player.js';
 import { spawnRandomEnemy, spawnBoss, spawnEnemy } from '../entities/enemies.js';
 import { getLevel } from '../data/levels.js';
 import { meleeAttack, rangedAttack } from '../attacks.js';
-import { setupAbilities, tryUseSkillE, tryUseSkillQ, updateAbilities } from '../abilities.js';
+import { setupAbilities, tryUseSkillQ, tryUseSkillR, tryUseSkillT, tryUseSkillY, updateAbilities } from '../abilities.js';
 import { createHUD } from '../ui.js';
 import { Logger } from '../logger.js';
 import { DungeonManager, ROOM_TYPES } from '../data/rooms.js';
@@ -1189,23 +1189,33 @@ export function createGameScene() {
             // Setup abilities
             setupAbilities();
 
-            // Input - use customizable keybinds
+            // Input - NEW SYSTEM:
+            // Space = melee attack (not a skill)
+            // E = ranged attack (not a skill)
+            // Q, R, T, Y = 4 skills
             const meleeKey = KEYBINDS.meleeAttack || 'space';
             const rangedKey = KEYBINDS.rangedAttack || 'e';
-            const ultKey = KEYBINDS.ultimate || 'q';
             
             onKeyPress(meleeKey, doMeleeAttack);
             onKeyPress("j", doMeleeAttack);
             
-            // Skill keys (E, R, Q)
+            // Ranged attack on E (not a skill, just attack)
             onKeyPress("e", () => {
-                if (!GS.gameFrozen) tryUseSkillE();
+                if (!GS.gameFrozen) doRangedAttack();
             });
-            onKeyPress("r", () => {
-                // Skill R is passive, no active use
-            });
+            
+            // Skill keys (Q, R, T, Y)
             onKeyPress("q", () => {
                 if (!GS.gameFrozen) tryUseSkillQ();
+            });
+            onKeyPress("r", () => {
+                if (!GS.gameFrozen) tryUseSkillR();
+            });
+            onKeyPress("t", () => {
+                if (!GS.gameFrozen) tryUseSkillT();
+            });
+            onKeyPress("y", () => {
+                if (!GS.gameFrozen) tryUseSkillY();
             });
             
             let keyStates = {};
@@ -1220,10 +1230,6 @@ export function createGameScene() {
                 const meleePressed = isKeyDown(meleeKey);
                 if (meleePressed && !keyStates.melee) doMeleeAttack();
                 keyStates.melee = meleePressed;
-                
-                const ultPressed = isKeyDown(ultKey);
-                if (ultPressed && !keyStates.ult && !GS.gameFrozen) tryUseSkillQ();
-                keyStates.ult = ultPressed;
                 
                 updateAbilities();
                 

@@ -46,17 +46,26 @@ export function createSkillSelectScene() {
         // Get hero skills
         const heroSkills = getHeroSkills(GS.selectedHero);
         
-        // All available skills (passive, E, R, Q)
+        // All available skills (Q, R, T, Y)
         const allSkills = [
-            { key: 'passive', skill: heroSkills.passive },
-            { key: 'E', skill: heroSkills.skillE },
-            { key: 'R', skill: heroSkills.skillR },
             { key: 'Q', skill: heroSkills.skillQ },
+            { key: 'R', skill: heroSkills.skillR },
+            { key: 'T', skill: heroSkills.skillT },
+            { key: 'Y', skill: heroSkills.skillY },
         ];
         
         // Filter skills that can be upgraded (not max level)
+        // Y (ultimate) can only be learned at level 5+
         const upgradableSkills = allSkills.filter(({ key, skill }) => {
             const currentLevel = GS.getSkillLevel(key);
+            
+            // Ultimate (Y) can only be learned at level 5+
+            if (key === 'Y' && skill.isUltimate) {
+                if (GS.playerLevel < 5) {
+                    return false; // Not available until level 5
+                }
+            }
+            
             return currentLevel < 4; // Max level is 4
         });
         
@@ -101,7 +110,7 @@ export function createSkillSelectScene() {
                 fixed(),
                 z(151),
                 "skillCard",
-                { skillKey: key, skill: skill }
+                { skillKey: key, skill: skill, skillObj: skill }
             ]);
             
             // Card border

@@ -4,6 +4,7 @@
 import { CONFIG } from './config.js';
 import { getHeroSkills, getHeroPassive } from './data/heroSkills.js';
 import { HEROES } from './data/heroes.js';
+import { Logger } from './logger.js';
 
 // 5 Core Player Stats
 export const STATS = {
@@ -115,14 +116,14 @@ export const GS = {
     },
     
     // Hero-specific skills (upgraded with skill points)
+    // NEW SYSTEM: 4 skills on Q, R, T, Y keys
+    // E = ranged attack (not a skill)
+    // Space = melee attack (not a skill)
     heroSkills: {
-        // Passive skill level (0-4, always active)
-        passive: 0,  // Level of passive skill
-        
-        // Active skill levels (0-4)
-        skillE: 0,   // Level of E skill
-        skillR: 0,   // Level of R skill
-        skillQ: 0,   // Level of Q skill (ultimate)
+        skillQ: 0,   // Level of Q skill (0-4)
+        skillR: 0,   // Level of R skill (0-4)
+        skillT: 0,   // Level of T skill (0-4)
+        skillY: 0,   // Level of Y skill (0-4)
     },
     
     // Skill points (gained on level up)
@@ -220,41 +221,71 @@ export const GS = {
     
     // Upgrade a skill (returns true if successful)
     upgradeSkill(skillKey) {
-        if (this.skillPoints <= 0) return false;
+        Logger.info('upgradeSkill called', { skillKey, skillPoints: this.skillPoints, heroSkills: this.heroSkills });
+        
+        if (this.skillPoints <= 0) {
+            Logger.warn('No skill points available');
+            return false;
+        }
         
         const maxLevel = 4;
         let currentLevel = 0;
         
-        if (skillKey === 'passive') {
-            currentLevel = this.heroSkills.passive;
-            if (currentLevel >= maxLevel) return false;
-            this.heroSkills.passive++;
-        } else if (skillKey === 'E') {
-            currentLevel = this.heroSkills.skillE;
-            if (currentLevel >= maxLevel) return false;
-            this.heroSkills.skillE++;
+        if (skillKey === 'Q') {
+            currentLevel = this.heroSkills.skillQ;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill Q already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillQ++;
+            Logger.info('Skill Q upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillQ });
         } else if (skillKey === 'R') {
             currentLevel = this.heroSkills.skillR;
-            if (currentLevel >= maxLevel) return false;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill R already at max level', { currentLevel });
+                return false;
+            }
             this.heroSkills.skillR++;
-        } else if (skillKey === 'Q') {
-            currentLevel = this.heroSkills.skillQ;
-            if (currentLevel >= maxLevel) return false;
-            this.heroSkills.skillQ++;
+            Logger.info('Skill R upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillR });
+        } else if (skillKey === 'T') {
+            currentLevel = this.heroSkills.skillT;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill T already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillT++;
+            Logger.info('Skill T upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillT });
+        } else if (skillKey === 'Y') {
+            // Ultimate can only be learned at level 5+
+            if (this.playerLevel < 5) {
+                Logger.warn('Ultimate (Y) can only be learned at level 5+', { currentLevel: this.playerLevel });
+                return false;
+            }
+            
+            currentLevel = this.heroSkills.skillY;
+            if (currentLevel >= maxLevel) {
+                Logger.warn('Skill Y already at max level', { currentLevel });
+                return false;
+            }
+            this.heroSkills.skillY++;
+            Logger.info('Skill Y upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillY });
         } else {
+            Logger.error('Invalid skill key', { skillKey });
             return false;
         }
         
         this.skillPoints--;
+        Logger.info('Skill upgraded successfully', { skillKey, remainingPoints: this.skillPoints, heroSkills: this.heroSkills });
         return true;
     },
     
     // Get skill level
     getSkillLevel(skillKey) {
-        if (skillKey === 'passive') return this.heroSkills.passive;
-        if (skillKey === 'E') return this.heroSkills.skillE;
-        if (skillKey === 'R') return this.heroSkills.skillR;
-        if (skillKey === 'Q') return this.heroSkills.skillQ;
+        if (skillKey === 'Q') return this.heroSkills.skillQ || 0;
+        if (skillKey === 'R') return this.heroSkills.skillR || 0;
+        if (skillKey === 'T') return this.heroSkills.skillT || 0;
+        if (skillKey === 'Y') return this.heroSkills.skillY || 0;
+        Logger.warn('getSkillLevel: invalid key', { skillKey });
         return 0;
     },
     

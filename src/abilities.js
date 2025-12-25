@@ -1,5 +1,7 @@
 // ==================== HERO ABILITIES ====================
-// Active abilities for each hero (E, R, Q skills with levels)
+// NEW SYSTEM: Active abilities for each hero (Q, R, T, Y skills with levels)
+// E = ranged attack (not a skill)
+// Space = melee attack (not a skill)
 
 import { CONFIG } from './config.js';
 import { GS } from './state.js';
@@ -19,31 +21,33 @@ function getKaboomFn(name) {
     return null;
 }
 
-// Cooldowns for each skill (E, R, Q)
+// Cooldowns for each skill (Q, R, T, Y)
 let skillCooldowns = {
-    E: 0,
-    R: 0,
     Q: 0,
+    R: 0,
+    T: 0,
+    Y: 0,
 };
 
 export function setupAbilities() {
     skillCooldowns = {
-        E: 0,
-        R: 0,
         Q: 0,
+        R: 0,
+        T: 0,
+        Y: 0,
     };
 }
 
-// Use skill E
-export function tryUseSkillE() {
-    if (skillCooldowns.E > 0) return false;
+// Use skill Q
+export function tryUseSkillQ() {
+    if (skillCooldowns.Q > 0) return false;
     if (!GS.player || !GS.player.exists()) return false;
     
-    const level = GS.getSkillLevel('E');
+    const level = GS.getSkillLevel('Q');
     if (level <= 0) return false; // Skill not learned
     
     const heroSkills = getHeroSkills(GS.selectedHero);
-    const skill = heroSkills.skillE;
+    const skill = heroSkills.skillQ;
     if (!skill) return false;
     
     const config = skill.levels[level - 1];
@@ -77,28 +81,79 @@ export function tryUseSkillE() {
             break;
     }
     
-    skillCooldowns.E = config.cooldown;
+    skillCooldowns.Q = config.cooldown;
     return true;
 }
 
-// Use skill R (passive stat boost, no active use)
+// Use skill R
 export function tryUseSkillR() {
-    // Skill R is passive, no active use
-    return false;
-}
-
-// Use skill Q (ultimate)
-export function tryUseSkillQ() {
-    if (skillCooldowns.Q > 0) return false;
-    if (!GS.ultimateReady) return false;
+    if (skillCooldowns.R > 0) return false;
     if (!GS.player || !GS.player.exists()) return false;
     
-    const level = GS.getSkillLevel('Q');
+    const level = GS.getSkillLevel('R');
     if (level <= 0) return false; // Skill not learned
     
     const heroSkills = getHeroSkills(GS.selectedHero);
-    const skill = heroSkills.skillQ;
+    const skill = heroSkills.skillR;
     if (!skill) return false;
+    
+    // Skill R might be passive (no active use) or active
+    // For now, most are passive stat boosts, so return false
+    // But check if it has active effects
+    const config = skill.levels[level - 1];
+    
+    // If skill has cooldown/manaCost, it's active
+    if (config.cooldown && config.manaCost) {
+        if (GS.player.mana < config.manaCost) return false;
+        GS.player.mana = Math.max(0, GS.player.mana - config.manaCost);
+        skillCooldowns.R = config.cooldown;
+        // Add active skill logic here if needed
+        return true;
+    }
+    
+    // Passive skill, no active use
+    return false;
+}
+
+// Use skill T
+export function tryUseSkillT() {
+    if (skillCooldowns.T > 0) return false;
+    if (!GS.player || !GS.player.exists()) return false;
+    
+    const level = GS.getSkillLevel('T');
+    if (level <= 0) return false; // Skill not learned
+    
+    const heroSkills = getHeroSkills(GS.selectedHero);
+    const skill = heroSkills.skillT;
+    if (!skill) return false;
+    
+    const config = skill.levels[level - 1];
+    
+    // If skill has cooldown/manaCost, it's active
+    if (config.cooldown && config.manaCost) {
+        if (GS.player.mana < config.manaCost) return false;
+        GS.player.mana = Math.max(0, GS.player.mana - config.manaCost);
+        skillCooldowns.T = config.cooldown;
+        // Add active skill logic here if needed
+        return true;
+    }
+    
+    // Passive skill, no active use
+    return false;
+}
+
+// Use skill Y (ultimate)
+export function tryUseSkillY() {
+    if (skillCooldowns.Y > 0) return false;
+    if (!GS.ultimateReady) return false;
+    if (!GS.player || !GS.player.exists()) return false;
+    
+    const level = GS.getSkillLevel('Y');
+    if (level <= 0) return false; // Skill not learned
+    
+    const heroSkills = getHeroSkills(GS.selectedHero);
+    const skill = heroSkills.skillY;
+    if (!skill || !skill.isUltimate) return false;
     
     const config = skill.levels[level - 1];
     
@@ -113,19 +168,9 @@ export function tryUseSkillQ() {
         GS.player.mana = Math.max(0, GS.player.mana - manaCost);
     }
     
-    // Check mana cost
-    if (config.manaCost && GS.player.mana < config.manaCost) {
-        return false; // Not enough mana
-    }
-    
-    // Spend mana
-    if (config.manaCost) {
-        GS.player.mana = Math.max(0, GS.player.mana - config.manaCost);
-    }
-    
     // Use ultimate
     GS.useUltimate();
-    skillCooldowns.Q = 1; // 1 second cooldown to prevent spam
+    skillCooldowns.Y = 1; // 1 second cooldown to prevent spam
     
     switch (GS.selectedHero) {
         case 'warrior':
@@ -604,4 +649,4 @@ function ultimateArrowStorm(config) {
     }
 }
 
-export default { setupAbilities, tryUseSkillE, tryUseSkillR, tryUseSkillQ, updateAbilities, getSkillCooldown };
+export default { setupAbilities, tryUseSkillQ, tryUseSkillR, tryUseSkillT, tryUseSkillY, updateAbilities, getSkillCooldown };
