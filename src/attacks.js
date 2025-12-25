@@ -228,39 +228,8 @@ export function rangedAttack(spawnKeyFn) {
         
         // Apply skill effects to ranged attack (NEW SYSTEM: skill levels)
         // Ranged attack works ALWAYS, even without skills
-        // Skills only enhance the attack
-        try {
-            const skillELevel = GS.getSkillLevel ? GS.getSkillLevel('E') : 0;
-            const skillRLevel = GS.getSkillLevel ? GS.getSkillLevel('R') : 0;
-            const passiveLevel = GS.getSkillLevel ? GS.getSkillLevel('passive') : 0;
-            
-            // Apply skill E effects if learned
-            if (skillELevel > 0 && heroSkills && heroSkills.skillE) {
-                const skillE = heroSkills.skillE;
-                // Add skill E effects here if needed
-            }
-            
-            // Apply skill R effects if learned
-            if (skillRLevel > 0 && heroSkills && heroSkills.skillR) {
-                const skillR = heroSkills.skillR;
-                // Add skill R effects here if needed
-            }
-            
-            // Apply passive skill effects if learned
-            if (passiveLevel > 0 && heroSkills && heroSkills.passive) {
-                const passive = heroSkills.passive;
-                if (passive.levels && passive.levels[passiveLevel - 1]) {
-                    const passiveConfig = passive.levels[passiveLevel - 1];
-                    // Apply passive effects based on level
-                    if (passiveConfig && passiveConfig.homingStrengthBonus) {
-                        homingStrength = (homingStrength || 0.15) * (1 + passiveConfig.homingStrengthBonus);
-                    }
-                }
-            }
-        } catch (skillError) {
-            // Skills are optional - ranged attack works without them
-            Logger.warn('Skill effects error (non-critical)', { error: skillError.message });
-        }
+        // Skills Q, R, T, Y are separate abilities - not applied to ranged attack
+        // Ranged attack is a basic attack, not a skill
         
         const dir = GS.lastMoveDir;
         const baseDamage = stats.rangedDamage * dmgMult;
