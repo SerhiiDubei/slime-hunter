@@ -45,23 +45,50 @@ export function createHUD() {
     const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
     
     // ==================== HERO PANEL (Bottom, Dota-style) ====================
-    const heroPanelHeight = 120;
+    const heroPanelHeight = 130;
     const heroPanelY = VH - heroPanelHeight;
     
-    // Hero panel background (full width at bottom)
+    // Hero panel background with gradient effect (full width at bottom)
+    // Dark base
     const heroPanelBg = add([
         rect(VW, heroPanelHeight),
         pos(0, heroPanelY),
-        color(20, 15, 10),
-        opacity(0.95),
+        color(15, 12, 8),
+        opacity(0.98),
         fixed(),
         z(95)
     ]);
     
-    const heroPanelFrame = add([
-        rect(VW, 2),
+    // Top border (golden)
+    const heroPanelFrameTop = add([
+        rect(VW, 3),
         pos(0, heroPanelY),
-        color(80, 60, 40),
+        color(120, 100, 60),
+        fixed(),
+        z(96)
+    ]);
+    
+    // Bottom border
+    const heroPanelFrameBottom = add([
+        rect(VW, 2),
+        pos(0, VH - 2),
+        color(60, 50, 35),
+        fixed(),
+        z(96)
+    ]);
+    
+    // Decorative side borders
+    add([
+        rect(4, heroPanelHeight),
+        pos(0, heroPanelY),
+        color(80, 65, 45),
+        fixed(),
+        z(96)
+    ]);
+    add([
+        rect(4, heroPanelHeight),
+        pos(VW - 4, heroPanelY),
+        color(80, 65, 45),
         fixed(),
         z(96)
     ]);
@@ -73,14 +100,34 @@ export function createHUD() {
     const portraitY = heroPanelY + heroPanelHeight / 2;
     
     if (hero) {
-        // Portrait background
+        // Portrait frame (decorative border)
+        add([
+            rect(portraitSize + 8, portraitSize + 8),
+            pos(portraitX, portraitY),
+            anchor("center"),
+            color(60, 50, 35),
+            fixed(),
+            z(97)
+        ]);
+        
+        // Portrait background (dark)
         add([
             rect(portraitSize + 4, portraitSize + 4),
             pos(portraitX, portraitY),
             anchor("center"),
-            color(40, 30, 25),
+            color(25, 20, 15),
             fixed(),
-            z(97)
+            z(98)
+        ]);
+        
+        // Portrait background (gradient effect)
+        add([
+            rect(portraitSize, portraitSize),
+            pos(portraitX, portraitY),
+            anchor("center"),
+            color(35, 28, 20),
+            fixed(),
+            z(99)
         ]);
         
         // Portrait icon
@@ -89,17 +136,26 @@ export function createHUD() {
             pos(portraitX, portraitY - 8),
             anchor("center"),
             fixed(),
-            z(98)
+            z(100)
         ]);
         
-        // Hero name
+        // Hero name with shadow
+        add([
+            text(hero.name, { size: 12 }),
+            pos(portraitX + 1, portraitY + 39),
+            anchor("center"),
+            color(0, 0, 0),
+            opacity(0.5),
+            fixed(),
+            z(99)
+        ]);
         const heroNameTxt = add([
             text(hero.name, { size: 12 }),
             pos(portraitX, portraitY + 38),
             anchor("center"),
             color(...hero.color),
             fixed(),
-            z(98)
+            z(100)
         ]);
     }
     
@@ -109,22 +165,40 @@ export function createHUD() {
     const barWidth = 200;
     const barHeight = 16;
     
-    // HP bar
+    // HP bar with decorative frame
+    add([
+        rect(barWidth + 6, barHeight + 6),
+        pos(barsX - 1, barsY - 1),
+        anchor("topleft"),
+        color(20, 15, 10),
+        fixed(),
+        z(97)
+    ]);
     add([
         rect(barWidth + 4, barHeight + 4),
         pos(barsX, barsY),
         anchor("topleft"),
         color(40, 30, 25),
         fixed(),
-        z(97)
+        z(98)
     ]);
     const hpBar = add([
         rect(barWidth, barHeight),
         pos(barsX + 2, barsY + 2),
         anchor("topleft"),
-        color(180, 50, 50),
+        color(200, 40, 40),
         fixed(),
-        z(98)
+        z(99)
+    ]);
+    // HP text with shadow
+    add([
+        text("100/100", { size: 11 }),
+        pos(barsX + barWidth / 2 + 1, barsY + barHeight / 2 + 2),
+        anchor("center"),
+        color(0, 0, 0),
+        opacity(0.6),
+        fixed(),
+        z(100)
     ]);
     const hpTxt = add([
         text("100/100", { size: 11 }),
@@ -132,40 +206,69 @@ export function createHUD() {
         anchor("center"),
         color(255, 255, 255),
         fixed(),
-        z(99)
+        z(101)
     ]);
     
-    // Mana bar
-    const manaBarY = barsY + barHeight + 8;
+    // Mana bar with decorative frame
+    const manaBarY = barsY + barHeight + 10;
+    add([
+        rect(barWidth + 6, barHeight + 6),
+        pos(barsX - 1, manaBarY - 1),
+        anchor("topleft"),
+        color(20, 15, 10),
+        fixed(),
+        z(97)
+    ]);
     add([
         rect(barWidth + 4, barHeight + 4),
         pos(barsX, manaBarY),
         anchor("topleft"),
         color(40, 30, 25),
         fixed(),
-        z(97)
+        z(98)
     ]);
     const manaBar = add([
         rect(barWidth, barHeight),
         pos(barsX + 2, manaBarY + 2),
         anchor("topleft"),
-        color(100, 100, 255),
+        color(80, 120, 255),
         fixed(),
-        z(98)
+        z(99)
+    ]);
+    // Mana text with shadow
+    add([
+        text("100/100", { size: 11 }),
+        pos(barsX + barWidth / 2 + 1, manaBarY + barHeight / 2 + 2),
+        anchor("center"),
+        color(0, 0, 0),
+        opacity(0.6),
+        fixed(),
+        z(100)
     ]);
     const manaTxt = add([
         text("100/100", { size: 11 }),
         pos(barsX + barWidth / 2, manaBarY + barHeight / 2 + 1),
         anchor("center"),
-        color(200, 200, 255),
+        color(200, 220, 255),
         fixed(),
-        z(99)
+        z(101)
     ]);
     
-    // Stats panel (right side of bars)
-    const statsX = barsX + barWidth + 30;
+    // Stats panel (right side of bars) with decorative background
+    const statsX = barsX + barWidth + 35;
     const statsY = barsY;
     const statsGap = 18;
+    
+    // Stats panel background
+    add([
+        rect(180, heroPanelHeight - 20),
+        pos(statsX - 10, statsY - 5),
+        anchor("topleft"),
+        color(25, 20, 15),
+        opacity(0.7),
+        fixed(),
+        z(97)
+    ]);
     
     // Attack Damage (Melee)
     const meleeDmgTxt = add([
