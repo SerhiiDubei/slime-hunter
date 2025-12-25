@@ -42,12 +42,16 @@ export function meleeAttack(spawnKeyFn) {
         attackStart.y + Math.sin(slashAngle) * meleeRange
     );
     
-    // Visual: Directional slash rectangle (not circle!)
+    // Visual: Directional slash rectangle (not circle!) with hero-specific effects
+    const slashColor = GS.selectedHero === 'warrior' ? [255, 150, 50] : 
+                      GS.selectedHero === 'assassin' ? [200, 255, 200] : 
+                      [200, 200, 200];
+    
     const slashRect = add([
         rect(meleeRange, meleeWidth),
         pos(attackStart.x + Math.cos(slashAngle) * meleeRange / 2, 
             attackStart.y + Math.sin(slashAngle) * meleeRange / 2),
-        color(255, 200, 100),
+        color(...slashColor),
         opacity(0.6),
         anchor("center"),
         rotate(angleDeg),
@@ -60,6 +64,26 @@ export function meleeAttack(spawnKeyFn) {
         slashRect.opacity = 0.6 - slashRect.t * 3;
         if (slashRect.t > 0.2) destroy(slashRect);
     });
+    
+    // Hero-specific melee icon overlay
+    if (isMeleeSpecialist) {
+        const meleeIcon = GS.selectedHero === 'warrior' ? '⚔️' : '🗡️';
+        const icon = add([
+            text(meleeIcon, { size: 24 }),
+            pos(attackStart.x + Math.cos(slashAngle) * meleeRange * 0.3, 
+                attackStart.y + Math.sin(slashAngle) * meleeRange * 0.3),
+            anchor("center"),
+            rotate(angleDeg),
+            z(21),
+            opacity(0.8),
+            { t: 0 }
+        ]);
+        icon.onUpdate(() => {
+            icon.t += dt();
+            icon.opacity = 0.8 - icon.t * 4;
+            if (icon.t > 0.2) destroy(icon);
+        });
+    }
     
     // Strong directional slash lines (for melee specialists)
     const lineCount = isMeleeSpecialist ? 5 : 2;
@@ -278,16 +302,22 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
-        // Axe head detail
+        // Axe head detail with emoji overlay
         const axeHead = add([
             rect(projSize * 0.4, projSize * 0.8),
             pos(proj.pos), color(projColor[0] - 30, projColor[1] - 20, projColor[2] - 20),
             opacity(0.9), anchor("center"), z(16), rotate(angle)
         ]);
+        const axeIcon = add([
+            text('🪓', { size: Math.floor(projSize * 0.8) }),
+            pos(proj.pos), anchor("center"), z(17), rotate(angle)
+        ]);
         axeHead.onUpdate(() => {
-            if (!proj.exists()) { destroy(axeHead); return; }
+            if (!proj.exists()) { destroy(axeHead); destroy(axeIcon); return; }
             axeHead.pos = proj.pos;
             axeHead.angle = proj.angle;
+            axeIcon.pos = proj.pos;
+            axeIcon.angle = proj.angle;
         });
         
     } else if (projShape === "dagger") {
@@ -304,16 +334,22 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
-        // Dagger point
+        // Dagger point with emoji overlay
         const point = add([
             rect(projSize * 0.8, projSize * 0.3),
             pos(proj.pos), color(200, 255, 200), opacity(0.8),
             anchor("left"), z(16), rotate(angle)
         ]);
+        const daggerIcon = add([
+            text('🗡️', { size: Math.floor(projSize * 1.2) }),
+            pos(proj.pos), anchor("center"), z(17), rotate(angle)
+        ]);
         point.onUpdate(() => {
-            if (!proj.exists()) { destroy(point); return; }
+            if (!proj.exists()) { destroy(point); destroy(daggerIcon); return; }
             point.pos = vec2(proj.pos.x + d.x * projSize, proj.pos.y + d.y * projSize);
             point.angle = angle;
+            daggerIcon.pos = proj.pos;
+            daggerIcon.angle = angle;
         });
         
     } else {
@@ -330,16 +366,21 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
-        // Inner glow
+        // Inner glow with emoji overlay
         const innerGlow = add([
             circle(projSize / 4),
             pos(proj.pos), color(255, 255, 255), opacity(0.7),
             anchor("center"), z(17)
         ]);
+        const orbIcon = add([
+            text('🔮', { size: Math.floor(projSize * 0.6) }),
+            pos(proj.pos), anchor("center"), z(18)
+        ]);
         innerGlow.onUpdate(() => {
-            if (!proj.exists()) { destroy(innerGlow); return; }
+            if (!proj.exists()) { destroy(innerGlow); destroy(orbIcon); return; }
             innerGlow.pos = proj.pos;
             innerGlow.opacity = 0.5 + Math.sin(time() * 20) * 0.3;
+            orbIcon.pos = proj.pos;
         });
     }
     
