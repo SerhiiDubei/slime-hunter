@@ -1626,7 +1626,7 @@ export function killEnemy(e, spawnKeyFn) {
     if (e.nameTag) destroy(e.nameTag);
     if (e.tierGlow) destroy(e.tierGlow);
     
-    GS.enemies = GS.enemies.filter(x => x !== e);
+    GS.enemies = GS.enemies.filter(enemy => enemy !== e);
     destroy(e);
     
     // Don't count minions towards room progress
