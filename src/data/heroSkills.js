@@ -326,6 +326,86 @@ export const HERO_SKILLS = {
             }
         },
     },
+    
+    // ========== WIZARD SKILLS ==========
+    wizard: {
+        // SKILL Q - Teleport
+        skillQ: {
+            id: "wizard_teleport",
+            name: "TELEPORT",
+            icon: "✨",
+            key: "Q",
+            description: "Instantly teleports to target location",
+            levels: [
+                { range: 200, invulnDuration: 0.3, cooldown: 8.0, manaCost: 60 },
+                { range: 250, invulnDuration: 0.4, cooldown: 7.5, manaCost: 70 },
+                { range: 300, invulnDuration: 0.5, cooldown: 7.0, manaCost: 80 },
+                { range: 350, invulnDuration: 0.6, cooldown: 6.5, manaCost: 90 },
+            ],
+            getDescription(level) {
+                const lvl = this.levels[level - 1];
+                return `Teleport ${lvl.range}px, ${lvl.invulnDuration}s invulnerability`;
+            }
+        },
+        
+        // SKILL R - Arcane Power
+        skillR: {
+            id: "wizard_arcane_power",
+            name: "ARCANE POWER",
+            icon: "🔮",
+            key: "R",
+            description: "Increases ranged damage",
+            levels: [
+                { rangedDamageBonus: 0.30 },  // Level 1: +30%
+                { rangedDamageBonus: 0.50 },  // Level 2: +50%
+                { rangedDamageBonus: 0.70 },  // Level 3: +70%
+                { rangedDamageBonus: 1.00 },  // Level 4: +100%
+            ],
+            getDescription(level) {
+                const pct = this.levels[level - 1].rangedDamageBonus * 100;
+                return `+${pct}% ranged damage`;
+            }
+        },
+        
+        // SKILL T - Mana Surge
+        skillT: {
+            id: "wizard_mana_surge",
+            name: "MANA SURGE",
+            icon: "⚡",
+            key: "T",
+            description: "Increases mana regeneration",
+            levels: [
+                { manaRegenBonus: 0.50 },  // Level 1: +50%
+                { manaRegenBonus: 0.75 },  // Level 2: +75%
+                { manaRegenBonus: 1.00 },  // Level 3: +100%
+                { manaRegenBonus: 1.50 },  // Level 4: +150%
+            ],
+            getDescription(level) {
+                const pct = this.levels[level - 1].manaRegenBonus * 100;
+                return `+${pct}% mana regeneration`;
+            }
+        },
+        
+        // SKILL Y - Ultimate: Arcane Storm
+        skillY: {
+            id: "wizard_arcane_storm",
+            name: "ARCANE STORM",
+            icon: "⚡",
+            key: "Y",
+            description: "Casts a devastating arcane storm that follows enemies",
+            isUltimate: true,
+            levels: [
+                { damage: 25, duration: 4.0, radius: 150, tickRate: 0.5, manaCost: 130 },
+                { damage: 35, duration: 5.0, radius: 180, tickRate: 0.4, manaCost: 150 },
+                { damage: 45, duration: 6.0, radius: 210, tickRate: 0.3, manaCost: 170 },
+                { damage: 60, duration: 7.0, radius: 240, tickRate: 0.25, manaCost: 190 },
+            ],
+            getDescription(level) {
+                const lvl = this.levels[level - 1];
+                return `${lvl.damage} damage/tick, ${lvl.duration}s duration, ${lvl.radius}px radius`;
+            }
+        },
+    },
 };
 
 // Get skills for a hero

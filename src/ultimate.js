@@ -43,6 +43,10 @@ export function tryUseUltimate() {
             playSound('ultimate_arrowstorm');
             ultimateArrowStorm(hero.ultimate);
             break;
+        case 'wizard':
+            playSound('ultimate_arcane');
+            ultimateArcaneStorm(hero.ultimate);
+            break;
     }
     
     return true;
@@ -332,6 +336,96 @@ function ultimateShadowStrike(config) {
     
     doStrike();
     showUltimateName("👤 ТІНЬОВИЙ УДАР!");
+}
+
+// WIZARD: Arcane Storm - devastating storm that follows enemies
+function ultimateArcaneStorm(config) {
+    const p = GS.player;
+    if (!p) return;
+    
+    // Create storm cloud that follows nearest enemy
+    const storm = add([
+        circle(config.radius),
+        pos(p.pos.x, p.pos.y),
+        color(180, 100, 255),
+        opacity(0.3),
+        z(5),
+        {
+            duration: config.duration || 4.0,
+            tickRate: config.tickRate || 0.5,
+            lastTick: 0,
+            damage: config.damage || 25,
+            radius: config.radius || 150
+        },
+        "arcaneStorm"
+    ]);
+    
+    // Update storm to follow nearest enemy
+    storm.onUpdate(() => {
+        storm.duration -= dt();
+        if (storm.duration <= 0) {
+            destroy(storm);
+            return;
+        }
+        
+        // Find nearest enemy
+        let nearestEnemy = null;
+        let nearestDist = Infinity;
+        GS.enemies.forEach(e => {
+            if (e.hp > 0) {
+                const dist = Math.sqrt(
+                    Math.pow(e.pos.x - storm.pos.x, 2) + 
+                    Math.pow(e.pos.y - storm.pos.y, 2)
+                );
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestEnemy = e;
+                }
+            }
+        });
+        
+        // Move storm towards nearest enemy
+        if (nearestEnemy) {
+            const dx = nearestEnemy.pos.x - storm.pos.x;
+            const dy = nearestEnemy.pos.y - storm.pos.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                const speed = 80; // Movement speed
+                storm.pos.x += (dx / dist) * speed * dt();
+                storm.pos.y += (dy / dist) * speed * dt();
+            }
+        }
+        
+        // Damage enemies in radius
+        storm.lastTick += dt();
+        if (storm.lastTick >= storm.tickRate) {
+            storm.lastTick = 0;
+            GS.enemies.forEach(e => {
+                if (e.hp > 0) {
+                    const dist = Math.sqrt(
+                        Math.pow(e.pos.x - storm.pos.x, 2) + 
+                        Math.pow(e.pos.y - storm.pos.y, 2)
+                    );
+                    if (dist < storm.radius) {
+                        e.hp -= storm.damage;
+                        
+                        // Visual effect
+                        add([
+                            text(`-${storm.damage}`, { size: 14 }),
+                            pos(e.pos.x, e.pos.y - 20),
+                            color(180, 100, 255),
+                            z(20),
+                            move(vec2(0, -1), 50),
+                            lifespan(0.5)
+                        ]);
+                    }
+                }
+            });
+        }
+        
+        // Visual pulse
+        storm.opacity = 0.3 + Math.sin(time() * 8) * 0.1;
+    });
 }
 
 // RANGER: Arrow Storm - rains arrows in large area

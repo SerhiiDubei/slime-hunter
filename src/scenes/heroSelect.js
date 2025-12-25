@@ -1,17 +1,20 @@
 // ==================== HERO SELECTION SCENE ====================
 // Diablo-style hero selection
 
-import { CONFIG } from '../config.js';
+import { CONFIG, HERO_SPRITE_MAP } from '../config.js';
 import { GS } from '../state.js';
 import { HEROES } from '../data/heroes.js';
 import { playSound } from '../audio.js';
+import { Logger } from '../logger.js';
 
 export function createHeroSelectScene() {
     scene("heroSelect", () => {
+        Logger.info('🎴 ========== HERO SELECT SCENE START ==========');
         // Reset camera for menu
         camPos(CONFIG.VIEWPORT_WIDTH / 2, CONFIG.VIEWPORT_HEIGHT / 2);
         const W = CONFIG.VIEWPORT_WIDTH;
         const H = CONFIG.VIEWPORT_HEIGHT;
+        Logger.debug('🎴 Viewport:', { W, H });
         
         // Dark gradient background
         add([
@@ -118,20 +121,58 @@ export function createHeroSelectScene() {
                 ultIcon: '🌪️',
                 stats: { atk: 3, mag: 4, spd: 4, hp: 3, sta: 4 },
             },
+            {
+                id: 'wizard',
+                name: 'WIZARD',
+                title: 'Ancient Master',
+                desc: 'Powerful arcane spellcaster with devastating magic. High mana and explosive spells.',
+                ultimate: 'ARCANE STORM',
+                ultDesc: 'Casts a devastating arcane storm that follows enemies.',
+                color: [120, 80, 200],
+                icon: '🧙',
+                ultIcon: '⚡',
+                stats: { atk: 1, mag: 5, spd: 2, hp: 2, sta: 3 },
+            },
         ];
         
         let selectedHero = 'warrior';
-        const cardWidth = 180;  // Зменшено з 220 до 180 для 4 карток
+        const cardWidth = 150;  // Зменшено для 5 карток
         const cardHeight = 380;
-        const cardGap = 15;     // Зменшено з 25 до 15
-        const startX = (W - (cardWidth * 4 + cardGap * 3)) / 2;  // Змінено для 4 карток
+        const cardGap = 10;     // Зменшено для 5 карток
+        const totalWidth = cardWidth * 5 + cardGap * 4;
+        const startX = (W - totalWidth) / 2;  // Змінено для 5 карток
         const cardY = H / 2 + 20;
+        
+        Logger.debug('🎴 Hero Select: Creating cards', {
+            heroCount: heroConfigs.length,
+            viewportWidth: W,
+            cardWidth,
+            cardGap,
+            totalWidth,
+            startX,
+            heroes: heroConfigs.map(h => h.id)
+        });
         
         const cards = [];
         
         heroConfigs.forEach((hero, idx) => {
             const x = startX + idx * (cardWidth + cardGap) + cardWidth / 2;
             const isSelected = hero.id === selectedHero;
+            
+            Logger.debug(`🎴 Creating card ${idx + 1}/${heroConfigs.length}: ${hero.id}`, {
+                x,
+                isSelected,
+                cardWidth,
+                totalWidth,
+                startX,
+                idx,
+                calculatedX: startX + idx * (cardWidth + cardGap) + cardWidth / 2
+            });
+            
+            // ПЕРЕВІРКА: Чи картка виходить за межі екрану?
+            if (x < 0 || x > W) {
+                Logger.error(`❌ CARD ${hero.id} OUT OF BOUNDS! x=${x}, W=${W}`);
+            }
             
             // Card frame (outer glow when selected)
             const cardGlow = add([
@@ -168,31 +209,63 @@ export function createHeroSelectScene() {
             ]);
             
             // Hero sprite (animated preview)
-            const heroSpriteMap = {
-                'warrior': 'heroWarrior',
-                'mage': 'heroMage',
-                'assassin': 'heroAssassin',
-                'ranger': 'heroRanger'
-            };
-            const heroSprite = add([
-                sprite(heroSpriteMap[hero.id] || 'player'),
-                pos(x, cardY - 130),
-                anchor("center"),
-                scale(2.5),
-                z(10),
-                { animFrame: 0, animTimer: 0, heroId: hero.id }
-            ]);
+            const spriteName = HERO_SPRITE_MAP[hero.id] || 'player';
+            Logger.debug(`🎴 Hero ${hero.id} sprite: ${spriteName}`);
+            
+            let heroSprite;
+            try {
+                heroSprite = add([
+                    sprite(spriteName),
+                    pos(x, cardY - 130),
+                    anchor("center"),
+                    scale(2.5),
+                    z(10),
+                    { animFrame: 0, animTimer: 0, heroId: hero.id }
+                ]);
+                Logger.debug(`✅ Hero sprite created for ${hero.id} using ${spriteName}`);
+            } catch (spriteError) {
+                Logger.error(`❌ FAILED to create sprite for ${hero.id}:`, spriteError);
+                Logger.error(`❌ Sprite name was: ${spriteName}`);
+                // Fallback sprite
+                try {
+                    heroSprite = add([
+                        sprite('player'),
+                        pos(x, cardY - 130),
+                        anchor("center"),
+                        scale(2.5),
+                        z(10),
+                        { animFrame: 0, animTimer: 0, heroId: hero.id }
+                    ]);
+                    Logger.debug(`✅ Using fallback 'player' sprite for ${hero.id}`);
+                } catch (fallbackError) {
+                    Logger.error(`❌ Even fallback sprite failed for ${hero.id}:`, fallbackError);
+                }
+            }
             
             // Animate hero preview
             heroSprite.onUpdate(() => {
                 heroSprite.animTimer += dt();
                 if (heroSprite.animTimer >= 0.15) {
                     heroSprite.animTimer = 0;
-                    heroSprite.animFrame = (heroSprite.animFrame + 1) % 4;
+                    // Wizard has 8 frames, others have 4
+                    const maxFrames = hero.id === 'wizard' ? 8 : 4;
+                    heroSprite.animFrame = (heroSprite.animFrame + 1) % maxFrames;
                     try {
-                        heroSprite.use(sprite(`${heroSpriteMap[hero.id]}_${heroSprite.animFrame}`));
+                        const spriteName = `${HERO_SPRITE_MAP[hero.id]}_${heroSprite.animFrame}`;
+                        heroSprite.use(sprite(spriteName));
                         heroSprite.scale = vec2(2.5);
-                    } catch(e) {}
+                    } catch(e) {
+                        if (hero.id === 'wizard') {
+                            Logger.warn(`⚠️ Hero select: Wizard frame ${heroSprite.animFrame} not found, sprite: ${spriteName}`);
+                            // Try base sprite as fallback
+                            try {
+                                heroSprite.use(sprite(HERO_SPRITE_MAP[hero.id]));
+                                heroSprite.scale = vec2(2.5);
+                            } catch(e2) {
+                                Logger.error(`❌ Hero select: Failed to load base sprite for ${hero.id}:`, e2);
+                            }
+                        }
+                    }
                 }
             });
             
@@ -313,6 +386,13 @@ export function createHeroSelectScene() {
             });
             
             cards.push({ card, cardGlow, heroId: hero.id });
+            Logger.debug(`✅ Card created for ${hero.id} at index ${idx}`);
+        });
+        
+        Logger.debug('🎴 Hero Select: All cards created', {
+            totalCards: cards.length,
+            cardIds: cards.map(c => c.heroId),
+            expectedCount: heroConfigs.length
         });
         
         // Update selection visuals
@@ -384,10 +464,16 @@ export function createHeroSelectScene() {
         
         // Start game function
         function beginAdventure() {
+            Logger.info('🎮 Starting adventure with hero:', selectedHero);
             playSound('start');
             GS.setHero(selectedHero);
             const hero = HEROES[selectedHero];
+            if (!hero) {
+                Logger.error('❌ Hero not found:', selectedHero);
+                return;
+            }
             GS.ultimateMax = hero.ultimate.chargeNeeded;
+            Logger.debug('✅ Hero set:', selectedHero, 'Ultimate charge needed:', GS.ultimateMax);
             go("levelIntro");
         }
         
@@ -459,17 +545,20 @@ export function createHeroSelectScene() {
         onKeyPress("1", () => updateSelection('warrior'));
         onKeyPress("2", () => updateSelection('mage'));
         onKeyPress("3", () => updateSelection('assassin'));
+        onKeyPress("4", () => updateSelection('ranger'));
+        onKeyPress("5", () => updateSelection('wizard'));
+        
+        // Get hero list from HEROES object (single source of truth)
+        const heroList = Object.keys(HEROES);
         
         onKeyPress("left", () => {
-            const heroes = ['warrior', 'mage', 'assassin', 'ranger'];
-            const idx = heroes.indexOf(selectedHero);
-            updateSelection(heroes[(idx - 1 + 4) % 4]);
+            const idx = heroList.indexOf(selectedHero);
+            updateSelection(heroList[(idx - 1 + heroList.length) % heroList.length]);
         });
         
         onKeyPress("right", () => {
-            const heroes = ['warrior', 'mage', 'assassin', 'ranger'];
-            const idx = heroes.indexOf(selectedHero);
-            updateSelection(heroes[(idx + 1) % 4]);
+            const idx = heroList.indexOf(selectedHero);
+            updateSelection(heroList[(idx + 1) % heroList.length]);
         });
     });
 }

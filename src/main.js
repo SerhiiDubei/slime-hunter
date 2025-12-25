@@ -2,8 +2,6 @@
 // Slime Hunter - Top-Down Action RPG
 // Modular ES6 version with Vite
 
-console.log("🚀 MAIN.JS LOADING...");
-
 import { CONFIG } from './config.js';
 import { GS } from './state.js';
 import { initAudio } from './audio.js';
@@ -12,6 +10,8 @@ import { loadAllSprites } from './sprites.js';
 import { setupTouch } from './touch.js';
 import { meleeAttack, rangedAttack } from './attacks.js';
 import { Logger, toggleDebugOverlay } from './logger.js';
+
+Logger.info('🚀 MAIN.JS LOADING...');
 
 // Scene imports
 import { createStartScene } from './scenes/start.js';
@@ -73,9 +73,12 @@ document.addEventListener("touchstart", () => initAudio(), { once: true });
 
 // Load sprites
 try {
+    Logger.info('📦 MAIN: About to load sprites...');
     loadAllSprites();
+    Logger.info('📦 MAIN: loadAllSprites() completed');
     Logger.info('Sprites loaded');
 } catch (error) {
+    Logger.error('📦 MAIN: ❌ Failed to load sprites:', error);
     Logger.error('Failed to load sprites', { error: error.message });
 }
 
@@ -127,7 +130,7 @@ try {
 }
 
 // Console info
-console.log("🎮 Slime Hunter loaded!");
-console.log("📁 Modular structure with Vite");
-console.log("🕹️ Controls: WASD/Arrows + SPACE/E + SHIFT");
-console.log("🐛 Press F2 for debug log");
+Logger.info("🎮 Slime Hunter loaded!");
+Logger.info("📁 Modular structure with Vite");
+Logger.info("🕹️ Controls: WASD/Arrows + SPACE/E + SHIFT");
+Logger.info("🐛 Press F2 for debug log");

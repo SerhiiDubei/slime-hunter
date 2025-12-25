@@ -14,8 +14,8 @@ export function createHUD() {
     
     
     // Use viewport dimensions for UI positioning
-    const VW = CONFIG.VIEWPORT_WIDTH;
-    const VH = CONFIG.VIEWPORT_HEIGHT;
+    const VW = CONFIG.VIEWPORT_WIDTH;  // 800
+    const VH = CONFIG.VIEWPORT_HEIGHT;  // 600
     
     // ==================== TOP UI (Level, Room, Score, Gold) ====================
     
@@ -43,7 +43,7 @@ export function createHUD() {
     
     // ==================== HERO PANEL (Bottom, Dota-style with sprite-like design) ====================
     const heroPanelHeight = 130;
-    const heroPanelY = VH - heroPanelHeight;
+    const heroPanelY = VH - heroPanelHeight; // 600 - 130 = 470
     
     // Hero panel background with multi-layer sprite-like effect
     // Base dark layer
@@ -157,11 +157,232 @@ export function createHUD() {
         z(99)
     ]);
     
-    // Hero portrait (left side, but not overlapping minimap - minimap is at x=10, y=80, size=180)
-    const hero = HEROES[GS.selectedHero];
+    // ==================== CALCULATED POSITIONS (NO OVERLAP) ====================
+    // Viewport: 800x600, Hero Panel: height=130, Y=470-600
+    // Layout from left to right (with gaps):
+    // [MINIMAP: 10-110] [GAP: 10] [PORTRAIT: 120-200] [GAP: 15] [BARS: 215-365] [GAP: 15] [STATS: 380-500] [GAP: 15] [SKILLS: 515-715] [GAP: 85]
+    
+    // 1. MINIMAP (bottom-left corner)
+    const minimapSize = 100; // Reduced from 110
+    const minimapX = 10;
+    const minimapY = heroPanelY + heroPanelHeight - minimapSize - 10; // 470 + 130 - 100 - 10 = 490
+    // Occupies: x: 10-110, y: 490-590
+    
+    // 2. PORTRAIT (right of minimap)
     const portraitSize = 80;
-    const portraitX = 220; // Right of minimap (10 + 180 + 30 gap)
-    const portraitY = heroPanelY + heroPanelHeight / 2;
+    const portraitX = minimapX + minimapSize + 10; // 10 + 100 + 10 = 120 (center)
+    const portraitY = heroPanelY + heroPanelHeight / 2; // 470 + 65 = 535
+    // Occupies: x: 80-160 (with anchor center at 120), y: 495-575
+    
+    // 3. HP/MANA BARS (right of portrait)
+    const barsX = portraitX + portraitSize / 2 + 15; // 120 + 40 + 15 = 175
+    const barsY = portraitY - 25; // 535 - 25 = 510
+    const barWidth = 150; // Reduced from 180
+    const barHeight = 16;
+    // Occupies: x: 175-325, y: 510-542 (HP), 520-552 (Mana), 560-568 (Stamina)
+    
+    // 4. STATS PANEL (right of bars)
+    const statsX = barsX + barWidth + 15; // 175 + 150 + 15 = 340
+    const statsY = barsY; // 510
+    const statsGap = 18;
+    const statsPanelWidth = 120; // Reduced from 150
+    // Occupies: x: 340-460, y: 505-590
+    
+    // 5. SKILLS (center-right, after stats)
+    const skillsBarY = heroPanelY + heroPanelHeight / 2; // 470 + 65 = 535
+    const skillIconSize = 45; // Reduced from 50
+    const skillIconGap = 5; // Reduced from 6
+    const skillsBarWidth = skillIconSize * 4 + skillIconGap * 3; // 180 + 15 = 195
+    const skillsBarHeight = skillIconSize + 20; // 65
+    const skillsStartX = statsX + statsPanelWidth + 15; // 340 + 120 + 15 = 475
+    // Occupies: x: 475-670, y: 502.5-567.5 (center at 535)
+    
+    // ==================== MINIMAP (Grid-based architecture) ====================
+    // Minimap frame
+    add([rect(minimapSize + 6, minimapSize + 6), pos(minimapX - 3, minimapY - 3), color(60, 50, 40), fixed(), z(97)]);
+    add([rect(minimapSize + 2, minimapSize + 2), pos(minimapX - 1, minimapY - 1), color(40, 30, 25), fixed(), z(98)]);
+    const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(25, 20, 15), fixed(), z(99)]);
+    
+    // Title
+    const minimapTitle = add([
+        text("MAP", { size: 9 }), 
+        pos(minimapX + minimapSize / 2, minimapY - 10), 
+        anchor("center"), color(150, 140, 130), fixed(), z(100)
+    ]);
+    
+    // Store minimap grid elements
+    let minimapGrid = [];
+    let minimapPlayerDot = null;
+    
+    // Create grid-based minimap (shows current room architecture)
+    function createMinimap() {
+        // Clear old elements
+        minimapGrid.forEach(e => { if (e && e.exists()) destroy(e); });
+        minimapGrid = [];
+        
+        if (!GS.roomShape || !GS.roomShape.grid) return;
+        
+        const grid = GS.roomShape.grid;
+        const gridW = GS.roomShape.width;
+        const gridH = GS.roomShape.height;
+        
+        // Calculate tile size to fit in minimap
+        const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH, 4); // Max 4px per tile
+        const mapWidth = tileSize * gridW;
+        const mapHeight = tileSize * gridH;
+        const offsetX = minimapX + (minimapSize - mapWidth) / 2;
+        const offsetY = minimapY + (minimapSize - mapHeight) / 2;
+        
+        // Draw grid tiles
+        for (let gy = 0; gy < gridH; gy++) {
+            for (let gx = 0; gx < gridW; gx++) {
+                const tileType = grid[gy][gx];
+                const tileX = offsetX + gx * tileSize;
+                const tileY = offsetY + gy * tileSize;
+                
+                let tileColor;
+                if (tileType === 0) {
+                    tileColor = [60, 50, 40]; // Wall - dark brown
+                } else if (tileType === 2) {
+                    tileColor = [80, 70, 60]; // Pillar - medium brown
+                } else {
+                    tileColor = [120, 100, 80]; // Floor - light brown
+                }
+                
+                const tile = add([
+                    rect(tileSize, tileSize),
+                    pos(tileX, tileY),
+                    color(...tileColor),
+                    fixed(),
+                    z(100)
+                ]);
+                minimapGrid.push(tile);
+            }
+        }
+        
+        // Draw doors on minimap edges
+        if (GS.dungeon && typeof GS.dungeon.getCurrentRoom === 'function') {
+            try {
+                const currentRoom = GS.dungeon.getCurrentRoom();
+                if (currentRoom && currentRoom.doors && Array.isArray(currentRoom.doors)) {
+                    const centerXGrid = Math.floor(gridW / 2);
+                    const centerYGrid = Math.floor(gridH / 2);
+                    
+                    currentRoom.doors.forEach(door => {
+                        let doorX, doorY;
+                        const side = door.side; // Doors have 'side' property: 'left', 'right', 'up', 'down'
+                        
+                        if (!side) return; // Skip if no side specified
+                        
+                        // Position door on edge of minimap based on direction
+                        switch (side) {
+                            case 'left':
+                                doorX = offsetX + 0.5 * tileSize;
+                                doorY = offsetY + centerYGrid * tileSize;
+                                break;
+                            case 'right':
+                                doorX = offsetX + (gridW - 0.5) * tileSize;
+                                doorY = offsetY + centerYGrid * tileSize;
+                                break;
+                            case 'up':
+                                doorX = offsetX + centerXGrid * tileSize;
+                                doorY = offsetY + 0.5 * tileSize;
+                                break;
+                            case 'down':
+                                doorX = offsetX + centerXGrid * tileSize;
+                                doorY = offsetY + (gridH - 0.5) * tileSize;
+                                break;
+                            default:
+                                return; // Skip unknown directions
+                        }
+                        
+                        // Draw door indicator (small rectangle, slightly larger than tile)
+                        const doorSize = Math.max(tileSize * 1.2, 3); // At least 3px
+                        const doorIndicator = add([
+                            rect(doorSize, doorSize * 0.6),
+                            pos(doorX, doorY),
+                            anchor("center"),
+                            color(180, 140, 100), // Brown door color
+                            fixed(),
+                            z(101)
+                        ]);
+                        minimapGrid.push(doorIndicator);
+                        
+                        // Door frame (border) - darker outline
+                        const doorFrame = add([
+                            rect(doorSize + 1, doorSize * 0.6 + 1),
+                            pos(doorX, doorY),
+                            anchor("center"),
+                            color(120, 90, 60), // Darker brown
+                            fixed(),
+                            z(100)
+                        ]);
+                        minimapGrid.push(doorFrame);
+                    });
+                }
+            } catch (e) {
+                // Silently fail if dungeon data not available
+            }
+        }
+        
+        // Player dot (center of room)
+        if (minimapPlayerDot) destroy(minimapPlayerDot);
+        const centerX = offsetX + (GS.roomShape.centerX / 40) * tileSize;
+        const centerY = offsetY + (GS.roomShape.centerY / 40) * tileSize;
+        minimapPlayerDot = add([
+            circle(3),
+            pos(centerX, centerY),
+            color(100, 255, 150),
+            fixed(),
+            z(102),
+            outline(1, rgb(255, 255, 255))
+        ]);
+    }
+    
+    // Store last room shape to detect changes
+    let lastRoomShape = null;
+    
+    // Update minimap when room changes
+    function updateMinimap() {
+        if (!GS.roomShape || !GS.roomShape.grid) return;
+        
+        // Recreate minimap if room shape changed
+        if (minimapGrid.length === 0 || lastRoomShape !== GS.roomShape) {
+            lastRoomShape = GS.roomShape;
+            createMinimap();
+        } else {
+            // Update player dot position
+            if (minimapPlayerDot && GS.player) {
+                const gridW = GS.roomShape.width;
+                const gridH = GS.roomShape.height;
+                const tileSize = Math.min(minimapSize / gridW, minimapSize / gridH, 4);
+                const mapWidth = tileSize * gridW;
+                const mapHeight = tileSize * gridH;
+                const offsetX = minimapX + (minimapSize - mapWidth) / 2;
+                const offsetY = minimapY + (minimapSize - mapHeight) / 2;
+                
+                const gx = Math.floor(GS.player.pos.x / 40);
+                const gy = Math.floor(GS.player.pos.y / 40);
+                const dotX = offsetX + gx * tileSize + tileSize / 2;
+                const dotY = offsetY + gy * tileSize + tileSize / 2;
+                
+                minimapPlayerDot.pos.x = dotX;
+                minimapPlayerDot.pos.y = dotY;
+                
+                // Pulse effect
+                minimapPlayerDot.radius = 3 + Math.sin(time() * 6) * 0.5;
+            }
+        }
+    }
+    
+    // Store grid for updates
+    GS.setRoomGrid = (roomShape) => {
+        GS.roomShape = roomShape;
+        createMinimap();
+    };
+    
+    // ==================== HERO PORTRAIT ====================
+    const hero = HEROES[GS.selectedHero];
     
     if (hero) {
         // Portrait frame (decorative border)
@@ -223,12 +444,7 @@ export function createHUD() {
         ]);
     }
     
-    // HP and Mana bars (right of portrait)
-    const barsX = portraitX + portraitSize / 2 + 20;
-    const barsY = portraitY - 25;
-    const barWidth = 200;
-    const barHeight = 16;
-    
+    // ==================== HP AND MANA BARS ====================
     // HP bar with decorative frame
     add([
         rect(barWidth + 6, barHeight + 6),
@@ -318,14 +534,37 @@ export function createHUD() {
         z(101)
     ]);
     
-    // Stats panel (right side of bars) with decorative background
-    const statsX = barsX + barWidth + 35;
-    const statsY = barsY;
-    const statsGap = 18;
+    // Stamina bar (below mana)
+    const stamBarY = manaBarY + barHeight + 8;
+    add([
+        rect(barWidth + 4, 8),
+        pos(barsX, stamBarY),
+        anchor("topleft"),
+        color(40, 30, 25),
+        fixed(),
+        z(97)
+    ]);
+    const stamBar = add([
+        rect(barWidth, 6),
+        pos(barsX + 2, stamBarY + 1),
+        anchor("topleft"),
+        color(80, 160, 200),
+        fixed(),
+        z(98)
+    ]);
+    const stamExhaust = add([
+        text("", { size: 9 }),
+        pos(barsX + barWidth / 2, stamBarY + 4),
+        anchor("center"),
+        color(255, 100, 100),
+        fixed(),
+        z(99)
+    ]);
     
+    // ==================== STATS PANEL ====================
     // Stats panel background
     add([
-        rect(180, heroPanelHeight - 20),
+        rect(statsPanelWidth, heroPanelHeight - 20),
         pos(statsX - 10, statsY - 5),
         anchor("topleft"),
         color(25, 20, 15),
@@ -403,45 +642,12 @@ export function createHUD() {
         z(98)
     ]);
     
-    // Stamina bar (below mana)
-    const stamBarY = manaBarY + barHeight + 8;
-    add([
-        rect(barWidth + 4, 8),
-        pos(barsX, stamBarY),
-        anchor("topleft"),
-        color(40, 30, 25),
-        fixed(),
-        z(97)
-    ]);
-    const stamBar = add([
-        rect(barWidth, 6),
-        pos(barsX + 2, stamBarY + 1),
-        anchor("topleft"),
-        color(80, 160, 200),
-        fixed(),
-        z(98)
-    ]);
-    const stamExhaust = add([
-        text("", { size: 9 }),
-        pos(barsX + barWidth / 2, stamBarY + 4),
-        anchor("center"),
-        color(255, 100, 100),
-        fixed(),
-        z(99)
-    ]);
-    
-    // ==================== HERO SKILLS UI (Above hero panel) ====================
-    // Show active hero skills above hero panel
-    const skillsBarY = heroPanelY - 70;
-    const skillIconSize = 50;  // Square icons
-    const skillIconGap = 6;
-    const skillsBarWidth = skillIconSize * 4 + skillIconGap * 3;
-    const skillsBarHeight = skillIconSize * 2 + skillIconGap;  // 2 rows
-    
-    // Skills bar background (square container)
+    // ==================== HERO SKILLS UI (Center-right, after stats) ====================
+    // Skills bar background (inside hero panel)
+    const skillsBarCenterX = skillsStartX + skillsBarWidth / 2; // Center X of skills bar
     const skillsBarBg = add([
         rect(skillsBarWidth + 8, skillsBarHeight + 8),
-        pos(VW / 2, skillsBarY),
+        pos(skillsBarCenterX, skillsBarY),
         anchor("center"),
         color(40, 30, 25),
         opacity(0.9),
@@ -451,7 +657,7 @@ export function createHUD() {
     
     const skillsBarFrame = add([
         rect(skillsBarWidth + 4, skillsBarHeight + 4),
-        pos(VW / 2, skillsBarY),
+        pos(skillsBarCenterX, skillsBarY),
         anchor("center"),
         color(20, 15, 12),
         opacity(0.95),
@@ -462,7 +668,7 @@ export function createHUD() {
     // Skill icons container (4 slots: Q, R, T, Y) - 1x4 row
     const skillIcons = [];
     const totalWidth = skillIconSize * 4 + skillIconGap * 3;
-    const startX = VW / 2 - totalWidth / 2;
+    const startX = skillsStartX; // Left edge of first skill icon
     const startY = skillsBarY - skillIconSize / 2 - 10; // Move up for dots
     
     // Layout: [Q] [R] [T] [Y] - all in one row
@@ -724,248 +930,12 @@ export function createHUD() {
     }
 
     
-    // ==================== DUNGEON MAP (Full Level Overview) ====================
-    // Shows entire dungeon level with all rooms, corridors, and connections
-    // Positioned in top-left corner, separate from hero panel
-    const minimapSize = 180; // Larger for full dungeon view
-    const minimapX = 10;
-    const minimapY = 80; // Top-left, below top UI elements
-    
-    // Minimap frame (parchment style)
-    add([rect(minimapSize + 8, minimapSize + 8), pos(minimapX - 4, minimapY - 4), color(139, 90, 43), fixed(), z(97)]);
-    add([rect(minimapSize + 4, minimapSize + 4), pos(minimapX - 2, minimapY - 2), color(101, 67, 33), fixed(), z(98)]);
-    const minimapBg = add([rect(minimapSize, minimapSize), pos(minimapX, minimapY), color(220, 200, 170), fixed(), z(99)]); // Parchment color
-    
-    // Title
-    const minimapTitle = add([
-        text("DUNGEON MAP", { size: 10 }), 
-        pos(minimapX + minimapSize / 2, minimapY - 12), 
-        anchor("center"), color(80, 60, 40), fixed(), z(100)
-    ]);
-    
-    // Store minimap elements
-    let minimapRooms = [];
-    let minimapCorridors = [];
-    let minimapPlayerDot = null;
-    let dungeonMapData = null;
-    
-    // Create full dungeon map
-    function createDungeonMap() {
-        if (!GS.dungeon) return;
-        
-        dungeonMapData = GS.dungeon.map;
-        if (!dungeonMapData || !dungeonMapData.rooms) return;
-        
-        // Clear old elements
-        minimapRooms.forEach(r => { if (r && r.exists()) destroy(r); });
-        minimapCorridors.forEach(c => { if (c && c.exists()) destroy(c); });
-        minimapRooms = [];
-        minimapCorridors = [];
-        
-        const rooms = dungeonMapData.rooms;
-        const currentRoom = GS.dungeon.getCurrentRoom();
-        
-        // Find bounds for scaling
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
-        rooms.forEach(room => {
-            minX = Math.min(minX, room.x);
-            maxX = Math.max(maxX, room.x);
-            minY = Math.min(minY, room.y);
-            maxY = Math.max(maxY, room.y);
-        });
-        
-        const rangeX = maxX - minX + 1;
-        const rangeY = maxY - minY + 1;
-        const roomSize = Math.min(minimapSize / (rangeX * 1.5), minimapSize / (rangeY * 1.5), 12); // Max room size
-        const padding = 10;
-        const mapScale = Math.min(
-            (minimapSize - padding * 2) / (rangeX * 1.5),
-            (minimapSize - padding * 2) / (rangeY * 1.5)
-        );
-        
-        const offsetX = minimapX + minimapSize / 2;
-        const offsetY = minimapY + minimapSize / 2;
-        
-        // Draw corridors/connections first (so they appear behind rooms)
-        rooms.forEach(room => {
-            room.doors.forEach(door => {
-                const targetRoom = rooms[door.to];
-                if (!targetRoom) return;
-                
-                const x1 = offsetX + (room.x - (minX + maxX) / 2) * mapScale * 1.5;
-                const y1 = offsetY + (room.y - (minY + maxY) / 2) * mapScale * 1.5;
-                const x2 = offsetX + (targetRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
-                const y2 = offsetY + (targetRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
-                
-                // Draw corridor line
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const len = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                
-                const corridor = add([
-                    rect(len, 2),
-                    pos(x1, y1),
-                    anchor("left"),
-                    rotate(angle),
-                    color(120, 100, 80), // Brown corridor
-                    opacity(0.6),
-                    fixed(),
-                    z(100)
-                ]);
-                minimapCorridors.push(corridor);
-            });
-        });
-        
-        // Draw rooms
-        rooms.forEach(room => {
-            const roomX = offsetX + (room.x - (minX + maxX) / 2) * mapScale * 1.5;
-            const roomY = offsetY + (room.y - (minY + maxY) / 2) * mapScale * 1.5;
-            
-            // Room color based on type and state
-            let roomColor;
-            let roomBorderColor;
-            if (room.id === currentRoom.id) {
-                roomColor = [255, 220, 100]; // Current room - gold
-                roomBorderColor = [255, 200, 50];
-            } else if (!room.visited) {
-                roomColor = [180, 160, 140]; // Unexplored - gray
-                roomBorderColor = [120, 100, 80];
-            } else if (room.type === 'boss') {
-                roomColor = [200, 80, 80]; // Boss - red
-                roomBorderColor = [150, 50, 50];
-            } else if (room.type === 'treasure') {
-                roomColor = [200, 180, 120]; // Treasure - gold
-                roomBorderColor = [180, 150, 80];
-            } else if (room.type === 'elite') {
-                roomColor = [180, 120, 200]; // Elite - purple
-                roomBorderColor = [150, 80, 180];
-            } else if (room.cleared) {
-                roomColor = [150, 200, 150]; // Cleared - green
-                roomBorderColor = [100, 180, 100];
-            } else {
-                roomColor = [200, 150, 120]; // Combat - orange
-                roomBorderColor = [180, 120, 80];
-            }
-            
-            // Room rectangle
-            const roomRect = add([
-                rect(roomSize, roomSize),
-                pos(roomX, roomY),
-                anchor("center"),
-                color(...roomColor),
-                opacity(room.visited ? 0.8 : 0.4),
-                fixed(),
-                z(101)
-            ]);
-            
-            // Room border
-            const roomBorder = add([
-                rect(roomSize + 2, roomSize + 2),
-                pos(roomX, roomY),
-                anchor("center"),
-                color(...roomBorderColor),
-                opacity(room.visited ? 1 : 0.5),
-                fixed(),
-                z(100)
-            ]);
-            
-            // Room icon/type indicator
-            let icon = "";
-            if (room.type === 'boss') icon = "👹";
-            else if (room.type === 'treasure') icon = "💎";
-            else if (room.type === 'elite') icon = "⭐";
-            else if (room.type === 'start') icon = "🚪";
-            else icon = "⚔️";
-            
-            if (room.visited || room.id === currentRoom.id) {
-                const roomIcon = add([
-                    text(icon, { size: 10 }),
-                    pos(roomX, roomY),
-                    anchor("center"),
-                    opacity(0.9),
-                    fixed(),
-                    z(102)
-                ]);
-                minimapRooms.push(roomIcon);
-            }
-            
-            minimapRooms.push(roomRect, roomBorder);
-        });
-        
-        // Create/update player dot
-        if (minimapPlayerDot) destroy(minimapPlayerDot);
-        const currentRoomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
-        const currentRoomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
-        minimapPlayerDot = add([
-            circle(4),
-            pos(currentRoomX, currentRoomY),
-            color(100, 255, 150),
-            fixed(),
-            z(103),
-            outline(2, rgb(255, 255, 255))
-        ]);
-    }
-    
-    // Update dungeon map when room changes
-    function updateDungeonMap() {
-        if (!GS.dungeon) return;
-        
-        // Recreate map if dungeon data changed
-        const currentMap = GS.dungeon.map;
-        if (!dungeonMapData || dungeonMapData !== currentMap) {
-            createDungeonMap();
-        } else {
-            // Just update player dot position
-            if (minimapPlayerDot && GS.dungeon) {
-                const currentRoom = GS.dungeon.getCurrentRoom();
-                if (!dungeonMapData || !dungeonMapData.rooms) return;
-                
-                const rooms = dungeonMapData.rooms;
-                let minX = Infinity, maxX = -Infinity;
-                let minY = Infinity, maxY = -Infinity;
-                rooms.forEach(room => {
-                    minX = Math.min(minX, room.x);
-                    maxX = Math.max(maxX, room.x);
-                    minY = Math.min(minY, room.y);
-                    maxY = Math.max(maxY, room.y);
-                });
-                
-                const rangeX = maxX - minX + 1;
-                const rangeY = maxY - minY + 1;
-                const mapScale = Math.min(
-                    (minimapSize - 20) / (rangeX * 1.5),
-                    (minimapSize - 20) / (rangeY * 1.5)
-                );
-                
-                const offsetX = minimapX + minimapSize / 2;
-                const offsetY = minimapY + minimapSize / 2;
-                
-                const roomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
-                const roomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
-                
-                minimapPlayerDot.pos.x = roomX;
-                minimapPlayerDot.pos.y = roomY;
-                
-                // Pulse effect
-                minimapPlayerDot.radius = 4 + Math.sin(time() * 6) * 0.5;
-            }
-        }
-    }
-    
-    // Store grid for updates (legacy support - now creates full dungeon map)
-    GS.setRoomGrid = (grid) => {
-        // When room changes, update the full dungeon map
-        updateDungeonMap();
-    };
-
     // Regen timer
     let regenTimer = 0;
     
-    // Initialize dungeon map on first load
-    if (GS.dungeon) {
-        createDungeonMap();
+    // Initialize minimap on first load
+    if (GS.roomShape) {
+        createMinimap();
     }
     
     // OPTIMIZATION: Throttle UI updates
@@ -988,7 +958,7 @@ export function createHUD() {
         
         // HP bar
         const hpPct = Math.max(0, pl.hp / pl.maxHp);
-        hpBar.width = 200 * hpPct;
+        hpBar.width = barWidth * hpPct;
         hpTxt.text = `${Math.floor(Math.max(0, pl.hp))}/${Math.floor(pl.maxHp)}`;
         
         // HP color gradient
@@ -1015,7 +985,7 @@ export function createHUD() {
         // Mana bar
         const maxMana = pl.maxMana || 100;
         const manaPct = Math.max(0, pl.mana / maxMana);
-        manaBar.width = 200 * manaPct;
+        manaBar.width = barWidth * manaPct;
         manaTxt.text = `${Math.floor(Math.max(0, pl.mana))}/${Math.floor(maxMana)}`;
         
         // Mana color gradient
@@ -1031,7 +1001,7 @@ export function createHUD() {
         // Stamina
         const maxStam = pl.maxStamina || CONFIG.SPRINT_MAX_STAMINA;
         const stamPct = pl.stamina / maxStam;
-        stamBar.width = 200 * stamPct;
+        stamBar.width = barWidth * stamPct;
         
         // Stamina exhaustion indicator
         if (pl.staminaExhausted) {
@@ -1094,9 +1064,9 @@ export function createHUD() {
             keyTxt.text = "";
         }
         
-        // ==================== DUNGEON MAP UPDATE ====================
-        // Update full dungeon map (already throttled by uiUpdateTimer)
-        updateDungeonMap();
+        // ==================== MINIMAP UPDATE ====================
+        // Update grid-based minimap (already throttled by uiUpdateTimer)
+        updateMinimap();
         
         // Passive skills (shop perks)
         const owned = [];
@@ -1128,17 +1098,22 @@ export function createHUD() {
             
             if (skillKey === 'Q') {
                 skill = heroSkills.skillQ;
-                level = GS.heroSkills.skillQ;
+                level = GS.heroSkills.skillQ || 0;
             } else if (skillKey === 'R') {
                 skill = heroSkills.skillR;
-                level = GS.heroSkills.skillR;
+                level = GS.heroSkills.skillR || 0;
             } else if (skillKey === 'T') {
                 skill = heroSkills.skillT;
-                level = GS.heroSkills.skillT;
+                level = GS.heroSkills.skillT || 0;
             } else if (skillKey === 'Y') {
                 skill = heroSkills.skillY;
-                level = GS.heroSkills.skillY;
+                level = GS.heroSkills.skillY || 0;
             }
+            
+            // Ensure level is a valid number (handle NaN, undefined, null)
+            level = Number(level) || 0;
+            if (isNaN(level) || level < 0) level = 0;
+            if (level > 4) level = 4; // Cap at max level
             
             // Always show skill icon (gray if not learned, colored if learned)
             if (skill) {

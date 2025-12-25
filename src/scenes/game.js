@@ -934,51 +934,26 @@ export function createGameScene() {
             const sortedPerf = perfEntries.sort((a, b) => b[1] - a[1]);
             const bottleneck = sortedPerf[0];
             
-            // Detailed console output
-            console.log('%c=== PERFORMANCE PROFILE ===', 'color: #ff6b6b; font-size: 16px; font-weight: bold;');
-            console.log(`Room ID: ${currentRoom.id}`);
-            console.log(`1. Room Shape: ${perf.roomShape.toFixed(2)}ms`);
-            console.log(`2. Floor Canvas: ${perf.floorCanvas.toFixed(2)}ms`);
-            console.log(`3. Floor Draw: ${perf.floorDraw.toFixed(2)}ms`);
-            console.log(`4. Floor Load: ${perf.floorLoad.toFixed(2)}ms`);
-            console.log(`5. Collisions: ${perf.collisions.toFixed(2)}ms`);
-            console.log(`6. Decorations: ${perf.decorations.toFixed(2)}ms`);
-            console.log(`7. Doors: ${(perf.doors || 0).toFixed(2)}ms`);
-            console.log(`8. Player: ${(perf.player || 0).toFixed(2)}ms`);
-            console.log(`%cTOTAL: ${perf.total.toFixed(2)}ms`, 'color: #4ecdc4; font-weight: bold;');
-            console.log(`%c🔥 BOTTLENECK: ${bottleneck[0]} (${bottleneck[1].toFixed(2)}ms)`, 'color: #ff6b6b; font-weight: bold; font-size: 14px;');
-            console.log(`Top 3: ${sortedPerf.slice(0, 3).map((item) => {
-                const k = item[0];
-                const v = item[1];
-                return `${k}(${v.toFixed(2)}ms)`;
-            }).join(', ')}`);
-            
-            // Console table for better readability
-            console.table({
-                'Room Shape': perf.roomShape.toFixed(2) + 'ms',
-                'Floor Canvas': perf.floorCanvas.toFixed(2) + 'ms',
-                'Floor Draw': perf.floorDraw.toFixed(2) + 'ms',
-                'Floor Load': perf.floorLoad.toFixed(2) + 'ms',
-                'Collisions': perf.collisions.toFixed(2) + 'ms',
-                'Decorations': perf.decorations.toFixed(2) + 'ms',
-                'Doors': (perf.doors || 0).toFixed(2) + 'ms',
-                'Player': (perf.player || 0).toFixed(2) + 'ms',
-                'TOTAL': perf.total.toFixed(2) + 'ms'
-            });
-            
-            // Also log to Logger for consistency
-            Logger.warn('PERFORMANCE PROFILE', {
+            // Detailed performance output
+            Logger.debug('=== PERFORMANCE PROFILE ===', {
                 roomId: currentRoom.id,
-                roomShape: perf.roomShape.toFixed(2) + 'ms',
-                floorCanvas: perf.floorCanvas.toFixed(2) + 'ms',
-                floorDraw: perf.floorDraw.toFixed(2) + 'ms',
-                floorLoad: perf.floorLoad.toFixed(2) + 'ms',
-                collisions: perf.collisions.toFixed(2) + 'ms',
-                decorations: perf.decorations.toFixed(2) + 'ms',
-                doors: (perf.doors || 0).toFixed(2) + 'ms',
-                player: (perf.player || 0).toFixed(2) + 'ms',
-                total: perf.total.toFixed(2) + 'ms',
-                bottleneck: bottleneck[0] + ' (' + bottleneck[1].toFixed(2) + 'ms)'
+                roomShape: `${perf.roomShape.toFixed(2)}ms`,
+                floorCanvas: `${perf.floorCanvas.toFixed(2)}ms`,
+                floorDraw: `${perf.floorDraw.toFixed(2)}ms`,
+                floorLoad: `${perf.floorLoad.toFixed(2)}ms`
+            });
+            Logger.debug('Performance details', {
+                collisions: `${perf.collisions.toFixed(2)}ms`,
+                decorations: `${perf.decorations.toFixed(2)}ms`,
+                doors: `${(perf.doors || 0).toFixed(2)}ms`,
+                player: `${(perf.player || 0).toFixed(2)}ms`,
+                total: `${perf.total.toFixed(2)}ms`,
+                bottleneck: `${bottleneck[0]} (${bottleneck[1].toFixed(2)}ms)`,
+                top3: sortedPerf.slice(0, 3).map((item) => {
+                    const k = item[0];
+                    const v = item[1];
+                    return `${k}(${v.toFixed(2)}ms)`;
+                }).join(', ')
             });
             
             Logger.info('Room objects created', { 

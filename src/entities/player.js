@@ -1,12 +1,13 @@
 // ==================== PLAYER ENTITY ====================
 // Player creation, movement, and logic
 
-import { CONFIG } from '../config.js';
+import { CONFIG, HERO_SPRITE_MAP } from '../config.js';
 import { GS } from '../state.js';
 import { KEYS } from '../keyboard.js';
 import { KEYBINDS } from '../state.js';
 import { clamp } from '../utils.js';
 import { getHeroSkills } from '../data/heroSkills.js';
+import { Logger } from '../logger.js';
 
 // Camera follow function - keeps player centered
 function updateCamera(player) {
@@ -28,13 +29,7 @@ function updateCamera(player) {
 // Get hero sprite name based on selected hero
 function getHeroSpriteName() {
     const heroType = GS.selectedHero || 'warrior';
-    const spriteMap = {
-        'warrior': 'heroWarrior',
-        'mage': 'heroMage',
-        'assassin': 'heroAssassin',
-        'ranger': 'heroRanger'
-    };
-    return spriteMap[heroType] || 'heroWarrior';
+    return HERO_SPRITE_MAP[heroType] || 'heroWarrior';
 }
 
 export function createPlayer() {
@@ -46,6 +41,7 @@ export function createPlayer() {
     
     // Get hero-specific sprite
     const heroSprite = getHeroSpriteName();
+    Logger.debug('🎮 Creating player with hero:', { hero: GS.selectedHero, sprite: heroSprite });
     
     const p = add([
         sprite(heroSprite),
@@ -215,29 +211,48 @@ export function setupPlayerMovement(p) {
         // Animation speed (faster when sprinting)
         const animSpeed = p.sprinting ? 0.08 : 0.12;
         
+        // Wizard has 8 frames per animation, others have 4
+        const maxFrames = p.heroType === 'wizard' ? 8 : 4;
+        
         if (p.animTimer >= animSpeed) {
             p.animTimer = 0;
             
             if (moving) {
-                // Cycle through 4 frames when moving
-                p.animFrame = (p.animFrame + 1) % 4;
+                // Cycle through frames when moving
+                p.animFrame = (p.animFrame + 1) % maxFrames;
             } else {
-                // Idle animation - subtle breathing (frames 0-1)
-                p.animFrame = Math.floor(time() * 2) % 2;
+                // Idle animation - subtle breathing
+                if (p.heroType === 'wizard') {
+                    // Wizard: cycle through first 8 frames for idle
+                    p.animFrame = Math.floor(time() * 3) % 8;
+                } else {
+                    // Other heroes: frames 0-1
+                    p.animFrame = Math.floor(time() * 2) % 2;
+                }
             }
             
             // Update sprite frame
-            const heroPrefix = {
-                'warrior': 'heroWarrior',
-                'mage': 'heroMage',
-                'assassin': 'heroAssassin',
-                'ranger': 'heroRanger'
-            }[p.heroType] || 'heroWarrior';
+            const heroPrefix = HERO_SPRITE_MAP[p.heroType] || 'heroWarrior';
             
             try {
-                p.use(sprite(`${heroPrefix}_${p.animFrame}`));
+                const spriteName = `${heroPrefix}_${p.animFrame}`;
+                p.use(sprite(spriteName));
             } catch (e) {
                 // Fallback to base sprite if frame not found
+                if (p.heroType === 'wizard') {
+                    Logger.warn(`⚠️ Wizard frame ${p.animFrame} not found (sprite: ${spriteName}), using base sprite`);
+                }
+                try {
+                    p.use(sprite(heroPrefix));
+                } catch (e2) {
+                    Logger.error(`❌ Failed to load sprite for ${p.heroType}:`, e2);
+                    // Last resort: try player sprite
+                    try {
+                        p.use(sprite('player'));
+                    } catch (e3) {
+                        Logger.error(`❌ Complete sprite load failure for ${p.heroType}`);
+                    }
+                }
             }
         }
         

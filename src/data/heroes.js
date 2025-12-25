@@ -275,6 +275,73 @@ export const HEROES = {
             radius: 280,            // Larger radius
         },
     },
+    
+    // ========== WIZARD ==========
+    // Magic specialist - powerful spells with staff
+    wizard: {
+        id: "wizard",
+        name: "WIZARD",
+        icon: "🧙",
+        description: "Ancient wizard with powerful arcane magic",
+        color: [120, 80, 200],
+        
+        stats: {
+            meleeDamage: 0.2,      // -80% melee (pure caster)
+            rangedDamage: 1.6,     // +60% ranged damage - MAGIC SPECIALIST!
+            moveSpeed: 0.8,        // Slower movement
+            maxHp: 0.7,            // -30% HP (squishy)
+            stamina: 1.0,
+            maxMana: 200,          // Very high mana pool
+            manaRegen: 4.0,        // Fast mana regen
+        },
+        
+        // Melee attack properties
+        melee: {
+            isMeleeSpecialist: false,  // Very weak melee
+            meleeRange: 35,            // Short melee range
+            meleeWidth: 25,            // Narrow melee
+            meleeDamageMultiplier: 0.2, // Very weak melee
+        },
+        
+        // POWERFUL MAGIC BOLT - slow but devastating
+        ranged: {
+            name: "Arcane Blast",
+            description: "Powerful magic bolt that explodes on impact",
+            projectileColor: [180, 100, 255],     // Purple magic
+            projectileSize: 14,                    // Large
+            projectileSpeed: 400,                  // Medium speed
+            cooldown: 1.2,                         // Medium cooldown
+            damageMultiplier: 1.5,                 // High damage!
+            piercing: false,
+            projectileShape: "orb",
+            // Special: Explodes on impact
+            explosion: true,
+            explosionRadius: 60,
+            explosionDamage: 0.5,                  // 50% of base damage in AOE
+            trailColor: [150, 50, 255],
+        },
+        
+        // Active ability
+        ability: {
+            name: "TELEPORT",
+            icon: "✨",
+            description: "Instantly teleports to target location",
+            cooldown: 8.0,
+            range: 200,
+            invulnDuration: 0.3,  // Brief invulnerability
+        },
+        
+        ultimate: {
+            name: "ARCANE STORM",
+            icon: "⚡",
+            description: "Casts a devastating arcane storm that follows enemies",
+            chargeNeeded: 6,
+            damage: 25,
+            duration: 4.0,
+            radius: 150,
+            tickRate: 0.5,  // Damage every 0.5 seconds
+        },
+    },
 };
 
 // Quick reference for attack patterns:
@@ -282,6 +349,7 @@ export const HEROES = {
 // MAGE:    1-3 fast bolts         | Short cooldown | Low damage  | Piercing
 // ASSASSIN: 3 daggers burst       | Medium cooldown| Medium dmg  | Poison DOT
 // RANGER:  Homing arrows          | Medium cooldown| Balanced    | Tracking
+// WIZARD:  Powerful magic blast   | Medium cooldown| High damage | Explosion
 
 export function getHero(id) {
     return HEROES[id] || HEROES.warrior;

@@ -28,6 +28,8 @@ export function meleeAttack(spawnKeyFn) {
         playSound('melee_sword');
     } else if (GS.selectedHero === 'assassin') {
         playSound('melee_dagger');
+    } else if (GS.selectedHero === 'wizard') {
+        playSound('melee_weak');  // Wizard - weak melee
     } else {
         playSound('melee_weak');  // Mage, Ranger
     }
@@ -46,6 +48,7 @@ export function meleeAttack(spawnKeyFn) {
     // Visual: Directional slash with hero-specific sprite effects
     const slashColor = GS.selectedHero === 'warrior' ? [255, 150, 50] : 
                       GS.selectedHero === 'assassin' ? [200, 255, 200] : 
+                      GS.selectedHero === 'wizard' ? [180, 100, 255] : // Purple for wizard
                       [200, 200, 200];
     
     // Use sprite for melee specialists, rect for others
@@ -321,7 +324,8 @@ export function rangedAttack(spawnKeyFn) {
                             damage: baseDamage, piercing, shape: projShape,
                             hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
                             trailColor, maxPierceCount, spawnKeyFn,
-                            isHoming, homingStrength
+                            isHoming, homingStrength,
+                            heroRanged: heroRanged  // Pass heroRanged for explosion properties
                         });
                     });
                     
@@ -340,7 +344,8 @@ export function rangedAttack(spawnKeyFn) {
                     damage: baseDamage, piercing, shape: projShape,
                     hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
                     trailColor, maxPierceCount, spawnKeyFn,
-                    isHoming, homingStrength
+                    isHoming, homingStrength,
+                    heroRanged: heroRanged  // Pass heroRanged for explosion properties
                 });
             });
         }
@@ -360,7 +365,8 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
         damage, piercing, shape: projShape,
         hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
         trailColor, maxPierceCount, spawnKeyFn,
-        isHoming = false, homingStrength = 0.15
+        isHoming = false, homingStrength = 0.15,
+        heroRanged = {}  // Get heroRanged from options for explosion properties
     } = options;
     
     // Calculate direction with angle offset
@@ -413,6 +419,22 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             }
         ]);
         
+    } else if (projShape === "orb" && GS.selectedHero === 'wizard') {
+        // WIZARD ORB - use sprite with explosion effect
+        proj = add([
+            sprite("magicOrb"),
+            pos(startPos.x + d.x * 25, startPos.y + d.y * 25),
+            anchor("center"), z(15),
+            scale(projSize / 12), // Scale sprite
+            { 
+                dir: d, dist: 0, dmg: damage, piercing,
+                hasPoison, poisonDmg, poisonDur, knockback,
+                pierceCount: 0, maxPierceCount, pulseTime: 0,
+                explosion: heroRanged.explosion || false,
+                explosionRadius: heroRanged.explosionRadius || 60,
+                explosionDamage: heroRanged.explosionDamage || 0.5
+            }
+        ]);
     } else {
         // MAGE ORB - use sprite with pulsing animation
         proj = add([
@@ -555,6 +577,48 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             proj.dist > CONFIG.RANGED_RANGE;
             
         if (shouldDestroy) {
+            // Wizard explosion effect
+            if (proj.explosion && proj.explosionRadius) {
+                const explosionRadius = proj.explosionRadius;
+                const explosionDmg = Math.floor(proj.dmg * (proj.explosionDamage || 0.5));
+                
+                // Visual explosion
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    add([
+                        circle(4),
+                        pos(proj.pos.x, proj.pos.y),
+                        color(180, 100, 255),
+                        opacity(0.9),
+                        z(20),
+                        move(vec2(Math.cos(angle), Math.sin(angle)), 300),
+                        lifespan(0.3)
+                    ]);
+                }
+                
+                // Damage enemies in radius
+                GS.enemies.forEach(e => {
+                    if (e.hp > 0) {
+                        const dist = Math.sqrt(
+                            Math.pow(e.pos.x - proj.pos.x, 2) + 
+                            Math.pow(e.pos.y - proj.pos.y, 2)
+                        );
+                        if (dist < explosionRadius) {
+                            e.hp -= explosionDmg;
+                            add([
+                                text(`-${explosionDmg}`, { size: 12 }),
+                                pos(e.pos.x, e.pos.y - 15),
+                                color(180, 100, 255),
+                                z(20),
+                                move(vec2(0, -1), 50),
+                                lifespan(0.5)
+                            ]);
+                            if (e.hp <= 0) killEnemy(e, spawnKeyFn);
+                        }
+                    }
+                });
+            }
+            
             createProjectileFX(proj.pos);
             destroy(proj);
             if (glow.exists()) destroy(glow);

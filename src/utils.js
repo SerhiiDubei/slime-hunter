@@ -43,6 +43,7 @@ export function getSpawnPos() {
 
 // Choose random element from array
 export function choose(arr) {
+    if (!arr || arr.length === 0) return null;
     return arr[Math.floor(Math.random() * arr.length)];
 }
 

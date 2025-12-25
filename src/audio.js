@@ -232,6 +232,14 @@ export function playSound(type) {
                 osc.type = 'sine';
                 osc.start(t); osc.stop(t + 0.12);
                 break;
+            case 'ability_teleport':  // Wizard Teleport
+                osc.frequency.setValueAtTime(800, t);
+                osc.frequency.exponentialRampToValueAtTime(1200, t + 0.1);
+                gain.gain.setValueAtTime(0.3, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                osc.type = 'sine';
+                osc.start(t); osc.stop(t + 0.1);
+                break;
             
             // ========== ULTIMATE SOUNDS ==========
             case 'ultimate_earthquake':  // Warrior
@@ -265,6 +273,14 @@ export function playSound(type) {
                 gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
                 osc.type = 'sine';
                 osc.start(t); osc.stop(t + 0.25);
+                break;
+            case 'ultimate_arcane':  // Wizard Arcane Storm
+                osc.frequency.setValueAtTime(200, t);
+                osc.frequency.exponentialRampToValueAtTime(600, t + 0.3);
+                gain.gain.setValueAtTime(0.4, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+                osc.type = 'sine';
+                osc.start(t); osc.stop(t + 0.3);
                 break;
             
             // ========== OTHER SOUNDS ==========

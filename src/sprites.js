@@ -356,12 +356,195 @@ function makeRangerFrames() {
 
 // Generate all hero animation frames
 function makeHeroAnimations() {
-    return {
-        warrior: makeWarriorFrames(),
-        mage: makeMageFrames(),
-        assassin: makeAssassinFrames(),
-        ranger: makeRangerFrames()
-    };
+    try {
+        console.log('🎨 Making hero animations...');
+        const anims = {
+            warrior: makeWarriorFrames(),
+            mage: makeMageFrames(),
+            assassin: makeAssassinFrames(),
+            ranger: makeRangerFrames(),
+            wizard: makeWizardFrames(),
+        };
+        console.log('✅ Hero animations created:', {
+            warrior: anims.warrior?.length || 0,
+            mage: anims.mage?.length || 0,
+            assassin: anims.assassin?.length || 0,
+            ranger: anims.ranger?.length || 0,
+            wizard: anims.wizard?.length || 0,
+        });
+        return anims;
+    } catch (error) {
+        console.error('❌ Error making hero animations:', error);
+        throw error;
+    }
+}
+
+// ==================== WIZARD SPRITE SHEET LOADER ====================
+// Loads wizard sprite sheet and splits it into animation frames
+// Sprite sheet format: 5 rows (IDLE, IDLE2, WALK, RUN, JUMP) × 8 frames each
+// Each frame is 32x32 pixels
+
+async function loadWizardSpriteSheet(imagePath) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+            const frameWidth = 32;
+            const frameHeight = 32;
+            const framesPerRow = 8;
+            const rows = 5;
+            
+            const animations = {
+                idle: [],
+                idle2: [],
+                walk: [],
+                run: [],
+                jump: []
+            };
+            
+            // Extract frames from sprite sheet
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < framesPerRow; col++) {
+                    const { canvas, ctx } = createCanvas(frameWidth, frameHeight);
+                    ctx.drawImage(
+                        img,
+                        col * frameWidth,
+                        row * frameHeight,
+                        frameWidth,
+                        frameHeight,
+                        0,
+                        0,
+                        frameWidth,
+                        frameHeight
+                    );
+                    
+                    const frameData = canvas.toDataURL();
+                    
+                    // Map rows to animation types
+                    if (row === 0) animations.idle.push(frameData);
+                    else if (row === 1) animations.idle2.push(frameData);
+                    else if (row === 2) animations.walk.push(frameData);
+                    else if (row === 3) animations.run.push(frameData);
+                    else if (row === 4) animations.jump.push(frameData);
+                }
+            }
+            
+            resolve(animations);
+        };
+        
+        img.onerror = () => {
+            reject(new Error(`Failed to load wizard sprite sheet from ${imagePath}`));
+        };
+        
+        img.src = imagePath;
+    });
+}
+
+// Generate wizard frames from sprite sheet or fallback to generated frames
+function makeWizardFrames() {
+    // Fallback: Generate simple wizard frames (similar to mage but distinct)
+    // This will be used until the sprite sheet is loaded via loadWizardSpriteSheet()
+    console.log('🎨 makeWizardFrames() called');
+    const frames = [];
+    const size = 32;
+    const cx = size / 2;
+    
+    for (let f = 0; f < 8; f++) {
+        const { canvas, ctx } = createCanvas(size, size);
+        const hover = Math.sin(f * Math.PI / 4) * 1.5;
+        const orbPulse = 0.9 + Math.sin(f * Math.PI / 4) * 0.15;
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(cx, 29, 7, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Staff (within bounds)
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(cx + 7, 6 - hover, 2, 20);
+        
+        // Staff orb (purple glow)
+        const orbGrad = ctx.createRadialGradient(cx + 8, 6 - hover, 1, cx + 8, 6 - hover, 4 * orbPulse);
+        orbGrad.addColorStop(0, '#fff');
+        orbGrad.addColorStop(0.4, '#9b59b6');
+        orbGrad.addColorStop(1, '#4a235a');
+        ctx.fillStyle = orbGrad;
+        ctx.beginPath();
+        ctx.arc(cx + 8, 6 - hover, 4 * orbPulse, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Robe (blue with purple cape)
+        const robeGrad = ctx.createLinearGradient(cx - 8, 10, cx + 8, 28);
+        robeGrad.addColorStop(0, '#2980b9');
+        robeGrad.addColorStop(1, '#1a5276');
+        ctx.fillStyle = robeGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, 11 - hover);
+        ctx.lineTo(cx + 6, 11 - hover);
+        ctx.lineTo(cx + 9, 27 - hover);
+        ctx.lineTo(cx - 9, 27 - hover);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Purple cape
+        const capeGrad = ctx.createLinearGradient(cx - 9, 11, cx - 9, 28);
+        capeGrad.addColorStop(0, '#9b59b6');
+        capeGrad.addColorStop(1, '#6c3483');
+        ctx.fillStyle = capeGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, 11 - hover);
+        ctx.lineTo(cx - 12, 11 - hover);
+        ctx.lineTo(cx - 12, 28 - hover);
+        ctx.lineTo(cx - 9, 27 - hover);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Robe stars
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(cx - 3, 18 - hover, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 22 - hover, 1, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Head
+        ctx.fillStyle = '#ffe0bd';
+        ctx.beginPath();
+        ctx.arc(cx, 9 - hover, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wizard hat (blue pointed hat)
+        ctx.fillStyle = '#2980b9';
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, 9 - hover);
+        ctx.lineTo(cx, 2 - hover);
+        ctx.lineTo(cx + 6, 9 - hover);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(cx, 3 - hover, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Beard (white)
+        ctx.fillStyle = '#ecf0f1';
+        ctx.beginPath();
+        ctx.moveTo(cx - 3, 12 - hover);
+        ctx.quadraticCurveTo(cx, 17 - hover, cx + 3, 12 - hover);
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(cx - 2, 8 - hover, 1, 0, Math.PI * 2);
+        ctx.arc(cx + 2, 8 - hover, 1, 0, Math.PI * 2);
+        ctx.fill();
+        
+        frames.push(canvas.toDataURL());
+    }
+    console.log(`✅ makeWizardFrames() completed: ${frames.length} frames generated`);
+    return frames;
 }
 
 // Slime sprite
@@ -1654,49 +1837,104 @@ export function loadAllSprites() {
         loadSprite(name, data);
     });
     
-    // Load animated hero sprites (4 frames each)
+    // Load animated hero sprites (4 frames each, wizard has 8)
     const heroAnims = makeHeroAnimations();
     
-    // Warrior animation frames
-    loadSprite("heroWarrior", heroAnims.warrior[0], {
-        sliceX: 1,
-        sliceY: 1,
-        anims: { idle: 0 }
-    });
-    heroAnims.warrior.forEach((frame, i) => {
-        loadSprite(`heroWarrior_${i}`, frame);
-    });
+    // ========== WARRIOR ==========
+    try {
+        loadSprite("heroWarrior", heroAnims.warrior[0], {
+            sliceX: 1,
+            sliceY: 1,
+            anims: { idle: 0 }
+        });
+        heroAnims.warrior.forEach((frame, i) => {
+            loadSprite(`heroWarrior_${i}`, frame);
+        });
+    } catch (error) {
+        // Silent fail - fallback sprites will be used
+    }
     
-    // Mage animation frames
-    loadSprite("heroMage", heroAnims.mage[0], {
-        sliceX: 1,
-        sliceY: 1,
-        anims: { idle: 0 }
-    });
-    heroAnims.mage.forEach((frame, i) => {
-        loadSprite(`heroMage_${i}`, frame);
-    });
+    // ========== MAGE ==========
+    try {
+        loadSprite("heroMage", heroAnims.mage[0], {
+            sliceX: 1,
+            sliceY: 1,
+            anims: { idle: 0 }
+        });
+        heroAnims.mage.forEach((frame, i) => {
+            loadSprite(`heroMage_${i}`, frame);
+        });
+    } catch (error) {
+        // Silent fail - fallback sprites will be used
+    }
     
-    // Assassin animation frames
-    loadSprite("heroAssassin", heroAnims.assassin[0], {
-        sliceX: 1,
-        sliceY: 1,
-        anims: { idle: 0 }
-    });
-    heroAnims.assassin.forEach((frame, i) => {
-        loadSprite(`heroAssassin_${i}`, frame);
-    });
+    // ========== ASSASSIN ==========
+    try {
+        loadSprite("heroAssassin", heroAnims.assassin[0], {
+            sliceX: 1,
+            sliceY: 1,
+            anims: { idle: 0 }
+        });
+        heroAnims.assassin.forEach((frame, i) => {
+            loadSprite(`heroAssassin_${i}`, frame);
+        });
+    } catch (error) {
+        // Silent fail - fallback sprites will be used
+    }
     
-    // Ranger animation frames
-    loadSprite("heroRanger", heroAnims.ranger[0], {
-        sliceX: 1,
-        sliceY: 1,
-        anims: { idle: 0 }
-    });
-    heroAnims.ranger.forEach((frame, i) => {
-        loadSprite(`heroRanger_${i}`, frame);
-    });
+    // ========== RANGER ==========
+    try {
+        loadSprite("heroRanger", heroAnims.ranger[0], {
+            sliceX: 1,
+            sliceY: 1,
+            anims: { idle: 0 }
+        });
+        heroAnims.ranger.forEach((frame, i) => {
+            loadSprite(`heroRanger_${i}`, frame);
+        });
+    } catch (error) {
+        // Silent fail - fallback sprites will be used
+    }
+    
+    // ========== WIZARD ==========
+    try {
+        if (!heroAnims.wizard) {
+            console.error('❌ WIZARD: heroAnims.wizard is undefined!');
+        } else if (!heroAnims.wizard.length || heroAnims.wizard.length === 0) {
+            console.error('❌ WIZARD: heroAnims.wizard is empty!', heroAnims.wizard);
+        } else {
+            console.log(`✅ WIZARD: Loading ${heroAnims.wizard.length} frames`);
+            console.log(`✅ WIZARD: First frame data length: ${heroAnims.wizard[0]?.length || 0}`);
+            try {
+                loadSprite("heroWizard", heroAnims.wizard[0], {
+                    sliceX: 1,
+                    sliceY: 1,
+                    anims: { idle: 0 }
+                });
+                console.log(`✅ WIZARD: Base sprite 'heroWizard' loaded`);
+            } catch (e) {
+                console.error(`❌ WIZARD: Failed to load base sprite:`, e);
+            }
+            heroAnims.wizard.forEach((frame, i) => {
+                try {
+                    loadSprite(`heroWizard_${i}`, frame);
+                    if (i === 0 || i === heroAnims.wizard.length - 1) {
+                        console.log(`✅ WIZARD: Frame ${i} loaded`);
+                    }
+                } catch (e) {
+                    console.error(`❌ WIZARD: Failed to load frame ${i}:`, e);
+                }
+            });
+            console.log(`✅ WIZARD: All ${heroAnims.wizard.length} frames loaded`);
+        }
+    } catch (error) {
+        console.error('❌ WIZARD: Failed to load sprites:', error);
+        // Silent fail - fallback sprites will be used
+    }
 }
 
-export default { generateSprites, loadAllSprites };
+// Export wizard sprite sheet loader for external use
+export { loadWizardSpriteSheet };
+
+export default { generateSprites, loadAllSprites, loadWizardSpriteSheet };
 

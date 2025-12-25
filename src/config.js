@@ -1,6 +1,15 @@
 // ==================== GAME CONFIGURATION ====================
 // All game constants and settings
 
+// Hero sprite name mapping (single source of truth)
+export const HERO_SPRITE_MAP = {
+    'warrior': 'heroWarrior',
+    'mage': 'heroMage',
+    'assassin': 'heroAssassin',
+    'ranger': 'heroRanger',
+    'wizard': 'heroWizard'
+};
+
 export const CONFIG = {
     // Player settings
     PLAYER_SPEED: 120,

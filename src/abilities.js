@@ -90,6 +90,10 @@ export function tryUseSkillQ() {
             playSound('ability_multishot');
             abilityMultiShot(config);
             break;
+        case 'wizard':
+            playSound('ability_teleport');
+            abilityTeleport(config);
+            break;
     }
     
     skillCooldowns.Q = config.cooldown;
@@ -432,6 +436,57 @@ function abilitySmokeBomb(config) {
         waitFn(config.duration, () => {
             if (p.opacity) p.opacity = 1.0;
         });
+    }
+}
+
+// WIZARD: Teleport - instant movement
+function abilityTeleport(config) {
+    const p = GS.player;
+    if (!p) return;
+    
+    const targetPos = vec2(
+        p.pos.x + GS.lastMoveDir.x * config.range,
+        p.pos.y + GS.lastMoveDir.y * config.range
+    );
+    
+    // Clamp to map bounds
+    targetPos.x = clamp(targetPos.x, CONFIG.WALL_THICKNESS + 16, CONFIG.MAP_WIDTH - CONFIG.WALL_THICKNESS - 16);
+    targetPos.y = clamp(targetPos.y, CONFIG.WALL_THICKNESS + 16, CONFIG.MAP_HEIGHT - CONFIG.WALL_THICKNESS - 16);
+    
+    // Visual effect at old position
+    for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        add([
+            circle(3),
+            pos(p.pos.x, p.pos.y),
+            color(180, 100, 255),
+            opacity(0.8),
+            z(20),
+            move(vec2(Math.cos(angle) * 50, Math.sin(angle) * 50), 200),
+            lifespan(0.3)
+        ]);
+    }
+    
+    // Teleport player
+    p.pos = targetPos;
+    
+    // Brief invulnerability
+    if (config.invulnDuration) {
+        p.invuln = config.invulnDuration;
+    }
+    
+    // Visual effect at new position
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        add([
+            circle(4),
+            pos(targetPos.x, targetPos.y),
+            color(255, 255, 255),
+            opacity(0.9),
+            z(20),
+            move(vec2(Math.cos(angle) * 40, Math.sin(angle) * 40), 300),
+            lifespan(0.2)
+        ]);
     }
 }
 

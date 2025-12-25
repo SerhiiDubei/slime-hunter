@@ -232,28 +232,31 @@ export const GS = {
         let currentLevel = 0;
         
         if (skillKey === 'Q') {
-            currentLevel = this.heroSkills.skillQ;
+            currentLevel = Number(this.heroSkills.skillQ) || 0;
+            if (isNaN(currentLevel)) currentLevel = 0;
             if (currentLevel >= maxLevel) {
                 Logger.warn('Skill Q already at max level', { currentLevel });
                 return false;
             }
-            this.heroSkills.skillQ++;
+            this.heroSkills.skillQ = currentLevel + 1;
             Logger.info('Skill Q upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillQ });
         } else if (skillKey === 'R') {
-            currentLevel = this.heroSkills.skillR;
+            currentLevel = Number(this.heroSkills.skillR) || 0;
+            if (isNaN(currentLevel)) currentLevel = 0;
             if (currentLevel >= maxLevel) {
                 Logger.warn('Skill R already at max level', { currentLevel });
                 return false;
             }
-            this.heroSkills.skillR++;
+            this.heroSkills.skillR = currentLevel + 1;
             Logger.info('Skill R upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillR });
         } else if (skillKey === 'T') {
-            currentLevel = this.heroSkills.skillT;
+            currentLevel = Number(this.heroSkills.skillT) || 0;
+            if (isNaN(currentLevel)) currentLevel = 0;
             if (currentLevel >= maxLevel) {
                 Logger.warn('Skill T already at max level', { currentLevel });
                 return false;
             }
-            this.heroSkills.skillT++;
+            this.heroSkills.skillT = currentLevel + 1;
             Logger.info('Skill T upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillT });
         } else if (skillKey === 'Y') {
             // Ultimate can only be learned at level 5+
@@ -262,12 +265,13 @@ export const GS = {
                 return false;
             }
             
-            currentLevel = this.heroSkills.skillY;
+            currentLevel = Number(this.heroSkills.skillY) || 0;
+            if (isNaN(currentLevel)) currentLevel = 0;
             if (currentLevel >= maxLevel) {
                 Logger.warn('Skill Y already at max level', { currentLevel });
                 return false;
             }
-            this.heroSkills.skillY++;
+            this.heroSkills.skillY = currentLevel + 1;
             Logger.info('Skill Y upgraded', { oldLevel: currentLevel, newLevel: this.heroSkills.skillY });
         } else {
             Logger.error('Invalid skill key', { skillKey });
@@ -281,12 +285,20 @@ export const GS = {
     
     // Get skill level
     getSkillLevel(skillKey) {
-        if (skillKey === 'Q') return this.heroSkills.skillQ || 0;
-        if (skillKey === 'R') return this.heroSkills.skillR || 0;
-        if (skillKey === 'T') return this.heroSkills.skillT || 0;
-        if (skillKey === 'Y') return this.heroSkills.skillY || 0;
-        Logger.warn('getSkillLevel: invalid key', { skillKey });
-        return 0;
+        let level = 0;
+        if (skillKey === 'Q') level = this.heroSkills.skillQ || 0;
+        else if (skillKey === 'R') level = this.heroSkills.skillR || 0;
+        else if (skillKey === 'T') level = this.heroSkills.skillT || 0;
+        else if (skillKey === 'Y') level = this.heroSkills.skillY || 0;
+        else {
+            Logger.warn('getSkillLevel: invalid key', { skillKey });
+            return 0;
+        }
+        // Ensure level is a valid number
+        level = Number(level) || 0;
+        if (isNaN(level) || level < 0) level = 0;
+        if (level > 4) level = 4;
+        return level;
     },
     
     // Add ultimate charge (from kills)
