@@ -93,10 +93,10 @@ export function createHUD() {
         z(96)
     ]);
     
-    // Hero portrait (left side)
+    // Hero portrait (left side, but not overlapping minimap - minimap is at x=10, y=80, size=180)
     const hero = HEROES[GS.selectedHero];
     const portraitSize = 80;
-    const portraitX = 20;
+    const portraitX = 220; // Right of minimap (10 + 180 + 30 gap)
     const portraitY = heroPanelY + heroPanelHeight / 2;
     
     if (hero) {
