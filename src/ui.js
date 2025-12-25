@@ -20,36 +20,7 @@ export function createHUD() {
     const VW = CONFIG.VIEWPORT_WIDTH;
     const VH = CONFIG.VIEWPORT_HEIGHT;
     
-    // ==================== COMPACT UI ====================
-    
-    // HP bar frame - compact
-    add([rect(160, 22), pos(10, 10), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(156, 18), pos(12, 12), color(20, 15, 12), fixed(), z(100)]);
-    const hpBar = add([rect(152, 14), pos(14, 14), color(180, 50, 50), fixed(), z(101)]);
-    const hpTxt = add([text("100/100", { size: 11 }), pos(90, 21), anchor("center"), color(255, 255, 255), fixed(), z(102)]);
-    
-    // Stamina bar - compact (inline with HP)
-    add([rect(100, 12), pos(10, 34), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(96, 8), pos(12, 36), color(20, 15, 12), fixed(), z(100)]);
-    const stamBar = add([rect(92, 6), pos(14, 37), color(80, 160, 200), fixed(), z(101)]);
-    
-    // Stamina exhaustion indicator
-    const stamExhaust = add([text("", { size: 9 }), pos(60, 40), anchor("center"), color(255, 100, 100), fixed(), z(102)]);
-    
-    // Mana bar - below stamina
-    add([rect(100, 12), pos(10, 48), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(96, 8), pos(12, 50), color(20, 15, 12), fixed(), z(100)]);
-    const manaBar = add([rect(92, 6), pos(14, 51), color(100, 100, 255), fixed(), z(101)]);
-    const manaTxt = add([text("100/100", { size: 9 }), pos(60, 54), anchor("center"), color(200, 200, 255), fixed(), z(102)]);
-    
-    // XP bar - thin line below mana
-    add([rect(100, 8), pos(10, 62), color(40, 30, 25), fixed(), z(99)]);
-    add([rect(96, 4), pos(12, 64), color(20, 15, 12), fixed(), z(100)]);
-    const xpBar = add([rect(0, 3), pos(13, 64.5), color(220, 180, 80), fixed(), z(101)]);
-    const lvTxt = add([text("LV.1", { size: 10 }), pos(115, 65), anchor("left"), color(255, 220, 100), fixed(), z(102)]);
-    
-    // Skill points indicator (top left, below XP)
-    const skillPointsTxt = add([text("", { size: 11 }), pos(10, 74), anchor("left"), color(255, 220, 100), fixed(), z(102)]);
+    // ==================== TOP UI (Level, Room, Score, Gold) ====================
     
     // Level & Room indicator (top center) - compact
     add([rect(140, 40), pos(VW / 2, 8), anchor("top"), color(40, 30, 25), fixed(), z(99)]);
@@ -73,9 +44,228 @@ export function createHUD() {
     // Passive skills (bottom right) - compact
     const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
     
-    // ==================== HERO SKILLS UI (Bottom center, square layout) ====================
-    // Show active hero skills at bottom of screen in a square grid
-    const skillsBarY = VH - 90;
+    // ==================== HERO PANEL (Bottom, Dota-style) ====================
+    const heroPanelHeight = 120;
+    const heroPanelY = VH - heroPanelHeight;
+    
+    // Hero panel background (full width at bottom)
+    const heroPanelBg = add([
+        rect(VW, heroPanelHeight),
+        pos(0, heroPanelY),
+        color(20, 15, 10),
+        opacity(0.95),
+        fixed(),
+        z(95)
+    ]);
+    
+    const heroPanelFrame = add([
+        rect(VW, 2),
+        pos(0, heroPanelY),
+        color(80, 60, 40),
+        fixed(),
+        z(96)
+    ]);
+    
+    // Hero portrait (left side)
+    const hero = HEROES[GS.selectedHero];
+    const portraitSize = 80;
+    const portraitX = 20;
+    const portraitY = heroPanelY + heroPanelHeight / 2;
+    
+    if (hero) {
+        // Portrait background
+        add([
+            rect(portraitSize + 4, portraitSize + 4),
+            pos(portraitX, portraitY),
+            anchor("center"),
+            color(40, 30, 25),
+            fixed(),
+            z(97)
+        ]);
+        
+        // Portrait icon
+        const heroPortrait = add([
+            text(hero.icon, { size: 56 }),
+            pos(portraitX, portraitY - 8),
+            anchor("center"),
+            fixed(),
+            z(98)
+        ]);
+        
+        // Hero name
+        const heroNameTxt = add([
+            text(hero.name, { size: 12 }),
+            pos(portraitX, portraitY + 38),
+            anchor("center"),
+            color(...hero.color),
+            fixed(),
+            z(98)
+        ]);
+    }
+    
+    // HP and Mana bars (right of portrait)
+    const barsX = portraitX + portraitSize / 2 + 20;
+    const barsY = portraitY - 25;
+    const barWidth = 200;
+    const barHeight = 16;
+    
+    // HP bar
+    add([
+        rect(barWidth + 4, barHeight + 4),
+        pos(barsX, barsY),
+        anchor("topleft"),
+        color(40, 30, 25),
+        fixed(),
+        z(97)
+    ]);
+    const hpBar = add([
+        rect(barWidth, barHeight),
+        pos(barsX + 2, barsY + 2),
+        anchor("topleft"),
+        color(180, 50, 50),
+        fixed(),
+        z(98)
+    ]);
+    const hpTxt = add([
+        text("100/100", { size: 11 }),
+        pos(barsX + barWidth / 2, barsY + barHeight / 2 + 1),
+        anchor("center"),
+        color(255, 255, 255),
+        fixed(),
+        z(99)
+    ]);
+    
+    // Mana bar
+    const manaBarY = barsY + barHeight + 8;
+    add([
+        rect(barWidth + 4, barHeight + 4),
+        pos(barsX, manaBarY),
+        anchor("topleft"),
+        color(40, 30, 25),
+        fixed(),
+        z(97)
+    ]);
+    const manaBar = add([
+        rect(barWidth, barHeight),
+        pos(barsX + 2, manaBarY + 2),
+        anchor("topleft"),
+        color(100, 100, 255),
+        fixed(),
+        z(98)
+    ]);
+    const manaTxt = add([
+        text("100/100", { size: 11 }),
+        pos(barsX + barWidth / 2, manaBarY + barHeight / 2 + 1),
+        anchor("center"),
+        color(200, 200, 255),
+        fixed(),
+        z(99)
+    ]);
+    
+    // Stats panel (right side of bars)
+    const statsX = barsX + barWidth + 30;
+    const statsY = barsY;
+    const statsGap = 18;
+    
+    // Attack Damage (Melee)
+    const meleeDmgTxt = add([
+        text("⚔️ Melee: 0", { size: 11 }),
+        pos(statsX, statsY),
+        anchor("topleft"),
+        color(255, 150, 100),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Attack Damage (Ranged)
+    const rangedDmgTxt = add([
+        text("🏹 Ranged: 0", { size: 11 }),
+        pos(statsX, statsY + statsGap),
+        anchor("topleft"),
+        color(150, 200, 255),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Attack Range
+    const attackRangeTxt = add([
+        text("📏 Range: 0px", { size: 11 }),
+        pos(statsX, statsY + statsGap * 2),
+        anchor("topleft"),
+        color(200, 200, 150),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Level
+    const lvTxt = add([
+        text("LV.1", { size: 12 }),
+        pos(statsX, statsY + statsGap * 3),
+        anchor("topleft"),
+        color(255, 220, 100),
+        fixed(),
+        z(98)
+    ]);
+    
+    // XP bar (below level)
+    const xpBarY = statsY + statsGap * 3 + 18;
+    add([
+        rect(150, 6),
+        pos(statsX, xpBarY),
+        anchor("topleft"),
+        color(40, 30, 25),
+        fixed(),
+        z(97)
+    ]);
+    const xpBar = add([
+        rect(0, 4),
+        pos(statsX + 1, xpBarY + 1),
+        anchor("topleft"),
+        color(220, 180, 80),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Skill points indicator
+    const skillPointsTxt = add([
+        text("", { size: 11 }),
+        pos(statsX, xpBarY + 10),
+        anchor("topleft"),
+        color(255, 220, 100),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Stamina bar (below mana)
+    const stamBarY = manaBarY + barHeight + 8;
+    add([
+        rect(barWidth + 4, 8),
+        pos(barsX, stamBarY),
+        anchor("topleft"),
+        color(40, 30, 25),
+        fixed(),
+        z(97)
+    ]);
+    const stamBar = add([
+        rect(barWidth, 6),
+        pos(barsX + 2, stamBarY + 1),
+        anchor("topleft"),
+        color(80, 160, 200),
+        fixed(),
+        z(98)
+    ]);
+    const stamExhaust = add([
+        text("", { size: 9 }),
+        pos(barsX + barWidth / 2, stamBarY + 4),
+        anchor("center"),
+        color(255, 100, 100),
+        fixed(),
+        z(99)
+    ]);
+    
+    // ==================== HERO SKILLS UI (Above hero panel) ====================
+    // Show active hero skills above hero panel
+    const skillsBarY = heroPanelY - 70;
     const skillIconSize = 50;  // Square icons
     const skillIconGap = 6;
     const skillsBarWidth = skillIconSize * 4 + skillIconGap * 3;
@@ -615,9 +805,11 @@ export function createHUD() {
         const pl = GS.player;
         const stats = GS.getStats();
         
-        // HP bar (compact = 152)
+        // ==================== HERO PANEL UPDATE ====================
+        
+        // HP bar
         const hpPct = Math.max(0, pl.hp / pl.maxHp);
-        hpBar.width = 152 * hpPct;
+        hpBar.width = 200 * hpPct;
         hpTxt.text = `${Math.floor(Math.max(0, pl.hp))}/${Math.floor(pl.maxHp)}`;
         
         // HP color gradient
@@ -641,10 +833,26 @@ export function createHUD() {
             }
         }
         
-        // Stamina (compact = 92)
+        // Mana bar
+        const maxMana = pl.maxMana || 100;
+        const manaPct = Math.max(0, pl.mana / maxMana);
+        manaBar.width = 200 * manaPct;
+        manaTxt.text = `${Math.floor(Math.max(0, pl.mana))}/${Math.floor(maxMana)}`;
+        
+        // Mana color gradient
+        if (manaPct > 0.5) {
+            manaBar.color = rgb(100, 100, 255);
+        } else if (manaPct > 0.25) {
+            manaBar.color = rgb(150, 150, 255);
+        } else {
+            manaBar.color = rgb(200, 100, 100);
+            manaBar.opacity = 0.7 + Math.sin(time() * 10) * 0.3;
+        }
+        
+        // Stamina
         const maxStam = pl.maxStamina || CONFIG.SPRINT_MAX_STAMINA;
         const stamPct = pl.stamina / maxStam;
-        stamBar.width = 92 * stamPct;
+        stamBar.width = 200 * stamPct;
         
         // Stamina exhaustion indicator
         if (pl.staminaExhausted) {
@@ -658,25 +866,24 @@ export function createHUD() {
             stamExhaust.text = "";
         }
         
-        // Mana bar
-        const maxMana = pl.maxMana || 100;
-        const manaPct = Math.max(0, pl.mana / maxMana);
-        manaBar.width = 92 * manaPct;
-        manaTxt.text = `${Math.floor(Math.max(0, pl.mana))}/${Math.floor(maxMana)}`;
+        // Stats display
+        const hero = HEROES[GS.selectedHero];
+        const heroMelee = hero?.melee || {};
+        const heroRanged = hero?.ranged || {};
+        const meleeRange = heroMelee.meleeRange || CONFIG.PLAYER_ATTACK_RADIUS;
+        const meleeDamageMult = heroMelee.meleeDamageMultiplier || (heroMelee.isMeleeSpecialist !== false ? 1.5 : 0.5);
+        const rangedDamageMult = heroRanged.damageMultiplier || 1.0;
         
-        // Mana color gradient
-        if (manaPct > 0.5) {
-            manaBar.color = rgb(100, 100, 255);
-        } else if (manaPct > 0.25) {
-            manaBar.color = rgb(150, 150, 255);
-        } else {
-            manaBar.color = rgb(200, 100, 100);
-            manaBar.opacity = 0.7 + Math.sin(time() * 10) * 0.3;
-        }
+        const finalMeleeDmg = Math.floor(stats.meleeDamage * meleeDamageMult);
+        const finalRangedDmg = Math.floor(stats.rangedDamage * rangedDamageMult);
         
-        // XP (compact = 94)
-        xpBar.width = 94 * GS.getXPProgress();
+        meleeDmgTxt.text = `⚔️ Melee: ${finalMeleeDmg}`;
+        rangedDmgTxt.text = `🏹 Ranged: ${finalRangedDmg}`;
+        attackRangeTxt.text = `📏 Range: ${meleeRange}px`;
+        
+        // Level and XP
         lvTxt.text = `LV.${GS.playerLevel}`;
+        xpBar.width = 150 * GS.getXPProgress();
         
         // Skill points indicator
         if (GS.skillPoints > 0) {
