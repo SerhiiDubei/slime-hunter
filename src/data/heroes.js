@@ -13,11 +13,19 @@ export const HEROES = {
         
         // Base stats modifiers
         stats: {
-            meleeDamage: 1.3,      // +30% melee damage
+            meleeDamage: 2.0,      // +100% melee damage - MELEE SPECIALIST!
             rangedDamage: 0.8,     // -20% ranged (not his specialty)
             moveSpeed: 0.9,        // Slower
             maxHp: 1.5,            // +50% HP - TANK
             stamina: 0.85,
+        },
+        
+        // Melee attack properties
+        melee: {
+            isMeleeSpecialist: true,  // Strong directional melee
+            meleeRange: 80,           // Longer melee range
+            meleeWidth: 60,           // Wide directional attack
+            meleeDamageMultiplier: 2.0, // Double damage
         },
         
         // HEAVY AXE THROW - slow, big, DEVASTATING
@@ -71,11 +79,19 @@ export const HEROES = {
         color: [120, 80, 200],
         
         stats: {
-            meleeDamage: 0.5,      // -50% melee (stay away!)
+            meleeDamage: 0.3,      // -70% melee (stay away! RANGED ONLY)
             rangedDamage: 1.4,     // +40% ranged damage!
             moveSpeed: 0.85,       // Slower movement
             maxHp: 0.6,            // -40% HP (VERY squishy)
             stamina: 1.3,
+        },
+        
+        // Melee attack properties
+        melee: {
+            isMeleeSpecialist: false,  // Weak melee
+            meleeRange: 40,            // Short melee range
+            meleeWidth: 30,            // Narrow melee
+            meleeDamageMultiplier: 0.3, // Very weak melee
         },
         
         // ARCANE BOLT - fast, piercing, multiple shots
@@ -128,11 +144,19 @@ export const HEROES = {
         color: [80, 180, 100],
         
         stats: {
-            meleeDamage: 1.15,     // +15% melee
+            meleeDamage: 1.5,      // +50% melee - MELEE SPECIALIST!
             rangedDamage: 1.1,     // +10% ranged
             moveSpeed: 1.5,        // +50% speed! FASTEST
             maxHp: 0.75,           // -25% HP
             stamina: 2.0,          // +100% stamina - sprint forever
+        },
+        
+        // Melee attack properties
+        melee: {
+            isMeleeSpecialist: true,  // Strong directional melee
+            meleeRange: 70,           // Good melee range
+            meleeWidth: 50,           // Medium width
+            meleeDamageMultiplier: 1.5, // Strong melee
         },
         
         // TRIPLE DAGGER BURST - shoots 3 daggers at once
@@ -189,49 +213,57 @@ export const HEROES = {
         color: [100, 150, 80],
         
         stats: {
-            meleeDamage: 1.0,      // Balanced
-            rangedDamage: 1.2,     // +20% ranged
-            moveSpeed: 1.1,        // +10% speed
+            meleeDamage: 0.4,      // -60% melee (ranged specialist)
+            rangedDamage: 1.5,     // +50% ranged - RANGED SPECIALIST!
+            moveSpeed: 1.2,        // +20% speed
             maxHp: 1.0,            // Balanced HP
-            stamina: 1.2,          // +20% stamina
+            stamina: 1.5,          // +50% stamina
         },
         
-        // HOMING ARROW - tracks enemies
+        // Melee attack properties
+        melee: {
+            isMeleeSpecialist: false,  // Weak melee
+            meleeRange: 45,            // Short melee range
+            meleeWidth: 35,            // Narrow melee
+            meleeDamageMultiplier: 0.4, // Weak melee
+        },
+        
+        // HOMING ARROW - tracks enemies (IMPROVED!)
         ranged: {
             name: "Homing Arrow",
             description: "Arrows that track and follow enemies",
             projectileColor: [150, 200, 100],     // Green/brown
-            projectileSize: 12,                    // Medium
-            projectileSpeed: 380,                  // Medium speed
-            cooldown: 1.8,                         // Medium cooldown
-            damageMultiplier: 1.0,                 // Balanced damage
+            projectileSize: 14,                    // Larger
+            projectileSpeed: 420,                  // Faster
+            cooldown: 1.4,                         // Faster cooldown
+            damageMultiplier: 1.3,                 // More damage!
             piercing: false,
             projectileShape: "arrow",
             // Special: Arrows home in on enemies
             homing: true,
-            homingStrength: 0.15,                  // How much arrow curves
+            homingStrength: 0.25,                  // Stronger homing
             trailColor: [120, 180, 90],
         },
         
-        // Active ability
+        // Active ability (IMPROVED!)
         ability: {
             name: "MULTI-SHOT",
             icon: "🎯",
-            description: "Fires 5 arrows in a spread pattern",
-            cooldown: 7.0,
-            arrowCount: 5,
-            spreadAngle: 0.6,
-            damage: 18,
+            description: "Fires 7 arrows in a spread pattern",
+            cooldown: 6.0,          // Faster cooldown
+            arrowCount: 7,          // More arrows
+            spreadAngle: 0.7,
+            damage: 22,             // More damage
         },
         
         ultimate: {
             name: "ARROW STORM",
             icon: "🌪️",
             description: "Rains down arrows in a large area",
-            chargeNeeded: 6,
-            arrowCount: 20,
-            damage: 15,
-            radius: 250,
+            chargeNeeded: 5,        // Faster charge
+            arrowCount: 25,         // More arrows
+            damage: 18,             // More damage
+            radius: 280,            // Larger radius
         },
     },
 };

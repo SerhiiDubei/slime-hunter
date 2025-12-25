@@ -13,65 +13,83 @@ export function meleeAttack(spawnKeyFn) {
     const p = GS.player;
     if (!p || !p.exists() || p.atkCD > 0) return;
     
+    const hero = getHero(GS.selectedHero);
+    const heroMelee = hero.melee || {};
+    const isMeleeSpecialist = heroMelee.isMeleeSpecialist !== false; // Default true for melee heroes
+    const meleeRange = heroMelee.meleeRange || CONFIG.PLAYER_ATTACK_RADIUS;
+    const meleeWidth = heroMelee.meleeWidth || 50;
+    const meleeDamageMult = heroMelee.meleeDamageMultiplier || (isMeleeSpecialist ? 1.5 : 0.5);
+    
     p.atkCD = CONFIG.PLAYER_ATTACK_COOLDOWN;
     playSound('attack');
 
     const dir = GS.lastMoveDir;
-    const slashAngle = Math.atan2(dir.y, dir.x) * (180 / Math.PI);
+    const slashAngle = Math.atan2(dir.y, dir.x);
+    const angleDeg = slashAngle * (180 / Math.PI);
     
-    // Slash arc effect
-    const slashArc = add([
-        circle(CONFIG.PLAYER_ATTACK_RADIUS),
-        pos(p.pos),
-        color(255, 255, 150),
-        opacity(0.7),
+    // DIRECTIONAL MELEE ATTACK - конус в напрямку руху (не навколо!)
+    const attackStart = p.pos;
+    const attackEnd = vec2(
+        attackStart.x + Math.cos(slashAngle) * meleeRange,
+        attackStart.y + Math.sin(slashAngle) * meleeRange
+    );
+    
+    // Visual: Directional slash rectangle (not circle!)
+    const slashRect = add([
+        rect(meleeRange, meleeWidth),
+        pos(attackStart.x + Math.cos(slashAngle) * meleeRange / 2, 
+            attackStart.y + Math.sin(slashAngle) * meleeRange / 2),
+        color(255, 200, 100),
+        opacity(0.6),
         anchor("center"),
+        rotate(angleDeg),
         z(20),
-        scale(0.3),
         { t: 0 }
     ]);
     
-    slashArc.onUpdate(() => {
-        slashArc.t += dt();
-        slashArc.scale = vec2(0.3 + slashArc.t * 4);
-        slashArc.opacity = 0.7 - slashArc.t * 3;
-        if (slashArc.t > 0.2) destroy(slashArc);
+    slashRect.onUpdate(() => {
+        slashRect.t += dt();
+        slashRect.opacity = 0.6 - slashRect.t * 3;
+        if (slashRect.t > 0.2) destroy(slashRect);
     });
     
-    // Directional slash lines
-    for (let i = 0; i < 3; i++) {
-        const spreadAngle = slashAngle + (i - 1) * 25;
+    // Strong directional slash lines (for melee specialists)
+    const lineCount = isMeleeSpecialist ? 5 : 2;
+    for (let i = 0; i < lineCount; i++) {
+        const spreadAngle = slashAngle + (i - (lineCount - 1) / 2) * (isMeleeSpecialist ? 0.3 : 0.5);
+        const spreadDeg = spreadAngle * (180 / Math.PI);
         
         const slashLine = add([
-            rect(50, 6 - i),
+            rect(meleeRange, isMeleeSpecialist ? 8 : 4),
             pos(p.pos.x, p.pos.y),
-            color(255, 255, 200),
-            opacity(0.9 - i * 0.2),
+            color(isMeleeSpecialist ? [255, 150, 50] : [200, 200, 200]),
+            opacity(0.9 - i * 0.15),
             anchor("left"),
-            rotate(spreadAngle),
+            rotate(spreadDeg),
             z(19),
             { t: 0 }
         ]);
         
         slashLine.onUpdate(() => {
             slashLine.t += dt();
-            slashLine.width = 50 + slashLine.t * 100;
-            slashLine.opacity = (0.9 - i * 0.2) - slashLine.t * 5;
+            slashLine.width = meleeRange * (1 + slashLine.t * 2);
+            slashLine.opacity = (0.9 - i * 0.15) - slashLine.t * 5;
             if (slashLine.t > 0.15) destroy(slashLine);
         });
     }
     
-    // Sparkle particles
-    for (let i = 0; i < 8; i++) {
-        const angle = slashAngle * (Math.PI / 180) + rand(-0.5, 0.5);
-        const dist = 20 + rand(0, 30);
+    // Impact particles (stronger for melee specialists)
+    const particleCount = isMeleeSpecialist ? 12 : 6;
+    for (let i = 0; i < particleCount; i++) {
+        const angle = slashAngle + rand(-0.4, 0.4);
+        const dist = rand(meleeRange * 0.3, meleeRange * 0.8);
         const px = p.pos.x + Math.cos(angle) * dist;
         const py = p.pos.y + Math.sin(angle) * dist;
         
         const spark = add([
             rect(rand(3, 8), rand(2, 4)),
             pos(px, py),
-            color(255, 255, rand(150, 255)),
+            color(isMeleeSpecialist ? [255, 200, 100] : [200, 200, 200]),
             opacity(1),
             anchor("center"),
             rotate(rand(0, 360)),
@@ -89,17 +107,31 @@ export function meleeAttack(spawnKeyFn) {
         });
     }
     
-    shake(2);
+    shake(isMeleeSpecialist ? 4 : 2);
     
-    // Deal damage
+    // Deal damage - DIRECTIONAL CHECK (not circular!)
     const stats = GS.getStats();
+    const baseDamage = stats.meleeDamage * meleeDamageMult;
+    
     for (const e of GS.enemies) {
         if (!e || !e.exists()) continue;
-        if (p.pos.dist(e.pos) <= CONFIG.PLAYER_ATTACK_RADIUS) {
-            e.hp -= stats.meleeDamage;
+        
+        // Check if enemy is in directional attack area (cone/rectangle)
+        const toEnemy = e.pos.sub(attackStart);
+        const dist = toEnemy.len();
+        const angleToEnemy = Math.atan2(toEnemy.y, toEnemy.x);
+        const angleDiff = Math.abs(angleToEnemy - slashAngle);
+        const normalizedAngleDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff);
+        
+        // Check if in range and in angle cone
+        const halfWidth = (meleeWidth / 2) / meleeRange; // Convert to angle
+        if (dist <= meleeRange && normalizedAngleDiff <= halfWidth) {
+            e.hp -= baseDamage;
             
-            const knockDir = e.pos.sub(p.pos).unit();
-            e.pos = e.pos.add(knockDir.scale(e.isBoss ? 15 : 30));
+            // Stronger knockback for melee specialists
+            const knockDir = toEnemy.unit();
+            const knockAmount = isMeleeSpecialist ? (e.isBoss ? 25 : 50) : (e.isBoss ? 10 : 20);
+            e.pos = e.pos.add(knockDir.scale(knockAmount));
             
             createHitFX(e.pos);
             
