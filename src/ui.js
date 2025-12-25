@@ -186,7 +186,7 @@ export function createHUD() {
             icon: skillIcon, 
             level: skillLevel, 
             keyLabel: keyLabel,
-            skillKey: pos.key,
+            skillKey: skillPos.key,
             cooldownOverlay: cooldownOverlay,
             cooldownText: cooldownText
         });
