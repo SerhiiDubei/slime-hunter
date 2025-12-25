@@ -253,8 +253,9 @@ function abilityShieldBash(config) {
         charge.t += dt;
         charge.dist += 300 * dt;
         
-        // Move forward
-        const moveDir = dir.scale(300 * dt);
+        // Move forward - use vec2 to avoid minification conflicts
+        const vec2Fn = getKaboomFn('vec2');
+        const moveDir = vec2Fn ? vec2Fn(dir.x * 300 * dt, dir.y * 300 * dt) : { x: dir.x * 300 * dt, y: dir.y * 300 * dt };
         p.pos = p.pos.add(moveDir);
         
         // Damage and stun enemies
