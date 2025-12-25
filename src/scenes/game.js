@@ -403,42 +403,18 @@ function distributeEnemyWeight(totalWeight, level) {
 
 // Called when all room enemies are killed
 function onRoomCleared() {
-    // #region agent log
-    Logger.debug('🔑 onRoomCleared:ENTRY', { 
-        currentRoom: GS.currentRoom, 
-        level: GS.currentLevel, 
-        roomCleared: GS.roomCleared 
-    });
-    // #endregion
-    
     Logger.info('Room cleared!', { room: GS.currentRoom, level: GS.currentLevel });
     
     GS.roomCleared = true;
     
     // Mark room as cleared in dungeon
     const dungeon = GS.dungeon;
-    // #region agent log
-    Logger.debug('🔑 onRoomCleared:DUNGEON', { 
-        dungeon: !!dungeon, 
-        currentRoomId: dungeon?.currentRoomId 
-    });
-    // #endregion
     
     if (dungeon) {
         dungeon.clearCurrentRoom();
     }
     
     const currentRoom = dungeon ? dungeon.getCurrentRoom() : null;
-    
-    // #region agent log
-    Logger.debug('🔑 onRoomCleared:CURRENT_ROOM', { 
-        currentRoom: currentRoom ? {
-            id: currentRoom.id,
-            type: currentRoom.type,
-            cleared: currentRoom.cleared
-        } : null 
-    });
-    // #endregion
     
     // Spawn key in non-boss, non-start rooms (if not already collected)
     if (!currentRoom) {
@@ -449,19 +425,9 @@ function onRoomCleared() {
         return;
     }
     
-    // #region agent log
-    Logger.debug('🔑 onRoomCleared:ROOM_TYPE_CHECK', { 
-        roomType: currentRoom.type,
-        isBoss: currentRoom.type === ROOM_TYPES.BOSS,
-        isStart: currentRoom.type === ROOM_TYPES.START,
-        roomId: currentRoom.id,
-        allRoomTypes: Object.values(ROOM_TYPES)
-    });
-    // #endregion
-    
     // For BOSS rooms: spawn level progression key
     if (currentRoom.type === ROOM_TYPES.BOSS) {
-        Logger.info('🔑 BOSS ROOM CLEARED - Spawning level progression key', { 
+        Logger.info('BOSS ROOM CLEARED - Spawning level progression key', { 
             roomId: currentRoom.id,
             currentLevel: GS.currentLevel,
             maxLevels: CONFIG.MAX_LEVELS
@@ -474,7 +440,7 @@ function onRoomCleared() {
         if (p && p.exists() && p.pos && !GS.collectedKeys.includes(BOSS_KEY_ID)) {
             wait(0.5, () => {
                 try {
-                    Logger.info('🔑 BOSS KEY SPAWN - Calling spawnKey for boss', { 
+                    Logger.info('BOSS KEY SPAWN - Calling spawnKey for boss', { 
                         bossKeyId: BOSS_KEY_ID,
                         playerPos: { x: p.pos.x, y: p.pos.y },
                         currentLevel: GS.currentLevel
@@ -491,31 +457,15 @@ function onRoomCleared() {
                 }
             });
         } else if (GS.collectedKeys.includes(BOSS_KEY_ID)) {
-            Logger.info('🔑 BOSS KEY already collected', { bossKeyId: BOSS_KEY_ID });
+            Logger.info('BOSS KEY already collected', { bossKeyId: BOSS_KEY_ID });
         } else {
             Logger.warn('🔑 Cannot spawn boss key - player invalid', { 
                 player: p ? { exists: p.exists(), hasPos: !!p.pos } : null 
             });
         }
     } else if (currentRoom.type !== ROOM_TYPES.START) {
-        // #region agent log
-        Logger.debug('🔑 onRoomCleared:KEY_CHECK', { 
-            roomId: currentRoom.id,
-            collectedKeys: GS.collectedKeys,
-            alreadyCollected: GS.collectedKeys.includes(currentRoom.id)
-        });
-        // #endregion
-        
         if (!GS.collectedKeys.includes(currentRoom.id)) {
             const p = GS.player;
-            // #region agent log
-            Logger.debug('🔑 onRoomCleared:PLAYER_CHECK', { 
-                player: !!p,
-                exists: p?.exists(),
-                hasPos: !!p?.pos,
-                playerPos: p?.pos ? { x: p.pos.x, y: p.pos.y } : null
-            });
-            // #endregion
             
             if (p && p.exists() && p.pos) {
                 const roomId = currentRoom.id;
@@ -531,22 +481,8 @@ function onRoomCleared() {
                     });
                     // #endregion
         } else {
-                    // #region agent log
-                    Logger.info('🔑 onRoomCleared:SPAWN_SCHEDULED', { 
-                        roomId, 
-                        playerPos: { x: p.pos.x, y: p.pos.y }, 
-                        delay: 0.5 
-                    });
-                    // #endregion
-                    
                     wait(0.5, () => {
                         try {
-                            // #region agent log
-                            Logger.info('🔑 onRoomCleared:SPAWN_KEY - Calling spawnKey', { 
-                                roomId, 
-                                playerPos: { x: p.pos.x, y: p.pos.y } 
-                            });
-                            // #endregion
                             spawnKey(vec2(p.pos.x, p.pos.y - 60), roomId);
                         } catch (error) {
                             Logger.error('Failed to spawn key in onRoomCleared', {
@@ -580,29 +516,11 @@ function onRoomCleared() {
             }
         } else {
             Logger.info('Key already collected for this room', { roomId: currentRoom.id });
-            // #region agent log
-            Logger.info('🔑 onRoomCleared:KEY_ALREADY_COLLECTED', { 
-                roomId: currentRoom.id,
-                collectedKeys: GS.collectedKeys
-            });
-            // #endregion
         }
-    } else {
-        Logger.info('Room is BOSS or START, no key spawn', { roomType: currentRoom.type });
-        // #region agent log
-        Logger.info('🔑 onRoomCleared:NO_KEY_SPAWN', { 
-            roomType: currentRoom.type,
-            roomId: currentRoom.id,
-            reason: currentRoom.type === ROOM_TYPES.BOSS ? 'BOSS room' : 'START room'
-        });
-        // #endregion
     }
     
     // Check if all keys collected for boss door
-    const allKeysCollected = checkAllKeysCollected(dungeon);
-    
-    // #region agent log
-    Logger.debug('🔑 onRoomCleared:KEYS_CHECK', { 
+    const allKeysCollected = checkAllKeysCollected(dungeon); 
         allKeysCollected,
         collectedKeys: GS.collectedKeys,
         currentRoomId: currentRoom?.id
@@ -1714,138 +1632,219 @@ export function createGameScene() {
 
             onKeyPress("f1", () => { debug.inspect = !debug.inspect; });
             
-            // ==================== SKILL SELECTION UI (Dota/LoL style) ====================
-            let skillSelectButtons = [];
-            let skillSelectOverlay = null;
-            let skillSelectTitle = null;
+            // ==================== SKILL UPGRADE UI (In-game overlay) ====================
+            let skillUpgradeUI = [];
+            let skillUpgradeOverlay = null;
+            let skillUpgradeTitle = null;
             
-            function showSkillSelection() {
-                if (!GS.showSkillSelection || GS.skillSelectionOptions.length === 0) return;
-                if (skillSelectButtons.length > 0) return; // Already shown
+            function showSkillUpgradeUI() {
+                if (GS.skillPoints <= 0) return;
+                if (skillUpgradeUI.length > 0) return; // Already shown
                 
                 const VW = CONFIG.VIEWPORT_WIDTH;
                 const VH = CONFIG.VIEWPORT_HEIGHT;
                 const skillsBarY = VH - 80;
-                const buttonY = skillsBarY - 100;
+                const buttonY = skillsBarY - 120;
                 
                 // Semi-transparent overlay (not full screen)
-                skillSelectOverlay = add([
-                    rect(VW, 120),
-                    pos(0, buttonY - 20),
+                skillUpgradeOverlay = add([
+                    rect(VW, 100),
+                    pos(0, buttonY - 10),
                     color(0, 0, 0),
-                    opacity(0.6),
+                    opacity(0.7),
                     fixed(),
                     z(149),
-                    "skillSelectOverlay"
+                    "skillUpgradeOverlay"
                 ]);
                 
                 // Title
-                skillSelectTitle = add([
-                    text("LEVEL UP! Choose a skill:", { size: 18 }),
-                    pos(VW / 2, buttonY - 10),
+                skillUpgradeTitle = add([
+                    text(`SKILL POINT AVAILABLE! (${GS.skillPoints})`, { size: 16 }),
+                    pos(VW / 2, buttonY),
                     anchor("center"),
                     color(255, 220, 100),
                     fixed(),
                     z(150),
-                    "skillSelectUI"
+                    "skillUpgradeUI"
                 ]);
                 
-                // Create 3 skill buttons
-                const buttonWidth = 140;
-                const buttonHeight = 80;
-                const buttonGap = 20;
-                const startX = VW / 2 - (buttonWidth * GS.skillSelectionOptions.length + buttonGap * (GS.skillSelectionOptions.length - 1)) / 2;
+                // Get hero skills
+                const heroSkills = getHeroSkills(GS.selectedHero);
                 
-                GS.skillSelectionOptions.forEach((skill, index) => {
+                // All available skills (Q, R, T, Y)
+                const allSkills = [
+                    { key: 'Q', skill: heroSkills.skillQ },
+                    { key: 'R', skill: heroSkills.skillR },
+                    { key: 'T', skill: heroSkills.skillT },
+                    { key: 'Y', skill: heroSkills.skillY },
+                ];
+                
+                // Filter skills that can be upgraded
+                const upgradableSkills = allSkills.filter(({ key, skill }) => {
+                    const currentLevel = GS.getSkillLevel(key);
+                    if (key === 'Y' && GS.playerLevel < 5) return false;
+                    return currentLevel < 4;
+                });
+                
+                if (upgradableSkills.length === 0) return;
+                
+                // Create skill upgrade buttons
+                const buttonWidth = 120;
+                const buttonHeight = 70;
+                const buttonGap = 10;
+                const totalWidth = buttonWidth * upgradableSkills.length + buttonGap * (upgradableSkills.length - 1);
+                const startX = VW / 2 - totalWidth / 2;
+                
+                upgradableSkills.forEach(({ key, skill }, index) => {
                     const buttonX = startX + index * (buttonWidth + buttonGap) + buttonWidth / 2;
+                    const currentLevel = GS.getSkillLevel(key);
+                    const isLocked = key === 'Y' && GS.playerLevel < 5;
                     
                     // Button background
                     const btnBg = add([
                         rect(buttonWidth, buttonHeight, { radius: 6 }),
-                        pos(buttonX, buttonY + 20),
+                        pos(buttonX, buttonY + 40),
                         anchor("center"),
-                        color(60, 50, 40),
+                        color(isLocked ? 40 : 60, isLocked ? 30 : 50, isLocked ? 20 : 40),
                         area(),
                         fixed(),
                         z(150),
-                        "skillSelectBtn",
-                        { skillId: skill.id, skill: skill }
+                        "skillUpgradeBtn",
+                        { skillKey: key, skill: skill }
                     ]);
                     
-                    // Button border (glow on hover)
+                    // Button border
                     const btnBorder = add([
                         rect(buttonWidth + 4, buttonHeight + 4, { radius: 8 }),
-                        pos(buttonX, buttonY + 20),
+                        pos(buttonX, buttonY + 40),
                         anchor("center"),
                         color(100, 80, 60),
                         opacity(0),
                         fixed(),
                         z(149),
-                        "skillSelectBtnBorder"
+                        "skillUpgradeBtnBorder"
                     ]);
                     
                     // Skill icon
                     const btnIcon = add([
-                        text(skill.icon, { size: 32 }),
-                        pos(buttonX, buttonY + 5),
+                        text(isLocked ? "🔒" : skill.icon, { size: 28 }),
+                        pos(buttonX, buttonY + 20),
                         anchor("center"),
-                        color(255, 255, 255),
+                        color(isLocked ? 100 : 255, isLocked ? 100 : 255, isLocked ? 100 : 255),
                         fixed(),
                         z(151),
-                        "skillSelectUI"
+                        "skillUpgradeUI"
                     ]);
                     
-                    // Skill name
-                    const btnName = add([
-                        text(skill.name, { size: 12, width: buttonWidth - 10 }),
+                    // Key label
+                    const btnKey = add([
+                        text(`[${key}]`, { size: 11 }),
                         pos(buttonX, buttonY + 35),
+                        anchor("center"),
+                        color(200, 200, 200),
+                        fixed(),
+                        z(151),
+                        "skillUpgradeUI"
+                    ]);
+                    
+                    // Level indicator
+                    const btnLevel = add([
+                        text(isLocked ? "Lv5+" : `Lv${currentLevel}/4`, { size: 10 }),
+                        pos(buttonX, buttonY + 50),
                         anchor("center"),
                         color(255, 220, 100),
                         fixed(),
                         z(151),
-                        "skillSelectUI"
-                    ]);
-                    
-                    // Skill description (small)
-                    const btnDesc = add([
-                        text(skill.description, { size: 9, width: buttonWidth - 10 }),
-                        pos(buttonX, buttonY + 50),
-                        anchor("center"),
-                        color(180, 170, 160),
-                        fixed(),
-                        z(151),
-                        "skillSelectUI"
+                        "skillUpgradeUI"
                     ]);
                     
                     // Hover effects
-                    btnBg.onHoverUpdate(() => {
-                        btnBg.color = rgb(80, 70, 60);
-                        btnBorder.opacity = 0.8;
-                    });
+                    if (!isLocked) {
+                        btnBg.onHoverUpdate(() => {
+                            btnBg.color = rgb(80, 70, 60);
+                            btnBorder.opacity = 0.8;
+                        });
+                        
+                        btnBg.onHoverEnd(() => {
+                            btnBg.color = rgb(60, 50, 40);
+                            btnBorder.opacity = 0;
+                        });
+                    }
                     
-                    btnBg.onHoverEnd(() => {
-                        btnBg.color = rgb(60, 50, 40);
-                        btnBorder.opacity = 0;
-                    });
-                    
-                    skillSelectButtons.push({ bg: btnBg, border: btnBorder, icon: btnIcon, name: btnName, desc: btnDesc });
+                    skillUpgradeUI.push({ bg: btnBg, border: btnBorder, icon: btnIcon, key: btnKey, level: btnLevel, skillKey: key });
                 });
             }
             
-            function hideSkillSelection() {
-                skillSelectButtons.forEach(btn => {
+            function hideSkillUpgradeUI() {
+                skillUpgradeUI.forEach(btn => {
                     if (btn.bg && btn.bg.exists()) destroy(btn.bg);
                     if (btn.border && btn.border.exists()) destroy(btn.border);
                 });
-                skillSelectButtons = [];
-                get("skillSelectUI").forEach(e => destroy(e));
-                if (skillSelectOverlay && skillSelectOverlay.exists()) destroy(skillSelectOverlay);
-                if (skillSelectTitle && skillSelectTitle.exists()) destroy(skillSelectTitle);
-                skillSelectOverlay = null;
-                skillSelectTitle = null;
+                skillUpgradeUI = [];
+                get("skillUpgradeUI").forEach(e => destroy(e));
+                if (skillUpgradeOverlay && skillUpgradeOverlay.exists()) destroy(skillUpgradeOverlay);
+                if (skillUpgradeTitle && skillUpgradeTitle.exists()) destroy(skillUpgradeTitle);
+                skillUpgradeOverlay = null;
+                skillUpgradeTitle = null;
             }
             
-            // LEGACY CODE REMOVED - skill selection now handled by skillUpgradeUI above
+            // Click handler for skill upgrade buttons
+            onClick("skillUpgradeBtn", (btn) => {
+                const skillKey = btn.skillKey;
+                if (GS.upgradeSkill(skillKey)) {
+                    playSound('levelup');
+                    hideSkillUpgradeUI();
+                    // UI will show again if there are more skill points
+                } else {
+                    playSound('hit');
+                }
+            });
+            
+            // Keyboard selection (Q, R, T, Y)
+            onKeyPress("q", () => {
+                if (GS.skillPoints > 0 && GS.getSkillLevel('Q') < 4) {
+                    if (GS.upgradeSkill('Q')) {
+                        playSound('levelup');
+                        hideSkillUpgradeUI();
+                    }
+                }
+            });
+            
+            onKeyPress("r", () => {
+                if (GS.skillPoints > 0 && GS.getSkillLevel('R') < 4) {
+                    if (GS.upgradeSkill('R')) {
+                        playSound('levelup');
+                        hideSkillUpgradeUI();
+                    }
+                }
+            });
+            
+            onKeyPress("t", () => {
+                if (GS.skillPoints > 0 && GS.getSkillLevel('T') < 4) {
+                    if (GS.upgradeSkill('T')) {
+                        playSound('levelup');
+                        hideSkillUpgradeUI();
+                    }
+                }
+            });
+            
+            onKeyPress("y", () => {
+                if (GS.skillPoints > 0 && GS.playerLevel >= 5 && GS.getSkillLevel('Y') < 4) {
+                    if (GS.upgradeSkill('Y')) {
+                        playSound('levelup');
+                        hideSkillUpgradeUI();
+                    }
+                }
+            });
+            
+            // Show/hide skill upgrade UI based on skill points
+            onUpdate(() => {
+                if (GS.skillPoints > 0 && skillUpgradeUI.length === 0) {
+                    showSkillUpgradeUI();
+                } else if (GS.skillPoints <= 0 && skillUpgradeUI.length > 0) {
+                    hideSkillUpgradeUI();
+                }
+            });
             
             Logger.info('Game scene initialized', { 
                 room: GS.currentRoom + 1, 
