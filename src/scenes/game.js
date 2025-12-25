@@ -934,15 +934,19 @@ export function createGameScene() {
             const sortedPerf = perfEntries.sort((a, b) => b[1] - a[1]);
             const bottleneck = sortedPerf[0];
             
-            // Detailed performance output
-            Logger.debug('=== PERFORMANCE PROFILE ===', {
+            // Detailed performance output - ALWAYS LOG (not debug)
+            console.log('=== PERFORMANCE PROFILE ===', {
                 roomId: currentRoom.id,
                 roomShape: `${perf.roomShape.toFixed(2)}ms`,
                 floorCanvas: `${perf.floorCanvas.toFixed(2)}ms`,
                 floorDraw: `${perf.floorDraw.toFixed(2)}ms`,
-                floorLoad: `${perf.floorLoad.toFixed(2)}ms`
+                floorLoad: `${perf.floorLoad.toFixed(2)}ms`,
+                collisions: `${perf.collisions.toFixed(2)}ms`,
+                decorations: `${perf.decorations.toFixed(2)}ms`,
+                total: `${perf.total.toFixed(2)}ms`,
+                bottleneck: `${bottleneck[0]}: ${bottleneck[1].toFixed(2)}ms`
             });
-            Logger.debug('Performance details', {
+            console.log('Performance details', {
                 collisions: `${perf.collisions.toFixed(2)}ms`,
                 decorations: `${perf.decorations.toFixed(2)}ms`,
                 doors: `${(perf.doors || 0).toFixed(2)}ms`,
@@ -1142,7 +1146,77 @@ export function createGameScene() {
             let camUpdateTimer = 0;
             let roomClearCheckTimer = 0;
             let alreadyClearedTimer = 0;
+            
+            // ========== FPS & PERFORMANCE MONITORING ==========
+            let fpsTimer = 0;
+            let fpsLastTime = performance.now();
+            let frameTimeSum = 0;
+            let frameCount = 0;
+            let maxFrameTime = 0;
+            let minFrameTime = Infinity;
+            let slowFrameCount = 0; // Frames > 33ms (30fps)
+            
             onUpdate(() => {
+                const frameStart = performance.now();
+                
+                // FPS calculation
+                const currentTime = performance.now();
+                const frameTime = currentTime - fpsLastTime;
+                frameTimeSum += frameTime;
+                frameCount++;
+                
+                if (frameTime > maxFrameTime) maxFrameTime = frameTime;
+                if (frameTime < minFrameTime) minFrameTime = frameTime;
+                if (frameTime > 33.33) slowFrameCount++; // Frame took longer than 30fps
+                
+                fpsTimer += dt();
+                if (fpsTimer >= 2.0) { // Log every 2 seconds
+                    fpsTimer = 0;
+                    const avgFrameTime = frameTimeSum / frameCount;
+                    const fps = 1000 / avgFrameTime;
+                    const avgFPS = Math.round(fps);
+                    const slowFramePct = (slowFrameCount / frameCount * 100).toFixed(1);
+                    
+                    // Count entities
+                    const enemyCount = get('enemy').length;
+                    const projectileCount = get('projectile').length;
+                    const particleCount = get('particle').length;
+                    const decorationCount = get('decoration').length;
+                    const obstacleCount = get('obstacle').length;
+                    const totalEntities = enemyCount + projectileCount + particleCount + decorationCount + obstacleCount;
+                    
+                    console.log('=== FPS & PERFORMANCE ===', {
+                        fps: avgFPS,
+                        avgFrameTime: `${avgFrameTime.toFixed(2)}ms`,
+                        maxFrameTime: `${maxFrameTime.toFixed(2)}ms`,
+                        minFrameTime: `${minFrameTime.toFixed(2)}ms`,
+                        slowFrames: `${slowFrameCount}/${frameCount} (${slowFramePct}%)`,
+                        entities: {
+                            enemies: enemyCount,
+                            projectiles: projectileCount,
+                            particles: particleCount,
+                            decorations: decorationCount,
+                            obstacles: obstacleCount,
+                            total: totalEntities
+                        },
+                        memory: performance.memory ? {
+                            used: `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
+                            total: `${(performance.memory.totalJSHeapSize / 1024 / 1024).toFixed(2)}MB`,
+                            limit: `${(performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB`
+                        } : 'N/A',
+                        warnings: avgFPS < 30 ? '⚠️ LOW FPS!' : avgFPS < 50 ? '⚠️ MEDIUM FPS' : 'OK'
+                    });
+                    
+                    // Reset counters
+                    frameTimeSum = 0;
+                    frameCount = 0;
+                    maxFrameTime = 0;
+                    minFrameTime = Infinity;
+                    slowFrameCount = 0;
+                }
+                
+                fpsLastTime = currentTime;
+                
                 const rangedPressed = isKeyDown(rangedKey);
                 if (rangedPressed && !keyStates.ranged) doRangedAttack();
                 keyStates.ranged = rangedPressed;
@@ -1170,6 +1244,12 @@ export function createGameScene() {
                         const camY = Math.max(halfViewH, Math.min(p.pos.y, CONFIG.MAP_HEIGHT - halfViewH));
                         camPos(camX, camY);
                     }
+                }
+                
+                const frameEnd = performance.now();
+                const frameDuration = frameEnd - frameStart;
+                if (frameDuration > 16.67) { // Frame took longer than 60fps (16.67ms)
+                    console.warn('⚠️ Slow frame detected:', `${frameDuration.toFixed(2)}ms`);
                 }
                 
                 // Check if room is cleared (all enemies killed)

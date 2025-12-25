@@ -16,10 +16,10 @@ export const HERO_SKILLS = {
             key: "Q",
             description: "Charges forward, dealing damage and stunning enemies",
             levels: [
-                { damage: 25, range: 150, stunDuration: 1.0, knockback: 60, cooldown: 8.0, manaCost: 50 },
-                { damage: 35, range: 180, stunDuration: 1.5, knockback: 80, cooldown: 7.5, manaCost: 60 },
-                { damage: 45, range: 210, stunDuration: 2.0, knockback: 100, cooldown: 7.0, manaCost: 70 },
-                { damage: 60, range: 240, stunDuration: 2.5, knockback: 120, cooldown: 6.5, manaCost: 80 },
+                { damage: 25, range: 150, stunDuration: 1.0, knockback: 60, cooldown: 8.0, manaCost: 30 },   // 30% of 100
+                { damage: 35, range: 180, stunDuration: 1.5, knockback: 80, cooldown: 7.5, manaCost: 35 },   // 35% of 100
+                { damage: 45, range: 210, stunDuration: 2.0, knockback: 100, cooldown: 7.0, manaCost: 40 },  // 40% of 100
+                { damage: 60, range: 240, stunDuration: 2.5, knockback: 120, cooldown: 6.5, manaCost: 45 },  // 45% of 100
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -74,10 +74,10 @@ export const HERO_SKILLS = {
             description: "Damages and stuns all nearby enemies",
             isUltimate: true,
             levels: [
-                { damage: 30, radius: 200, stunDuration: 2.0, manaCost: 100 },
-                { damage: 45, radius: 240, stunDuration: 2.5, manaCost: 120 },
-                { damage: 60, radius: 280, stunDuration: 3.0, manaCost: 140 },
-                { damage: 80, radius: 320, stunDuration: 3.5, manaCost: 160 },
+                { damage: 30, radius: 200, stunDuration: 2.0, manaCost: 60 },   // 60% of 100
+                { damage: 45, radius: 240, stunDuration: 2.5, manaCost: 70 },   // 70% of 100
+                { damage: 60, radius: 280, stunDuration: 3.0, manaCost: 80 },   // 80% of 100
+                { damage: 80, radius: 320, stunDuration: 3.5, manaCost: 90 },   // 90% of 100 (max level)
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -96,10 +96,10 @@ export const HERO_SKILLS = {
             key: "Q",
             description: "Fires a piercing ice shard that freezes enemies",
             levels: [
-                { damage: 20, speed: 600, freezeDuration: 1.5, piercing: true, cooldown: 6.0, manaCost: 40 },
-                { damage: 30, speed: 650, freezeDuration: 2.0, piercing: true, cooldown: 5.5, manaCost: 50 },
-                { damage: 40, speed: 700, freezeDuration: 2.5, piercing: true, cooldown: 5.0, manaCost: 60 },
-                { damage: 55, speed: 750, freezeDuration: 3.0, piercing: true, cooldown: 4.5, manaCost: 70 },
+                { damage: 20, speed: 600, freezeDuration: 1.5, piercing: true, cooldown: 6.0, manaCost: 40 },   // 27% of 150
+                { damage: 30, speed: 650, freezeDuration: 2.0, piercing: true, cooldown: 5.5, manaCost: 50 },   // 33% of 150
+                { damage: 40, speed: 700, freezeDuration: 2.5, piercing: true, cooldown: 5.0, manaCost: 60 },   // 40% of 150
+                { damage: 55, speed: 750, freezeDuration: 3.0, piercing: true, cooldown: 4.5, manaCost: 70 },   // 47% of 150
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -154,10 +154,10 @@ export const HERO_SKILLS = {
             description: "Calls down a barrage of devastating meteors",
             isUltimate: true,
             levels: [
-                { meteorCount: 10, damage: 22, radius: 70, manaCost: 120 },
-                { meteorCount: 12, damage: 30, radius: 80, manaCost: 140 },
-                { meteorCount: 15, damage: 38, radius: 90, manaCost: 160 },
-                { meteorCount: 18, damage: 50, radius: 100, manaCost: 180 },
+                { meteorCount: 10, damage: 22, radius: 70, manaCost: 90 },   // 60% of 150
+                { meteorCount: 12, damage: 30, radius: 80, manaCost: 105 },  // 70% of 150
+                { meteorCount: 15, damage: 38, radius: 90, manaCost: 120 },  // 80% of 150
+                { meteorCount: 18, damage: 50, radius: 100, manaCost: 135 },  // 90% of 150 (max level)
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -176,10 +176,10 @@ export const HERO_SKILLS = {
             key: "Q",
             description: "Creates a smoke cloud that grants invisibility and speed boost",
             levels: [
-                { duration: 3.0, speedBoost: 1.5, radius: 120, cooldown: 10.0, manaCost: 60 },
-                { duration: 3.5, speedBoost: 1.7, radius: 140, cooldown: 9.0, manaCost: 70 },
-                { duration: 4.0, speedBoost: 2.0, radius: 160, cooldown: 8.0, manaCost: 80 },
-                { duration: 4.5, speedBoost: 2.3, radius: 180, cooldown: 7.0, manaCost: 90 },
+                { duration: 3.0, speedBoost: 1.5, radius: 120, cooldown: 10.0, manaCost: 35 },   // 35% of 100
+                { duration: 3.5, speedBoost: 1.7, radius: 140, cooldown: 9.0, manaCost: 40 },   // 40% of 100
+                { duration: 4.0, speedBoost: 2.0, radius: 160, cooldown: 8.0, manaCost: 45 },   // 45% of 100
+                { duration: 4.5, speedBoost: 2.3, radius: 180, cooldown: 7.0, manaCost: 50 },   // 50% of 100
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -235,10 +235,10 @@ export const HERO_SKILLS = {
             description: "Teleports to enemies and strikes each one",
             isUltimate: true,
             levels: [
-                { strikes: 6, damage: 20, invulnDuration: 1.2, manaCost: 110 },
-                { strikes: 7, damage: 28, invulnDuration: 1.4, manaCost: 130 },
-                { strikes: 8, damage: 36, invulnDuration: 1.6, manaCost: 150 },
-                { strikes: 10, damage: 45, invulnDuration: 1.8, manaCost: 170 },
+                { strikes: 6, damage: 20, invulnDuration: 1.2, manaCost: 60 },   // 60% of 100
+                { strikes: 7, damage: 28, invulnDuration: 1.4, manaCost: 70 },   // 70% of 100
+                { strikes: 8, damage: 36, invulnDuration: 1.6, manaCost: 80 },   // 80% of 100
+                { strikes: 10, damage: 45, invulnDuration: 1.8, manaCost: 90 },  // 90% of 100 (max level)
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -257,10 +257,10 @@ export const HERO_SKILLS = {
             key: "Q",
             description: "Fires multiple arrows in a spread pattern",
             levels: [
-                { arrowCount: 5, damage: 20, spreadAngle: 0.7, cooldown: 6.0, manaCost: 45 },
-                { arrowCount: 7, damage: 25, spreadAngle: 0.8, cooldown: 5.5, manaCost: 55 },
-                { arrowCount: 9, damage: 30, spreadAngle: 0.9, cooldown: 5.0, manaCost: 65 },
-                { arrowCount: 12, damage: 38, spreadAngle: 1.0, cooldown: 4.5, manaCost: 75 },
+                { arrowCount: 5, damage: 20, spreadAngle: 0.7, cooldown: 6.0, manaCost: 40 },   // 33% of 120
+                { arrowCount: 7, damage: 25, spreadAngle: 0.8, cooldown: 5.5, manaCost: 45 },   // 37% of 120
+                { arrowCount: 9, damage: 30, spreadAngle: 0.9, cooldown: 5.0, manaCost: 50 },   // 42% of 120
+                { arrowCount: 12, damage: 38, spreadAngle: 1.0, cooldown: 4.5, manaCost: 55 },  // 46% of 120
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -315,10 +315,10 @@ export const HERO_SKILLS = {
             description: "Rains down arrows in a large area",
             isUltimate: true,
             levels: [
-                { arrowCount: 25, damage: 18, radius: 280, manaCost: 115 },
-                { arrowCount: 30, damage: 24, radius: 320, manaCost: 135 },
-                { arrowCount: 35, damage: 30, radius: 360, manaCost: 155 },
-                { arrowCount: 45, damage: 40, radius: 400, manaCost: 175 },
+                { arrowCount: 25, damage: 18, radius: 280, manaCost: 75 },   // 62% of 120
+                { arrowCount: 30, damage: 24, radius: 320, manaCost: 85 },   // 71% of 120
+                { arrowCount: 35, damage: 30, radius: 360, manaCost: 95 },   // 79% of 120
+                { arrowCount: 45, damage: 40, radius: 400, manaCost: 105 },   // 87% of 120 (max level)
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -337,10 +337,10 @@ export const HERO_SKILLS = {
             key: "Q",
             description: "Instantly teleports to target location",
             levels: [
-                { range: 200, invulnDuration: 0.3, cooldown: 8.0, manaCost: 60 },
-                { range: 250, invulnDuration: 0.4, cooldown: 7.5, manaCost: 70 },
-                { range: 300, invulnDuration: 0.5, cooldown: 7.0, manaCost: 80 },
-                { range: 350, invulnDuration: 0.6, cooldown: 6.5, manaCost: 90 },
+                { range: 200, invulnDuration: 0.3, cooldown: 8.0, manaCost: 50 },   // 25% of 200
+                { range: 250, invulnDuration: 0.4, cooldown: 7.5, manaCost: 60 },   // 30% of 200
+                { range: 300, invulnDuration: 0.5, cooldown: 7.0, manaCost: 70 },   // 35% of 200
+                { range: 350, invulnDuration: 0.6, cooldown: 6.5, manaCost: 80 },   // 40% of 200
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];
@@ -395,10 +395,10 @@ export const HERO_SKILLS = {
             description: "Casts a devastating arcane storm that follows enemies",
             isUltimate: true,
             levels: [
-                { damage: 25, duration: 4.0, radius: 150, tickRate: 0.5, manaCost: 130 },
-                { damage: 35, duration: 5.0, radius: 180, tickRate: 0.4, manaCost: 150 },
-                { damage: 45, duration: 6.0, radius: 210, tickRate: 0.3, manaCost: 170 },
-                { damage: 60, duration: 7.0, radius: 240, tickRate: 0.25, manaCost: 190 },
+                { damage: 25, duration: 4.0, radius: 150, tickRate: 0.5, manaCost: 120 },   // 60% of 200
+                { damage: 35, duration: 5.0, radius: 180, tickRate: 0.4, manaCost: 140 },  // 70% of 200
+                { damage: 45, duration: 6.0, radius: 210, tickRate: 0.3, manaCost: 160 },  // 80% of 200
+                { damage: 60, duration: 7.0, radius: 240, tickRate: 0.25, manaCost: 180 },  // 90% of 200 (max level)
             ],
             getDescription(level) {
                 const lvl = this.levels[level - 1];

@@ -126,7 +126,7 @@ export function setupPlayerMovement(p) {
             }
         }
         
-        // Mana regeneration
+        // Mana regeneration (single implementation, no duplicate)
         if (p.mana < stats.maxMana) {
             p.mana = Math.min(stats.maxMana, p.mana + stats.manaRegen * dt());
         }
@@ -134,10 +134,6 @@ export function setupPlayerMovement(p) {
         p.stamina = clamp(p.stamina, 0, stats.maxStamina);
         p.maxStamina = stats.maxStamina;
         
-        // Mana regeneration
-        if (p.mana < stats.maxMana) {
-            p.mana += stats.manaRegen * dt();
-        }
         p.mana = clamp(p.mana, 0, stats.maxMana);
         p.maxMana = stats.maxMana;
         

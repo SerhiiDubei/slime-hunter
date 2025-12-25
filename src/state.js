@@ -437,6 +437,29 @@ export const GS = {
             }
         }
         
+        // Apply active skill T (stat bonuses)
+        if (this.heroSkills.skillT > 0) {
+            const skillT = heroSkills.skillT;
+            const level = this.heroSkills.skillT;
+            const effect = skillT.levels[level - 1];
+            
+            if (effect.manaRegenBonus) {
+                manaRegen = manaRegen * (1 + effect.manaRegenBonus);
+            }
+            if (effect.rangedCooldownReduction) {
+                rangedCooldown *= (1 - effect.rangedCooldownReduction);
+            }
+            if (effect.damageReduction) {
+                // Applied in damage calculation
+            }
+            if (effect.critChance) {
+                // Applied in attacks.js
+            }
+            if (effect.homingStrengthBonus) {
+                // Applied in attacks.js
+            }
+        }
+        
         return {
             meleeDamage,
             rangedDamage,

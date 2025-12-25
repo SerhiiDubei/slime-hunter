@@ -153,8 +153,8 @@ export const HEROES = {
             moveSpeed: 1.5,        // +50% speed! FASTEST
             maxHp: 0.75,           // -25% HP
             stamina: 2.0,          // +100% stamina - sprint forever
-            maxMana: 80,           // Lower mana pool
-            manaRegen: 1.5,        // Slower mana regen
+            maxMana: 100,          // Balanced mana pool (increased from 80)
+            manaRegen: 2.0,        // Balanced mana regen (increased from 1.5)
         },
         
         // Melee attack properties
