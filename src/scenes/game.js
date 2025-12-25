@@ -816,7 +816,9 @@ export function createGameScene() {
             const merged = [];
             const processed = new Set();
             
-            for (const [key, box] of collisionMap) {
+            for (const entry of collisionMap) {
+                const key = entry[0];
+                const box = entry[1];
                 if (processed.has(key)) continue;
                 
                 const coords = key.split(',').map(Number);
