@@ -72,43 +72,46 @@ export function createHUD() {
     // Passive skills (bottom right) - compact
     const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
     
-    // ==================== HERO SKILLS UI (Dota-style) ====================
-    // Show active hero skills on screen (top left, below level indicator)
-    const heroSkillsY = 60;
-    const heroSkillsContainer = add([
-        rect(200, 80),
-        pos(10, heroSkillsY),
+    // ==================== HERO SKILLS UI (Dota/LoL-style status bar) ====================
+    // Show active hero skills at bottom of screen (status bar style)
+    const skillsBarY = VH - 80;
+    const skillsBarWidth = 200;
+    const skillsBarHeight = 60;
+    
+    // Skills bar background
+    const skillsBarBg = add([
+        rect(skillsBarWidth, skillsBarHeight),
+        pos(VW / 2 - skillsBarWidth / 2, skillsBarY),
+        anchor("center"),
         color(40, 30, 25),
-        opacity(0.8),
+        opacity(0.9),
         fixed(),
         z(98)
     ]);
     
-    const heroSkillsBg = add([
-        rect(196, 76),
-        pos(12, heroSkillsY + 2),
+    const skillsBarFrame = add([
+        rect(skillsBarWidth - 4, skillsBarHeight - 4),
+        pos(VW / 2 - skillsBarWidth / 2 + 2, skillsBarY + 2),
+        anchor("center"),
         color(20, 15, 12),
-        opacity(0.9),
+        opacity(0.95),
         fixed(),
         z(99)
     ]);
     
-    const heroSkillsTitle = add([
-        text("SKILLS", { size: 10 }),
-        pos(14, heroSkillsY + 5),
-        color(200, 170, 120),
-        fixed(),
-        z(100)
-    ]);
-    
-    // Skill icons container
+    // Skill icons container (4 slots: 1 passive + 3 active) - horizontal layout
     const skillIcons = [];
+    const skillIconSize = 40;
+    const skillIconGap = 8;
+    const startX = VW / 2 - (skillIconSize * 4 + skillIconGap * 3) / 2;
+    
     for (let i = 0; i < 4; i++) {
-        const skillX = 14 + (i % 2) * 90;
-        const skillY = heroSkillsY + 20 + Math.floor(i / 2) * 30;
+        const skillX = startX + i * (skillIconSize + skillIconGap);
+        const skillY = skillsBarY + 10;
         
+        // Skill slot background
         const skillBg = add([
-            rect(28, 28),
+            rect(skillIconSize, skillIconSize),
             pos(skillX, skillY),
             color(30, 25, 20),
             fixed(),
@@ -116,9 +119,10 @@ export function createHUD() {
             `skillIcon${i}`
         ]);
         
+        // Skill icon
         const skillIcon = add([
-            text("", { size: 16 }),
-            pos(skillX + 14, skillY + 14),
+            text("", { size: 24 }),
+            pos(skillX + skillIconSize / 2, skillY + skillIconSize / 2),
             anchor("center"),
             color(200, 200, 200),
             fixed(),
@@ -126,7 +130,18 @@ export function createHUD() {
             `skillIconText${i}`
         ]);
         
-        skillIcons.push({ bg: skillBg, icon: skillIcon });
+        // Skill level indicator (for future upgrades)
+        const skillLevel = add([
+            text("", { size: 10 }),
+            pos(skillX + skillIconSize - 8, skillY + skillIconSize - 8),
+            anchor("center"),
+            color(255, 220, 100),
+            fixed(),
+            z(101),
+            `skillLevel${i}`
+        ]);
+        
+        skillIcons.push({ bg: skillBg, icon: skillIcon, level: skillLevel });
     }
 
     // Hero indicator (bottom left) - compact
