@@ -181,11 +181,19 @@ export function rangedAttack(spawnKeyFn) {
         const hero = getHero(GS.selectedHero);
         const heroRanged = hero.ranged || {};
         
+        // Hero-specific projectile properties (DEFINE FIRST!)
+        const projColor = heroRanged.projectileColor || [100, 200, 255];
+        const projSize = heroRanged.projectileSize || CONFIG.RANGED_SIZE;
+        const projSpeed = heroRanged.projectileSpeed || CONFIG.RANGED_SPEED;
+        const dmgMult = heroRanged.damageMultiplier || 1.0;
+        const piercing = heroRanged.piercing || false;
+        const projShape = heroRanged.projectileShape || "orb";
+        
         // Hero-specific cooldown
         const cooldown = heroRanged.cooldown || stats.rangedCooldown;
         p.rangedCD = cooldown;
         
-        // Play hero-specific ranged sound
+        // Play hero-specific ranged sound (NOW projShape is defined)
         if (projShape === 'axe') {
             playSound('ranged_axe');
         } else if (projShape === 'orb') {
@@ -197,14 +205,6 @@ export function rangedAttack(spawnKeyFn) {
         } else {
             playSound('ranged');  // Fallback
         }
-        
-        // Hero-specific projectile properties
-        const projColor = heroRanged.projectileColor || [100, 200, 255];
-        const projSize = heroRanged.projectileSize || CONFIG.RANGED_SIZE;
-        const projSpeed = heroRanged.projectileSpeed || CONFIG.RANGED_SPEED;
-        const dmgMult = heroRanged.damageMultiplier || 1.0;
-        const piercing = heroRanged.piercing || false;
-        const projShape = heroRanged.projectileShape || "orb";
         const hasPoison = heroRanged.poison || false;
         const poisonDmg = heroRanged.poisonDamage || 0;
         const poisonDur = heroRanged.poisonDuration || 0;
