@@ -1611,9 +1611,25 @@ export function killEnemy(e, spawnKeyFn) {
         playSound('levelup');
         createLevelUpFX(GS.player.pos);
         
-        // Show skill selection screen
-        wait(0.5, () => {
-            go("skillSelect");
+        // Show skill selection buttons (Dota/LoL style) - no full screen overlay
+        // Import dynamically to avoid circular dependency
+        import('../data/heroSkills.js').then(({ getHeroSkills }) => {
+            const heroSkills = getHeroSkills(GS.selectedHero);
+            const availableSkills = heroSkills.active.filter(skill => 
+                !GS.heroSkills.active.includes(skill.id)
+            );
+            
+            // Select 3 random skills (or all if less than 3 available)
+            const shuffled = [...availableSkills].sort(() => Math.random() - 0.5);
+            GS.skillSelectionOptions = [];
+            for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+                GS.skillSelectionOptions.push(shuffled[i]);
+            }
+            
+            // Show skill selection buttons (handled in game scene)
+            GS.showSkillSelection = true;
+        }).catch(err => {
+            Logger.error('Failed to load hero skills for selection', { error: err.message });
         });
     }
     
