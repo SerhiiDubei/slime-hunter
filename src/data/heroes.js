@@ -233,16 +233,17 @@ export const HEROES = {
             name: "Homing Arrow",
             description: "Arrows that track and follow enemies",
             projectileColor: [150, 200, 100],     // Green/brown
-            projectileSize: 14,                    // Larger
+            projectileSize: 10,                    // Smaller size
             projectileSpeed: 420,                  // Faster
             cooldown: 1.4,                         // Faster cooldown
             damageMultiplier: 1.3,                 // More damage!
-            piercing: false,
+            piercing: true,                        // PIERCING ARROWS!
             projectileShape: "arrow",
             // Special: Arrows home in on enemies
             homing: true,
             homingStrength: 0.25,                  // Stronger homing
             trailColor: [120, 180, 90],
+            maxPierceCount: 3,                     // Pierce up to 3 enemies
         },
         
         // Active ability (IMPROVED!)

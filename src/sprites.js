@@ -1543,31 +1543,31 @@ function makeMagicOrb() {
     return canvas.toDataURL();
 }
 
-// Arrow sprite (Ranger ranged) - simple arrow
+// Arrow sprite (Ranger ranged) - simple arrow (SMALLER)
 function makeArrowProjectile() {
-    const { canvas, ctx } = createCanvas(32, 8);
-    const cx = 16, cy = 4;
+    const { canvas, ctx } = createCanvas(24, 6);  // Smaller: 32x8 -> 24x6
+    const cx = 12, cy = 3;
     
     // Arrow shaft
     ctx.fillStyle = '#8b4513';
-    ctx.fillRect(4, cy - 1, 24, 2);
+    ctx.fillRect(3, cy - 0.5, 18, 1);
     
-    // Arrowhead
+    // Arrowhead (smaller)
     ctx.fillStyle = '#95a5a6';
     ctx.beginPath();
-    ctx.moveTo(28, cy);
-    ctx.lineTo(24, cy - 3);
-    ctx.lineTo(24, cy + 3);
+    ctx.moveTo(21, cy);
+    ctx.lineTo(18, cy - 2);
+    ctx.lineTo(18, cy + 2);
     ctx.closePath();
     ctx.fill();
     
-    // Fletching
+    // Fletching (smaller)
     ctx.fillStyle = '#2ecc71';
     ctx.beginPath();
-    ctx.moveTo(4, cy - 1);
-    ctx.lineTo(0, cy - 3);
-    ctx.lineTo(0, cy + 3);
-    ctx.lineTo(4, cy + 1);
+    ctx.moveTo(3, cy - 0.5);
+    ctx.lineTo(0, cy - 2);
+    ctx.lineTo(0, cy + 2);
+    ctx.lineTo(3, cy + 0.5);
     ctx.closePath();
     ctx.fill();
     
