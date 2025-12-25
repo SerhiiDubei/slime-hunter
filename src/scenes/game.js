@@ -1491,7 +1491,9 @@ export function createGameScene() {
                     
                     // Spawn enemies based on distribution
                     let spawnIndex = 0;
-                    for (const [enemyType, count] of Object.entries(enemyDistribution)) {
+                    for (const entry of Object.entries(enemyDistribution)) {
+                        const enemyType = entry[0];
+                        const count = entry[1];
                         if (!enemyType || !ENEMY_TYPES[enemyType]) {
                             Logger.warn('Invalid enemy type in distribution, skipping', { 
                                 enemyType, 
