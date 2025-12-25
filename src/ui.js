@@ -11,10 +11,7 @@ import { getSkillCooldown } from './abilities.js';
 import { Logger } from './logger.js';
 
 export function createHUD() {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cfda9218-06fc-4cdd-8ace-380746c59fe7',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ui.js:12',message:'createHUD entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    Logger.debug('[DBG$] createHUD entry');
-    // #endregion
+    
     
     // Use viewport dimensions for UI positioning
     const VW = CONFIG.VIEWPORT_WIDTH;
@@ -479,7 +476,7 @@ export function createHUD() {
     // Get hero skills
     const heroSkills = getHeroSkills(GS.selectedHero);
     
-    Logger.debug('[DBG$] before skill icons loop', { slots: skillPositions.length, hero: GS.selectedHero });
+    
     
     for (let i = 0; i < 4; i++) {
         const slotPos = skillPositions[i];
@@ -1115,14 +1112,14 @@ export function createHUD() {
         const heroSkills = getHeroSkills(GS.selectedHero);
         
         // Update each skill slot
-    Logger.debug('[DBG$] HUD update start', { slots: skillIcons.length, hero: GS.selectedHero });
+    
         skillIcons.forEach((slot, index) => {
         if (!slot) {
-            Logger.error('[DBG$] HUD slot missing', { index });
+            
             return;
         }
         if (!slot.icon || !slot.keyLabel) {
-            Logger.error('[DBG$] HUD slot missing fields', { index, hasIcon: !!slot.icon, hasKeyLabel: !!slot.keyLabel });
+            
             return;
         }
             const skillKey = slot.skillKey;
@@ -1145,27 +1142,18 @@ export function createHUD() {
             
             // Always show skill icon (gray if not learned, colored if learned)
             if (skill) {
-                // #region agent log
-                Logger.debug('[DBG$] HUD setting icon/keyLabel', { 
-                    index, 
-                    skillKey, 
-                    hasIcon: !!slot.icon, 
-                    hasKeyLabel: !!slot.keyLabel,
-                    iconExists: slot.icon && slot.icon.exists ? slot.icon.exists() : 'no_exists_method',
-                    keyLabelExists: slot.keyLabel && slot.keyLabel.exists ? slot.keyLabel.exists() : 'no_exists_method'
-                });
-                // #endregion
+                
                 
                 if (slot.icon && slot.icon.exists && slot.icon.exists()) {
                     slot.icon.text = skill.icon;
                 } else {
-                    Logger.warn('[DBG$] HUD icon invalid', { index, skillKey, icon: slot.icon });
+                    
                 }
                 
                 if (slot.keyLabel && slot.keyLabel.exists && slot.keyLabel.exists()) {
                     slot.keyLabel.text = skill.key || skillKey;
                 } else {
-                    Logger.warn('[DBG$] HUD keyLabel invalid', { index, skillKey, keyLabel: slot.keyLabel });
+                    
                 }
                 
                 // Check if skill is passive (no cooldown/manaCost) or active
