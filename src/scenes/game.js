@@ -1470,7 +1470,7 @@ export function createGameScene() {
                 GS.doorOpen = true;
                 currentRoom.cleared = true;
                 
-                // Spawn some gold pickups
+                // Spawn some gold pickups (💰 мішечки з золотом)
                 for (let i = 0; i < 5; i++) {
                     const gx = rand(150, CONFIG.MAP_WIDTH - 150);
                     const gy = rand(150, CONFIG.MAP_HEIGHT - 150);
@@ -1496,6 +1496,16 @@ export function createGameScene() {
                         }
                     });
                 }
+                
+                // CRITICAL FIX: Treasure rooms must also spawn keys!
+                // Call onRoomCleared to spawn key for treasure room
+                wait(0.3, () => {
+                    Logger.info('🔑 TREASURE ROOM - Calling onRoomCleared to spawn key', { 
+                        roomId: currentRoom.id,
+                        roomType: currentRoom.type
+                    });
+                    onRoomCleared();
+                });
             } else if (roomType === ROOM_TYPES.START && currentRoom.cleared) {
                 // Start room already cleared
                 Logger.info('Start room - already cleared');
