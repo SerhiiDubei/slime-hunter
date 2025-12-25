@@ -171,6 +171,8 @@ export function rangedAttack(spawnKeyFn) {
         const burstCount = heroRanged.burstCount || 1;
         const burstSpread = heroRanged.burstSpread || 0;
         const burstDelay = heroRanged.burstDelay || 0;
+        const isHoming = heroRanged.homing || false;
+        const homingStrength = heroRanged.homingStrength || 0.15;
         
         const dir = GS.lastMoveDir;
         const baseDamage = stats.rangedDamage * dmgMult;
@@ -192,7 +194,8 @@ export function rangedAttack(spawnKeyFn) {
                             color: projColor, size: projSize, speed: projSpeed,
                             damage: baseDamage, piercing, shape: projShape,
                             hasPoison, poisonDmg, poisonDur, knockback, spinSpeed,
-                            trailColor, maxPierceCount, spawnKeyFn
+                            trailColor, maxPierceCount, spawnKeyFn,
+                            isHoming, homingStrength
                         });
                     });
                     
