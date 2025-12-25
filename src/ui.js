@@ -111,9 +111,9 @@ export function createHUD() {
     ];
     
     for (let i = 0; i < 4; i++) {
-        const pos = skillPositions[i];
-        const skillX = startX + pos.x * (skillIconSize + skillIconGap);
-        const skillY = startY + pos.y * (skillIconSize + skillIconGap);
+        const skillPos = skillPositions[i];
+        const skillX = startX + skillPos.x * (skillIconSize + skillIconGap);
+        const skillY = startY + skillPos.y * (skillIconSize + skillIconGap);
         
         // Skill slot background (square)
         const skillBg = add([
