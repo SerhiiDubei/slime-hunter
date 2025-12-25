@@ -276,7 +276,7 @@ export function createHUD() {
         const rangeY = maxY - minY + 1;
         const roomSize = Math.min(minimapSize / (rangeX * 1.5), minimapSize / (rangeY * 1.5), 12); // Max room size
         const padding = 10;
-        const scale = Math.min(
+        const mapScale = Math.min(
             (minimapSize - padding * 2) / (rangeX * 1.5),
             (minimapSize - padding * 2) / (rangeY * 1.5)
         );
@@ -290,10 +290,10 @@ export function createHUD() {
                 const targetRoom = rooms[door.to];
                 if (!targetRoom) return;
                 
-                const x1 = offsetX + (room.x - (minX + maxX) / 2) * scale * 1.5;
-                const y1 = offsetY + (room.y - (minY + maxY) / 2) * scale * 1.5;
-                const x2 = offsetX + (targetRoom.x - (minX + maxX) / 2) * scale * 1.5;
-                const y2 = offsetY + (targetRoom.y - (minY + maxY) / 2) * scale * 1.5;
+                const x1 = offsetX + (room.x - (minX + maxX) / 2) * mapScale * 1.5;
+                const y1 = offsetY + (room.y - (minY + maxY) / 2) * mapScale * 1.5;
+                const x2 = offsetX + (targetRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
+                const y2 = offsetY + (targetRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
                 
                 // Draw corridor line
                 const dx = x2 - x1;
@@ -317,8 +317,8 @@ export function createHUD() {
         
         // Draw rooms
         rooms.forEach(room => {
-            const roomX = offsetX + (room.x - (minX + maxX) / 2) * scale * 1.5;
-            const roomY = offsetY + (room.y - (minY + maxY) / 2) * scale * 1.5;
+            const roomX = offsetX + (room.x - (minX + maxX) / 2) * mapScale * 1.5;
+            const roomY = offsetY + (room.y - (minY + maxY) / 2) * mapScale * 1.5;
             
             // Room color based on type and state
             let roomColor;
@@ -439,8 +439,8 @@ export function createHUD() {
                 const offsetX = minimapX + minimapSize / 2;
                 const offsetY = minimapY + minimapSize / 2;
                 
-                const roomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * scale * 1.5;
-                const roomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * scale * 1.5;
+                const roomX = offsetX + (currentRoom.x - (minX + maxX) / 2) * mapScale * 1.5;
+                const roomY = offsetY + (currentRoom.y - (minY + maxY) / 2) * mapScale * 1.5;
                 
                 minimapPlayerDot.pos.x = roomX;
                 minimapPlayerDot.pos.y = roomY;
@@ -612,7 +612,7 @@ export function createHUD() {
             }
             
             // Always show skill icon (gray if not learned, colored if learned)
-            if (skill) {
+                if (skill) {
                 slot.icon.text = skill.icon;
                 slot.keyLabel.text = skill.key || skillKey;
                 
