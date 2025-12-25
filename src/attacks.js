@@ -331,7 +331,7 @@ function createProjectile(startPos, baseDir, angleOffset, options) {
             { 
                 dir: d, dist: 0, dmg: damage, piercing,
                 hasPoison, poisonDmg, poisonDur, knockback,
-                pierceCount: 0, maxPierceCount, baseAngle: arrowAngle // Renamed to avoid conflict
+                pierceCount: 0, maxPierceCount
             }
         ]);
         
