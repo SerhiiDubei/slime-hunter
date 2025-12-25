@@ -142,7 +142,7 @@ export function createHUD() {
             fixed(),
             z(99),
             `skillIcon${i}`,
-            { skillKey: pos.key, skill: skill }
+            { skillKey: slotPos.key, skill: skill }
         ]);
         
         // Skill icon - always show (gray if not learned, colored if learned)
@@ -158,7 +158,7 @@ export function createHUD() {
         
         // Key label (Q, R, T, Y) - always visible
         const keyLabel = add([
-            text(skill ? skill.key : pos.key, { size: 12 }),
+            text(skill ? skill.key : slotPos.key, { size: 12 }),
             pos(skillX + skillIconSize / 2, skillY + skillIconSize - 12),
             anchor("center"),
             color(150, 150, 150), // Will be updated in onUpdate
@@ -214,9 +214,9 @@ export function createHUD() {
         skillIcons.push({ 
             bg: skillBg, 
             icon: skillIcon, 
-            level: skillLevel, 
+            levelDots: levelDots,
             keyLabel: keyLabel,
-            skillKey: skillPos.key,
+            skillKey: slotPos.key,
             cooldownOverlay: cooldownOverlay,
             cooldownText: cooldownText
         });
