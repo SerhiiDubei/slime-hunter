@@ -44,53 +44,120 @@ export function createHUD() {
     // Passive skills (bottom right) - compact
     const skillsTxt = add([text("", { size: 12 }), pos(VW - 10, VH - 10), anchor("botright"), color(180, 160, 120), fixed(), z(100)]);
     
-    // ==================== HERO PANEL (Bottom, Dota-style) ====================
+    // ==================== HERO PANEL (Bottom, Dota-style with sprite-like design) ====================
     const heroPanelHeight = 130;
     const heroPanelY = VH - heroPanelHeight;
     
-    // Hero panel background with gradient effect (full width at bottom)
-    // Dark base
+    // Hero panel background with multi-layer sprite-like effect
+    // Base dark layer
     const heroPanelBg = add([
         rect(VW, heroPanelHeight),
         pos(0, heroPanelY),
-        color(15, 12, 8),
+        color(12, 10, 8),
         opacity(0.98),
         fixed(),
         z(95)
     ]);
     
-    // Top border (golden)
+    // Middle layer (texture effect)
+    add([
+        rect(VW, heroPanelHeight - 4),
+        pos(0, heroPanelY + 2),
+        color(18, 15, 12),
+        opacity(0.6),
+        fixed(),
+        z(96)
+    ]);
+    
+    // Top decorative border (golden metallic)
     const heroPanelFrameTop = add([
-        rect(VW, 3),
+        rect(VW, 4),
         pos(0, heroPanelY),
-        color(120, 100, 60),
+        color(140, 120, 80),
         fixed(),
-        z(96)
+        z(97)
+    ]);
+    // Top border highlight
+    add([
+        rect(VW, 1),
+        pos(0, heroPanelY),
+        color(180, 160, 100),
+        fixed(),
+        z(98)
     ]);
     
-    // Bottom border
+    // Bottom border (darker)
     const heroPanelFrameBottom = add([
-        rect(VW, 2),
-        pos(0, VH - 2),
-        color(60, 50, 35),
+        rect(VW, 3),
+        pos(0, VH - 3),
+        color(50, 40, 30),
         fixed(),
-        z(96)
+        z(97)
     ]);
     
-    // Decorative side borders
+    // Left decorative border (thick metallic frame)
     add([
-        rect(4, heroPanelHeight),
+        rect(6, heroPanelHeight),
         pos(0, heroPanelY),
-        color(80, 65, 45),
+        color(60, 50, 40),
         fixed(),
-        z(96)
+        z(97)
     ]);
     add([
-        rect(4, heroPanelHeight),
-        pos(VW - 4, heroPanelY),
-        color(80, 65, 45),
+        rect(2, heroPanelHeight - 4),
+        pos(2, heroPanelY + 2),
+        color(100, 85, 70),
         fixed(),
-        z(96)
+        z(98)
+    ]);
+    
+    // Right decorative border
+    add([
+        rect(6, heroPanelHeight),
+        pos(VW - 6, heroPanelY),
+        color(60, 50, 40),
+        fixed(),
+        z(97)
+    ]);
+    add([
+        rect(2, heroPanelHeight - 4),
+        pos(VW - 4, heroPanelY + 2),
+        color(100, 85, 70),
+        fixed(),
+        z(98)
+    ]);
+    
+    // Decorative corner elements (sprite-like details)
+    const cornerSize = 12;
+    // Top-left corner
+    add([
+        rect(cornerSize, 2),
+        pos(6, heroPanelY),
+        color(160, 140, 100),
+        fixed(),
+        z(99)
+    ]);
+    add([
+        rect(2, cornerSize),
+        pos(6, heroPanelY),
+        color(160, 140, 100),
+        fixed(),
+        z(99)
+    ]);
+    // Top-right corner
+    add([
+        rect(cornerSize, 2),
+        pos(VW - cornerSize - 6, heroPanelY),
+        color(160, 140, 100),
+        fixed(),
+        z(99)
+    ]);
+    add([
+        rect(2, cornerSize),
+        pos(VW - 8, heroPanelY),
+        color(160, 140, 100),
+        fixed(),
+        z(99)
     ]);
     
     // Hero portrait (left side, but not overlapping minimap - minimap is at x=10, y=80, size=180)
